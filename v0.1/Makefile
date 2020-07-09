@@ -21,11 +21,18 @@ include example_submission/Makefile.inc
 SRCS += \
 device_harness/main.cc
 
-OBJS := \
-$(patsubst %.cc,%.o,$(patsubst %.c,%.o,$(SRCS)))
+VWW_SRCS := $(SRCS) \
+vww/vww_model_data.cc \
+vww/vww_model_settings.cc \
+vww/vww_inputs.cc 
 
-CXXFLAGS += -std=c++11
-CCFLAGS +=  -std=c11
+VWW_OBJS += \
+$(patsubst %.cc,%.o,$(VWW_SRCS))
+
+OBJS += $(VWW_OBJS)
+
+CXXFLAGS += -std=c++11 -I.
+CCFLAGS +=  -std=c11 -I.
 
 LDFLAGS +=  -lm
 
@@ -35,11 +42,19 @@ LDFLAGS +=  -lm
 %.o: %.c
 	$(CC) $(CCFLAGS) $(INCLUDES) -c $< -o $@
 
-tinyml_perf_runner : $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $@ $(OBJS) $(LDFLAGS)
+all: vww
 
-all: tinyml_perf_runner
+vww: vww_perf_runner
+
+vww_perf_runner : download_deps $(VWW_OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $(VWW_OBJS) $(LDFLAGS)
+
+download_deps:
+	$(DOWNLOAD_DEPS)
 
 clean:
 	-$(RM) $(OBJS)
-	-$(RM) tinyml_perf_runner
+	-$(RM) vww_perf_runner
+
+clean_downloads:
+	$(RM) -r $(DOWNLOADS)
