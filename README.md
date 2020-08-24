@@ -11,6 +11,6 @@ best hardware for their use case, and allows hardware vendors to showcase their
 offerings.
 
 TinyMLPerf is primarily intended to benchmark hardware rather than new network
-archietctures, or embedded neural net runtimes. Samples are provided using
-Tensorflow for Microcontrollers, but submitters are encouraged to use the
-software stack that works best on thier hardware.
+archietctures, or embedded neural net runtimes. The reference benchmarks are provided using
+TensorFlow Lite for Microcontrollers (TFLM). Submitters can directly use the TFLM, although 
+submitters are encouraged to use the software stack that works best on thier hardware.
