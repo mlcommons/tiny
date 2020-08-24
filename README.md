@@ -1,4 +1,4 @@
-#tinyMLPerf Deep Learning Benchmarks for Embedded Devices
+# tinyMLPerf Deep Learning Benchmarks for Embedded Devices
 
 The goal of TinyMLPerf is to provide a representative set of deep neural nets
 and benchmarking code to compare performance between embedded devices. Embedded
