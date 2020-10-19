@@ -113,7 +113,7 @@ if __name__ == '__main__':
   FLAGS, unparsed = parser.parse_known_args()
 
   print('We will download data to {:}'.format(FLAGS.data_dir))
-  print('we will train for {:d} epochs'.format(FLAGS.epochs))
+  print('we will train for {:} epochs'.format(FLAGS.epochs))
   ds_train, ds_test, ds_val = aww_data.get_training_data(FLAGS)
   print("Done getting data")
   model = models.get_model(model_name=FLAGS.model_architecture)
