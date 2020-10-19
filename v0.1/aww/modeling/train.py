@@ -95,7 +95,7 @@ if __name__ == '__main__':
       help='How many bins to use for the MFCC fingerprint',)
   parser.add_argument(
       '--epochs',
-      type=str,
+      type=int,
       default=100,
       help='How many epochs to train',)
   parser.add_argument(
