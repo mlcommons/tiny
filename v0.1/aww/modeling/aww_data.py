@@ -36,7 +36,7 @@ def cast_and_pad(sample_dict):
   audio16 = tf.cast(audio, 'int16')
   return audio16, label
 
-def wavds2specds(ds_wav):
+def wavds2specds(ds_wav, Flags):
   """ Convert a dataset of waveforms into a dataset of spectrograms
   """
   specgrams = []
@@ -47,22 +47,25 @@ def wavds2specds(ds_wav):
     if wav.shape != (16000,) or label.shape != ():
         print(f"In Loop Shape is wrong at {cnt}: {wav.shape}, {label.shape}")
     cnt += 1
-    spec = frontend_op.audio_microfrontend(wav, sample_rate=16000, window_size=40, window_step=20, num_channels=40)
+    spec = frontend_op.audio_microfrontend(wav, sample_rate=Flags.sample_rate,
+                                           window_size=Flags.window_size_ms,
+                                           window_step=Flags.window_stride_ms,
+                                           num_channels=Flags.dct_coefficient_count)
     spec = tf.cast(spec, 'float32') / 1000.0
     specgrams.append(spec)
     # label = keras.utils.to_categorical(label, num_classes)
     labels.append(label)
     if (cnt % 250) == 0: 
       print(f"Converted {cnt} samples to spectrogram")
-
-
+  print(f"Finished converting {cnt} samples to spectrogram.")
   ds_specs = tf.data.Dataset.from_tensor_slices((specgrams, labels))
   return ds_specs
 
-def get_training_data(FLAGS):
+def get_training_data(Flags):
   splits = ['train', 'test', 'validation']
   (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
-                                           data_dir=FLAGS.data_dir, with_info=True)
+                            data_dir=Flags.data_dir, with_info=True)
+
   ## Options: 
   #     split=None,
   #     data_dir=None,
@@ -75,21 +78,27 @@ def get_training_data(FLAGS):
   #     as_dataset_kwargs=None,
 
 
+  if Flags.num_train_samples != -1:
+    ds_train = ds_train.take(Flags.num_train_samples)
+  if Flags.num_val_samples != -1:
+    ds_val = ds_val.take(Flags.num_val_samples)
+  if Flags.num_test_samples != -1:
+    ds_test = ds_test.take(Flags.num_test_samples)
+    
   ds_train = ds_train.map(cast_and_pad, num_parallel_calls=tf.data.experimental.AUTOTUNE)
   ds_test = ds_test.map(cast_and_pad, num_parallel_calls=tf.data.experimental.AUTOTUNE)
   ds_val = ds_val.map(cast_and_pad, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-
-  ds_train_specs = wavds2specds(ds_train)
-  ds_train_specs = ds_train_specs.shuffle(ds_info.splits['train'].num_examples).batch(FLAGS.batch_size)
+  ds_train_specs = wavds2specds(ds_train, Flags)
+  ds_train_specs = ds_train_specs.shuffle(ds_info.splits['train'].num_examples).batch(Flags.batch_size)
   # ds_train = ds_train.cache()
   # ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
 
-  ds_test_specs = wavds2specds(ds_test)
-  ds_test_specs  = ds_test_specs.shuffle(ds_info.splits['test'].num_examples).batch(FLAGS.batch_size)  
+  ds_test_specs = wavds2specds(ds_test, Flags)
+  ds_test_specs  = ds_test_specs.shuffle(ds_info.splits['test'].num_examples).batch(Flags.batch_size)  
 
-  ds_val_specs = wavds2specds(ds_val)
-  ds_val_specs   = ds_val_specs.shuffle(ds_info.splits['validation'].num_examples).batch(FLAGS.batch_size)
+  ds_val_specs = wavds2specds(ds_val, Flags)
+  ds_val_specs   = ds_val_specs.shuffle(ds_info.splits['validation'].num_examples).batch(Flags.batch_size)
 
   print("created and batched dataset")
   
