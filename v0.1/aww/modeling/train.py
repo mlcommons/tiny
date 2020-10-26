@@ -26,6 +26,21 @@ if __name__ == '__main__':
       Where to download the speech training data to. Or where it is already saved.
       """)
   parser.add_argument(
+      '--preprocessed_data_dir',
+      type=str,
+      default=os.path.join(os.getenv('HOME'), 'data/speech_commands_preprocessed'),
+      help="""\
+      Where to store preprocessed speech data (spectrograms) or load it, if it exists
+      with the same parameters as are used in the current run.
+      """)
+  parser.add_argument(
+      '--save_preprocessed_data',
+      type=bool,
+      default=True,
+      help="""\
+      Where to download the speech training data to. Or where it is already saved.
+      """)
+  parser.add_argument(
       '--background_volume',
       type=float,
       default=0.1,
