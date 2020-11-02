@@ -4,3 +4,4 @@ tmp/
 *.tmp
 *.pyc
 __pycache__
+*.h5

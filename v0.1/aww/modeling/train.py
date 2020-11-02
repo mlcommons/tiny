@@ -103,23 +103,23 @@ if __name__ == '__main__':
   parser.add_argument(
       '--epochs',
       type=int,
-      default=100,
+      default=50,
       help='How many epochs to train',)
   parser.add_argument(
       '--num_train_samples',
       type=int,
-      default=-1,
-      help='How many samples from the training set to use',)
+      default=85511,
+    help='How many samples from the training set to use',)
   parser.add_argument(
       '--num_val_samples',
       type=int,
-      default=-1,
-      help='How many samples from the validation set to use',)
+      default=10102,
+    help='How many samples from the validation set to use',)
   parser.add_argument(
       '--num_test_samples',
       type=int,
-      default=-1,
-      help='How many samples from the test set to use',)
+      default=4890,
+    help='How many samples from the test set to use',)
   parser.add_argument(
       '--batch_size',
       type=int,
@@ -130,7 +130,16 @@ if __name__ == '__main__':
       type=str,
       default='ds_cnn',
       help='What model architecture to use')
-
+  parser.add_argument(
+      '--saved_model_path',
+      type=str,
+      default='pretrained_model',
+      help='File name to load pretrained model')
+  parser.add_argument(
+      '--run_test_set',
+      type=bool,
+      default=True,
+      help='Run model.eval() on test set if True')
 
   Flags, unparsed = parser.parse_known_args()
 
@@ -139,5 +148,12 @@ if __name__ == '__main__':
   ds_train, ds_test, ds_val = aww_data.get_training_data(Flags)
   print("Done getting data")
   model = models.get_model(model_name=Flags.model_architecture)
+  model.summary()
+  
   model.fit(ds_train, validation_data=ds_val, epochs=Flags.epochs)
-
+  model.save(Flags.saved_model_path)
+  
+  if Flags.run_test_set:
+    test_scores = model.evaluate(ds_test)
+    print("Test loss:", test_scores[0])
+    print("Test accuracy:", test_scores[1])
