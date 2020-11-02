@@ -88,6 +88,11 @@ def get_training_data(Flags):
   spectrogram_length = int((Flags.clip_duration_ms- (Flags.window_size_ms - Flags.window_stride_ms)) /
                            Flags.window_stride_ms)
   
+  ##  this is taken from the dataset web page.  there should be a better way than hard-coding this
+  train_shuffle_buffer_size = 85511
+  val_shuffle_buffer_size = 10102
+  test_shuffle_buffer_size = 4890
+  
   running_preprocessor=False
   if not good_preproc_data_available(Flags):
     running_preprocessor=True
@@ -107,6 +112,11 @@ def get_training_data(Flags):
     #     download_and_prepare_kwargs=None,
     #     as_dataset_kwargs=None,
   
+
+    ds_train = ds_train.shuffle(train_shuffle_buffer_size)
+    ds_val = ds_val.shuffle(val_shuffle_buffer_size)
+    ds_test = ds_test.shuffle(test_shuffle_buffer_size)
+
     if Flags.num_train_samples != -1:
       ds_train = ds_train.take(Flags.num_train_samples)
     if Flags.num_val_samples != -1:
@@ -169,7 +179,7 @@ def get_training_data(Flags):
     print("We have preprocessed the data, but we're not saving it")
 
   # Now that we've acquired the preprocessed data, either by processing or loading,
-  ds_train_specs = ds_train_specs.shuffle(Flags.num_train_samples)
+  ds_train_specs = ds_train_specs.shuffle(train_shuffle_buffer_size)
   ds_train_specs = ds_train_specs.batch(Flags.batch_size)
   # ds_train = ds_train.cache()
   # ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
