@@ -103,30 +103,35 @@ parser.add_argument(
     type=str,
     default='pretrained_model',
     help='File name to load pretrained model')
+parser.add_argument(
+    '--tfl_file_name',
+    default='aww_model.tflite',
+    help='File name to which the TF Lite model will be saved')
 
-
-num_calibration_steps = 500
+num_calibration_steps = 10
 saved_model_dir = './pretrained_model'
 converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
 Flags, unparsed = parser.parse_known_args()
 _, _, ds_val = aww_data.get_training_data(Flags)
-ds_val = ds_val.unbatch()
+# ds_val = ds_val.batch(1) # can we use a larger batch?
 
 def representative_dataset_gen():
   for _ in range(num_calibration_steps):
-    # Get sample input data as a numpy array in a method of your choosing.
       next_input = np.expand_dims(next(ds_val.as_numpy_iterator())[0], 3)
-      print(f"Next input has type {type(next_input)}")
-      print(f"Next input has shape {next_input.shape}")      
       yield [next_input]
+    
+
+# tst_val = next(representative_dataset_gen)
+# print('rep data shape = {:}'.format(tst_val.shape))
 
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
-
 converter.representative_dataset = representative_dataset_gen
 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
 converter.inference_input_type = tf.int8  # or tf.uint8
 converter.inference_output_type = tf.int8  # or tf.uint8
 tflite_quant_model = converter.convert()
-open('aww_model.tflite', "wb").write(model_tflite)
+with open(Flags.tfl_file_name, "wb") as fpo:
+    fpo.write(tflite_quant_model)
+
