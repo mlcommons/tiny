@@ -150,7 +150,7 @@ if __name__ == '__main__':
   model = models.get_model(model_name=Flags.model_architecture)
   model.summary()
   
-  model.fit(ds_train, validation_data=ds_val, epochs=Flags.epochs)
+  train_hist = model.fit(ds_train, validation_data=ds_val, epochs=Flags.epochs)
   model.save(Flags.saved_model_path)
   
   if Flags.run_test_set:
