@@ -13,7 +13,7 @@ def main(argv):
     model = tf.keras.models.load_model(argv[1])
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     tflite_model = converter.convert()
-    with tf.io.gfile.GFile('vww_96_float.tflite', 'wb') as float_file:
+    with tf.io.gfile.GFile('trained_models/vww_96_float.tflite', 'wb') as float_file:
         float_file.write(tflite_model)
 
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -37,7 +37,7 @@ def main(argv):
     converter.inference_input_type = tf.int8
     converter.inference_output_type = tf.int8
     quantized_tflite_model = converter.convert()
-    with tf.io.gfile.GFile('vww_96_int8.tflite', 'wb') as quantized_file:
+    with tf.io.gfile.GFile('trained_models/vww_96_int8.tflite', 'wb') as quantized_file:
         quantized_file.write(quantized_tflite_model)
 
 
