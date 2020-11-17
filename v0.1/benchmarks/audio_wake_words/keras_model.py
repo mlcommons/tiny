@@ -16,8 +16,8 @@ from tensorflow.keras.regularizers import l2
 
 
 
-
-def get_model(model_name="fc4", num_classes=12):
+def get_model(args):
+  model_name = args.model_architecture
   if model_name=="fc4":
     model = tf.keras.models.Sequential([
         tf.keras.layers.Flatten(input_shape=(49, 40)),
@@ -100,7 +100,7 @@ def get_model(model_name="fc4", num_classes=12):
     raise ValueError("Model name {:} not supported".format(model_name))
 
   model.compile(
-    optimizer=keras.optimizers.RMSprop(),  # Optimizer
+    optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
     # Loss function to minimize
     loss=keras.losses.SparseCategoricalCrossentropy(),
     # List of metrics to monitor

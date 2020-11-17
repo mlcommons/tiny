@@ -88,7 +88,7 @@ def parse_command():
   parser.add_argument(
       '--epochs',
       type=int,
-      default=50,
+      default=36,
       help='How many epochs to train',)
   parser.add_argument(
       '--num_train_samples',
@@ -129,6 +129,23 @@ def parse_command():
       '--tfl_file_name',
       default='aww_model.tflite',
       help='File name to which the TF Lite model will be saved')
+  parser.add_argument(
+      '--learning_rate',
+      type=float,
+      default=0.00001,
+      help='Initial LR',)
+  parser.add_argument(
+      '--lr_sched_name',
+      type=str,
+      default='step_function',
+      help='lr schedule scheme name to be picked from lr.py')  
+  parser.add_argument(
+      '--plot_dir',
+      type=str,
+      default=os.path.join(os.getenv('HOME'), 'plot_dir'),
+      help="""\
+      Directory where plots of accuracy vs Epochs are stored
+      """)
   
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed
