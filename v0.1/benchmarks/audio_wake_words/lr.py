@@ -9,8 +9,10 @@ def step_function_wrapper(batch_size):
             return 0.0005
         elif (epoch < 24):
             return 0.0001
-        else:
+        elif (epoch < 36):
             return 0.00002
+        else:
+            return 0.00001
     return step_function
 
 def get_callbacks(args):
