@@ -13,6 +13,7 @@ import argparse
 
 import keras_model as models
 import get_dataset as aww_data
+import get_dataset_exp as aww_data_exp
 import aww_util
 from lr import get_callbacks
 from plot import plot
@@ -25,7 +26,8 @@ if __name__ == '__main__':
 
   print('We will download data to {:}'.format(Flags.data_dir))
   print('We will train for {:} epochs'.format(Flags.epochs))
-  ds_train, ds_test, ds_val = aww_data.get_training_data(Flags)
+  #ds_train, ds_test, ds_val = aww_data.get_training_data(Flags)
+  ds_train, ds_test, ds_val = aww_data_exp.get_training_data(Flags)
   print("Done getting data")
   model = models.get_model(args=Flags)
   model.summary()
