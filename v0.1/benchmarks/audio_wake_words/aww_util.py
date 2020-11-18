@@ -1,36 +1,29 @@
-#!/usr/bin/env python
-
-import tensorflow as tf
-import tensorflow_datasets as tfds
-from tensorflow.lite.experimental.microfrontend.python.ops import audio_microfrontend_op as frontend_op
-from tensorflow import keras
-from tensorflow.keras import layers
-
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import argparse
 
-import models, aww_data
-
-num_classes = 12 # should probably draw this directly from the dataset.
-FLAGS = None
-
-if __name__ == '__main__':
+def parse_command():
   parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--data_url',
-      type=str,
-      # pylint: disable=line-too-long
-      default='http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz',
-      # pylint: enable=line-too-long
-      help='Location of speech training data archive on the web.')
   parser.add_argument(
       '--data_dir',
       type=str,
-      default=os.getenv('HOME')+'/data/',
+      default=os.path.join(os.getenv('HOME'), 'data'),
       help="""\
-      Where to download the speech training data to.
+      Where to download the speech training data to. Or where it is already saved.
+      """)
+  parser.add_argument(
+      '--preprocessed_data_dir',
+      type=str,
+      default=os.path.join(os.getenv('HOME'), 'data/speech_commands_preprocessed'),
+      help="""\
+      Where to store preprocessed speech data (spectrograms) or load it, if it exists
+      with the same parameters as are used in the current run.
+      """)
+  parser.add_argument(
+      '--save_preprocessed_data',
+      type=bool,
+      default=True,
+      help="""\
+      Where to download the speech training data to. Or where it is already saved.
       """)
   parser.add_argument(
       '--background_volume',
@@ -67,7 +60,6 @@ if __name__ == '__main__':
       help="""\
       Range to randomly shift the training audio by in time.
       """)
-
   parser.add_argument(
       '--sample_rate',
       type=int,
@@ -86,7 +78,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--window_stride_ms',
       type=float,
-      default=10.0,
+      default=20.0,
       help='How long each spectrogram timeslice is',)
   parser.add_argument(
       '--dct_coefficient_count',
@@ -96,8 +88,23 @@ if __name__ == '__main__':
   parser.add_argument(
       '--epochs',
       type=int,
-      default=100,
+      default=50,
       help='How many epochs to train',)
+  parser.add_argument(
+      '--num_train_samples',
+      type=int,
+      default=85511,
+    help='How many samples from the training set to use',)
+  parser.add_argument(
+      '--num_val_samples',
+      type=int,
+      default=10102,
+    help='How many samples from the validation set to use',)
+  parser.add_argument(
+      '--num_test_samples',
+      type=int,
+      default=4890,
+    help='How many samples from the test set to use',)
   parser.add_argument(
       '--batch_size',
       type=int,
@@ -106,16 +113,22 @@ if __name__ == '__main__':
   parser.add_argument(
       '--model_architecture',
       type=str,
-      default='fc4',
+      default='ds_cnn',
       help='What model architecture to use')
-
-
-  FLAGS, unparsed = parser.parse_known_args()
-
-  print('We will download data to {:}'.format(FLAGS.data_dir))
-  print('we will train for {:} epochs'.format(FLAGS.epochs))
-  ds_train, ds_test, ds_val = aww_data.get_training_data(FLAGS)
-  print("Done getting data")
-  model = models.get_model(model_name=FLAGS.model_architecture)
-  model.fit(ds_train, validation_data=ds_val, epochs=FLAGS.epochs)
-
+  parser.add_argument(
+      '--run_test_set',
+      type=bool,
+      default=True,
+      help='Run model.eval() on test set if True')
+  parser.add_argument(
+      '--saved_model_path',
+      type=str,
+      default='trained_models/scratch',
+      help='File name to load pretrained model')
+  parser.add_argument(
+      '--tfl_file_name',
+      default='aww_model.tflite',
+      help='File name to which the TF Lite model will be saved')
+  
+  Flags, unparsed = parser.parse_known_args()
+  return Flags, unparsed
