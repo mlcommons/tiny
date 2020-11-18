@@ -11,6 +11,13 @@ def parse_command():
       Where to download the speech training data to. Or where it is already saved.
       """)
   parser.add_argument(
+      '--bg_path',
+      type=str,
+      default=os.path.join(os.getenv('PWD')),
+      help="""\
+      Where to find background noise folder.
+      """)
+  parser.add_argument(
       '--preprocessed_data_dir',
       type=str,
       default=os.path.join(os.getenv('HOME'), 'data/speech_commands_preprocessed'),
