@@ -35,7 +35,7 @@ def get_model(args):
 
   elif model_name == 'ds_cnn':
     print("DS CNN model invoked")
-    input_shape = [49,40,1]
+    input_shape = [49,10,1]
     num_classes = 12
     filters = 64
     weight_decay = 1e-4
