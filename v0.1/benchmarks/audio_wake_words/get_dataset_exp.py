@@ -252,17 +252,9 @@ def get_training_data(Flags):
   ds_test_specs = ds_test_specs.map(convert_dataset)
   ds_val_specs = ds_val_specs.map(convert_dataset)
   # Now that we've acquired the preprocessed data, either by processing or loading,
-  ds_train_specs = ds_train_specs.shuffle(train_shuffle_buffer_size)
   ds_train_specs = ds_train_specs.batch(Flags.batch_size)
-  # ds_train = ds_train.cache()
-  # ds_train = ds_train.prefetch(tf.data.experimental.AUTOTUNE)
-
-  ds_test_specs = ds_test_specs.shuffle(Flags.num_test_samples)
   ds_test_specs = ds_test_specs.batch(Flags.batch_size)  
-
-  ds_val_specs = ds_val_specs.shuffle(Flags.num_val_samples)
   ds_val_specs = ds_val_specs.batch(Flags.batch_size)
-
 
   return ds_train_specs, ds_test_specs, ds_val_specs
 

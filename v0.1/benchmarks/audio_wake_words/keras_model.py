@@ -100,7 +100,8 @@ def get_model(args):
     raise ValueError("Model name {:} not supported".format(model_name))
 
   model.compile(
-    optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
+    #optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
+    optimizer=keras.optimizers.Adam(learning_rate=args.learning_rate),  # Optimizer
     # Loss function to minimize
     loss=keras.losses.SparseCategoricalCrossentropy(),
     # List of metrics to monitor
