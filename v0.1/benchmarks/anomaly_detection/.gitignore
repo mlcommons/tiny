@@ -1,0 +1,6 @@
+/dev_data/
+/venv/
+/__pycache__/
+/baseline.log
+/model/
+/result/
