@@ -153,6 +153,16 @@ def parse_command():
       help="""\
       Directory where plots of accuracy vs Epochs are stored
       """)
-  
+  parser.add_argument(
+    '--preproc_dtype',
+      type=str,
+      default='uint8',
+      help='Data type of the preprocessed (filterbanked) audio')
+  parser.add_argument(
+      '--force_preproc',
+      type=bool,
+      default=False,
+      help='Re-run the preprocessing even if it appears that good processed data are available')
+
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed
