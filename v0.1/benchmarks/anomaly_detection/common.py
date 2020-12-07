@@ -157,6 +157,8 @@ def file_to_vector_array(file_name,
 
     # 03 convert melspectrogram to log mel energy
     log_mel_spectrogram = 20.0 / power * numpy.log10(mel_spectrogram + sys.float_info.epsilon)
+    log_mel_spectrogram = log_mel_spectrogram[:,50:250];
+
 
     # 04 calculate total vector size
     vector_array_size = len(log_mel_spectrogram[0, :]) - frames + 1
