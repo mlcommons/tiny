@@ -16,14 +16,17 @@ and its converted versions.
 Run the following commands to go through the whole training and validation process
 
 ``` Bash
-# Prepare Python venv (Python 3.6+ required)
-./prepare.sh
-
 # Download training data from Zenodo
-./download.sh
+./get_dataset.sh
 
-# Train, convert, and test the model
-./train_and_convert.sh
+# Prepare Python venv (Python 3.6+ required)
+./prepare_training_env.sh
+
+# Train and test the model
+./train.sh
+
+# Convert the model to TFlite, and thest conversion quality
+./convert_to_tflite.sh
 ```
 
 ## Description
