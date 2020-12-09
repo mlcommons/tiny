@@ -2,7 +2,7 @@
 
 The goal of TinyMLPerf is to provide a representative set of deep neural nets
 and benchmarking code to compare performance between embedded devices. Embedded
-devices include microcontrollers, DSPs, and tiny NN accelerators.  These devics
+devices include microcontrollers, DSPs, and tiny NN accelerators.  These devices
 typically run at between 10MHz and 250MHz, and can perform inference using less
 then 50mW of power.
 
