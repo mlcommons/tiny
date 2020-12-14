@@ -6,10 +6,14 @@ from tensorflow.lite.experimental.microfrontend.python.ops import audio_microfro
 from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.python.platform import gfile
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os, pickle
+
 import aww_util
+import keras_model as models
+
 
 def convert_to_int16(sample_dict):
   audio = sample_dict['audio']
@@ -31,41 +35,6 @@ def convert_dataset(item):
     label = item['label']
     return image, label
 
-def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
-                               window_size_ms, window_stride_ms,
-                               dct_coefficient_count,background_frequency):
-      """Calculates common settings needed for all models.
-      Args:
-        label_count: How many classes are to be recognized.
-        sample_rate: Number of audio samples per second.
-        clip_duration_ms: Length of each audio clip to be analyzed.
-        window_size_ms: Duration of frequency analysis window.
-        window_stride_ms: How far to move in time between frequency windows.
-        dct_coefficient_count: Number of frequency bins to use for analysis.
-      Returns:
-        Dictionary containing common settings.
-      """
-      desired_samples = int(sample_rate * clip_duration_ms / 1000)
-      window_size_samples = int(sample_rate * window_size_ms / 1000)
-      window_stride_samples = int(sample_rate * window_stride_ms / 1000)
-      length_minus_window = (desired_samples - window_size_samples)
-      if length_minus_window < 0:
-        spectrogram_length = 0
-      else:
-        spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
-      fingerprint_size = dct_coefficient_count * spectrogram_length
-      return {
-          'desired_samples': desired_samples,
-          'window_size_samples': window_size_samples,
-          'window_stride_samples': window_stride_samples,
-          'spectrogram_length': spectrogram_length,
-          'dct_coefficient_count': dct_coefficient_count,
-          'fingerprint_size': fingerprint_size,
-          'label_count': label_count,
-          'sample_rate': sample_rate,
-          'background_frequency': 0.8,
-          'background_volume_range_': 0.1
-      }
 
 def get_preprocess_audio_func(model_settings,is_training=False,background_data = []):
     def prepare_processing_graph(next_element):
@@ -218,7 +187,7 @@ def get_training_data(Flags):
   label_count=12
   background_frequency = Flags.background_frequency
   background_volume_range_= Flags.background_volume
-  model_settings = prepare_model_settings(label_count, sample_rate, clip_duration_ms,
+  model_settings = models.prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                                window_size_ms, window_stride_ms,
                                dct_coefficient_count,background_frequency)
   # this is taken from the dataset web page.
