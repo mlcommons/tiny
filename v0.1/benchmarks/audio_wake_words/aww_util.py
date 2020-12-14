@@ -90,7 +90,7 @@ def parse_command():
   parser.add_argument(
       '--dct_coefficient_count',
       type=int,
-      default=40,
+      default=10,
       help='How many bins to use for the MFCC fingerprint',)
   parser.add_argument(
       '--epochs',
