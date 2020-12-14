@@ -14,13 +14,55 @@ from tensorflow.keras.layers import Input, Dense, Activation, Flatten, BatchNorm
 from tensorflow.keras.layers import Conv2D, DepthwiseConv2D, AveragePooling2D
 from tensorflow.keras.regularizers import l2
 
+def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
+                               window_size_ms, window_stride_ms,
+                               dct_coefficient_count,background_frequency):
+      """Calculates common settings needed for all models.
+      Args:
+        label_count: How many classes are to be recognized.
+        sample_rate: Number of audio samples per second.
+        clip_duration_ms: Length of each audio clip to be analyzed.
+        window_size_ms: Duration of frequency analysis window.
+        window_stride_ms: How far to move in time between frequency windows.
+        dct_coefficient_count: Number of frequency bins to use for analysis.
+      Returns:
+        Dictionary containing common settings.
+      """
+      desired_samples = int(sample_rate * clip_duration_ms / 1000)
+      window_size_samples = int(sample_rate * window_size_ms / 1000)
+      window_stride_samples = int(sample_rate * window_stride_ms / 1000)
+      length_minus_window = (desired_samples - window_size_samples)
+      if length_minus_window < 0:
+        spectrogram_length = 0
+      else:
+        spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
+      fingerprint_size = dct_coefficient_count * spectrogram_length
+      return {
+          'desired_samples': desired_samples,
+          'window_size_samples': window_size_samples,
+          'window_stride_samples': window_stride_samples,
+          'spectrogram_length': spectrogram_length,
+          'dct_coefficient_count': dct_coefficient_count,
+          'fingerprint_size': fingerprint_size,
+          'label_count': label_count,
+          'sample_rate': sample_rate,
+          'background_frequency': 0.8,
+          'background_volume_range_': 0.1
+      }
+
 
 
 def get_model(args):
   model_name = args.model_architecture
+
+  label_count=12
+  model_settings = prepare_model_settings(label_count, args.sample_rate, args.clip_duration_ms,
+                               args.window_size_ms, args.window_stride_ms,
+                               args.dct_coefficient_count,args.background_frequency)
+
   if model_name=="fc4":
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(input_shape=(49, 40)),
+        tf.keras.layers.Flatten(input_shape=(model_settings['spectrogram_length'], model_settings['dct_coefficient_count'])),
         tf.keras.layers.Dense(256, activation='relu'),
         # tf.keras.layers.Dropout(0.2),
         tf.keras.layers.BatchNormalization(),
@@ -30,13 +72,12 @@ def get_model(args):
         tf.keras.layers.Dense(256, activation='relu'),
         # tf.keras.layers.Dropout(0.2),
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(num_classes, activation="softmax")
+        tf.keras.layers.Dense(model_settings['label_count'], activation="softmax")
     ])
 
   elif model_name == 'ds_cnn':
     print("DS CNN model invoked")
-    input_shape = [49,10,1]
-    num_classes = 12
+    input_shape = [model_settings['spectrogram_length'], model_settings['dct_coefficient_count'],1]
     filters = 64
     weight_decay = 1e-4
     regularizer = l2(weight_decay)
@@ -88,7 +129,7 @@ def get_model(args):
     x = AveragePooling2D(pool_size=(25,5))(x)
 
     x = Flatten()(x)
-    outputs = Dense(num_classes, activation='softmax')(x)
+    outputs = Dense(model_settings['label_count'], activation='softmax')(x)
 
     # Instantiate model.
     model = Model(inputs=inputs, outputs=outputs)
