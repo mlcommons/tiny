@@ -11,6 +11,13 @@ def parse_command():
       Where to download the speech training data to. Or where it is already saved.
       """)
   parser.add_argument(
+      '--bg_path',
+      type=str,
+      default=os.path.join(os.getenv('PWD')),
+      help="""\
+      Where to find background noise folder.
+      """)
+  parser.add_argument(
       '--preprocessed_data_dir',
       type=str,
       default=os.path.join(os.getenv('HOME'), 'data/speech_commands_preprocessed'),
@@ -83,12 +90,12 @@ def parse_command():
   parser.add_argument(
       '--dct_coefficient_count',
       type=int,
-      default=40,
+      default=10,
       help='How many bins to use for the MFCC fingerprint',)
   parser.add_argument(
       '--epochs',
       type=int,
-      default=50,
+      default=36,
       help='How many epochs to train',)
   parser.add_argument(
       '--num_train_samples',
@@ -129,6 +136,23 @@ def parse_command():
       '--tfl_file_name',
       default='aww_model.tflite',
       help='File name to which the TF Lite model will be saved')
+  parser.add_argument(
+      '--learning_rate',
+      type=float,
+      default=0.00001,
+      help='Initial LR',)
+  parser.add_argument(
+      '--lr_sched_name',
+      type=str,
+      default='step_function',
+      help='lr schedule scheme name to be picked from lr.py')  
+  parser.add_argument(
+      '--plot_dir',
+      type=str,
+      default=os.path.join(os.getenv('HOME'), 'plot_dir'),
+      help="""\
+      Directory where plots of accuracy vs Epochs are stored
+      """)
   
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed
