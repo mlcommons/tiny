@@ -46,7 +46,7 @@ if __name__ == '__main__':
   
   test_data = ds_test.unbatch().batch(1).take(num_samps).as_numpy_iterator()
   for dat, label in test_data:
-    dat_q = np.array((dat/scale)*128, dtype=np.int8)
+    dat_q = np.array((dat/scale)*256-128, dtype=np.int8)
     dat_q = np.expand_dims(dat_q, 3)
     
     interpreter.set_tensor(input_details[0]['index'], dat_q)
