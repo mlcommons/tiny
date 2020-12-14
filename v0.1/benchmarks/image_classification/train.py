@@ -1,5 +1,10 @@
 '''
-author: PieMonty
+MLCommons
+group: TinyMLPerf (https://github.com/mlcommons/tiny)
+
+image classification on cifar10
+
+train.py desc: loads data, trains and saves model, plots metrics
 
 '''
 
@@ -9,6 +14,17 @@ import pickle
 import tensorflow as tf
 from keras.callbacks import LearningRateScheduler
 from keras.utils import to_categorical
+import keras_model
+
+import datetime
+
+# get date ant time to save model
+dt = datetime.datetime.today()
+year = dt.year
+month = dt.month
+day = dt.day
+hour = dt.hour
+minute = dt.minute
 
 """
 The CIFAR-10 dataset consists of 60000 32x32 colour images in 10 classes, with 6000 images per class. There are 50000 
@@ -118,17 +134,12 @@ def load_cifar_10_data(data_dir, negatives=False):
 
 
 if __name__ == "__main__":
-    """show it works"""
+    """load cifar10 data and trains model"""
 
     cifar_10_dir = 'cifar-10-batches-py'
 
     train_data, train_filenames, train_labels, test_data, test_filenames, test_labels, label_names = \
         load_cifar_10_data(cifar_10_dir)
-
-    train_labels = np.expand_dims(train_labels, axis=1)
-    test_labels = np.expand_dims(test_labels, axis=1)
-    train_labels = np.expand_dims(train_labels, axis=1)
-    test_labels = np.expand_dims(test_labels, axis=1)
 
     print("Train data: ", train_data.shape)
     print("Train filenames: ", train_filenames.shape)
@@ -153,17 +164,7 @@ if __name__ == "__main__":
     f.subplots_adjust(wspace=0)
     plt.show()
 
-    resnet50 = tf.keras.applications.ResNet50(
-        include_top=False,
-        weights='imagenet',
-        input_shape=(32,32,3),
-        pooling=None,
-        classes = 10,
-    )
-
-    y = resnet50.output
-    y = tf.keras.layers.Dense(10, activation='softmax')(y)
-    new_model = tf.keras.Model(inputs=resnet50.input, outputs=y)
+    new_model = keras_model.resnet_v1_eembc()
     new_model.summary()
 
     # compute quantities required for featurewise normalization
@@ -174,8 +175,13 @@ if __name__ == "__main__":
         optimizer=optimizer, loss='categorical_crossentropy', metrics='accuracy', loss_weights=None,
         weighted_metrics=None, run_eagerly=None )
 
+    EPOCHS = 1
     # fits the model on batches with real-time data augmentation:
-    new_model.fit(datagen.flow(train_data, train_labels, batch_size=32),
-              steps_per_epoch=len(train_data) / 32, epochs=50, callbacks=[lr_scheduler])
+    History = new_model.fit(datagen.flow(train_data, train_labels, batch_size=32),
+              steps_per_epoch=len(train_data) / 32, epochs=EPOCHS, callbacks=[lr_scheduler])
 
-
+    plt.plot(np.array(range(EPOCHS)), History.history['loss'])
+    plt.plot(np.array(range(EPOCHS)), History.history['accuracy'])
+    plt.savefig('train_loss_acc.png')
+    model_name = "trainedResnet_{y}{mo}{d}_{h}{mi}.h5".format(y=year, mo=month, d=day, h=hour, mi=minute)
+    new_model.save("trained_models/" + model_name)
