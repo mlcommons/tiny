@@ -1,2 +1,2 @@
-Model get saved with date and time:
-trainedResnet_date_time.h5
+Model get saved as:
+trainedResnet.h5
