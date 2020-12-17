@@ -4,8 +4,7 @@ group: TinyMLPerf (https://github.com/mlcommons/tiny)
 
 image classification on cifar10
 
-train.py desc: loads data, trains and saves model, plots metrics
-
+train.py desc: loads data, trains and saves model, plots training metrics
 '''
 
 import numpy as np
@@ -17,6 +16,9 @@ from keras.utils import to_categorical
 import keras_model
 
 import datetime
+
+EPOCHS = 500
+BS = 32
 
 # get date ant time to save model
 dt = datetime.datetime.today()
@@ -175,13 +177,13 @@ if __name__ == "__main__":
         optimizer=optimizer, loss='categorical_crossentropy', metrics='accuracy', loss_weights=None,
         weighted_metrics=None, run_eagerly=None )
 
-    EPOCHS = 1
     # fits the model on batches with real-time data augmentation:
-    History = new_model.fit(datagen.flow(train_data, train_labels, batch_size=32),
-              steps_per_epoch=len(train_data) / 32, epochs=EPOCHS, callbacks=[lr_scheduler])
+    History = new_model.fit(datagen.flow(train_data, train_labels, batch_size=BS),
+              steps_per_epoch=len(train_data) / BS, epochs=EPOCHS, callbacks=[lr_scheduler])
 
     plt.plot(np.array(range(EPOCHS)), History.history['loss'])
     plt.plot(np.array(range(EPOCHS)), History.history['accuracy'])
     plt.savefig('train_loss_acc.png')
-    model_name = "trainedResnet_{y}{mo}{d}_{h}{mi}.h5".format(y=year, mo=month, d=day, h=hour, mi=minute)
+    #model_name = "trainedResnet_{y}{mo}{d}_{h}{mi}.h5".format(y=year, mo=month, d=day, h=hour, mi=minute)
+    model_name = "trainedResnet.h5"
     new_model.save("trained_models/" + model_name)

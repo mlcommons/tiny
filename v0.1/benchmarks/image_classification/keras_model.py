@@ -5,7 +5,6 @@ group: TinyMLPerf (https://github.com/mlcommons/tiny)
 image classification on cifar10
 
 keras_model.py: CIFAR10_ResNetv1 from eembc
-target performances: https://github.com/SiliconLabs/platform_ml_models/tree/master/eembc/CIFAR10_ResNetv1
 '''
 
 import numpy as np
