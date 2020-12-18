@@ -29,7 +29,7 @@ def representative_dataset_generator():
 if __name__ == '__main__':
     converter = tf.lite.TFLiteConverter.from_keras_model(tfmodel)
     tflite_model = converter.convert()
-    open('trained_models/gest_rec_model.tflite', 'wb').write(tflite_model)
+    open('trained_models/tflite_resnet.tflite', 'wb').write(tflite_model)
 
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
@@ -37,4 +37,4 @@ if __name__ == '__main__':
     converter.inference_input_type = tf.int8
     converter.inference_output_type = tf.int8
     tflite_quant_model = converter.convert()
-    open('trained_models/gest_rec_quantized_model.tflite', 'wb').write(tflite_quant_model)
+    open('trained_models/tflite_quantized_resnet.tflite', 'wb').write(tflite_quant_model)
