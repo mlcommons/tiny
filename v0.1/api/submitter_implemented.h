@@ -24,7 +24,7 @@ This file reflects a modified version of th_lib from EEMBC. All wrapped libc
 methods from th_libc.h and all testharness methods from th_lib.h are here.
 ==============================================================================*/
 /// \file
-/// \brief Submitter-implemented methods required to perform inference. 
+/// \brief Submitter-implemented methods required to perform inference.
 /// \detail All methods with names starting with th_ are to be implemented by
 /// the submitter. All basic I/O, inference and timer APIs must be implemented
 /// in order for the benchmark to output useful results, but some auxiliary
@@ -41,13 +41,13 @@ methods from th_libc.h and all testharness methods from th_lib.h are here.
 #define EE_MSG_TIMESTAMP "m-lap-us-%lu\r\n"
 #define TH_VENDOR_NAME_STRING "unspecified"
 
-#define MAX_DB_INPUT_SIZE (96*96*3)
+#define MAX_DB_INPUT_SIZE (96 * 96 * 3)
 #define TH_MODEL_VERSION EE_MODEL_VERSION_VWW01
 
-#include <string.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
+#include <string.h>
 
 /// \brief required core API
 void th_load_tensor();
@@ -66,14 +66,14 @@ void th_post();
 void th_command_ready(char volatile *msg);
 
 /// \brief libc hooks
-int    th_strncmp(const char *str1, const char *str2, size_t n);
-char * th_strncpy(char *dest, const char *src, size_t n);
+int th_strncmp(const char *str1, const char *str2, size_t n);
+char *th_strncpy(char *dest, const char *src, size_t n);
 size_t th_strnlen(const char *str, size_t maxlen);
-char * th_strcat(char *dest, const char *src);
+char *th_strcat(char *dest, const char *src);
 char *th_strtok(/*@null@*/ char *str1, const char *sep);
-int   th_atoi(const char *str);
+int th_atoi(const char *str);
 void *th_memset(void *b, int c, size_t len);
 void *th_memcpy(void *dst, const void *src, size_t n);
-int   th_vprintf(const char *format, va_list ap);
+int th_vprintf(const char *format, va_list ap);
 
 #endif  // MLPERF_TINY_V0_1_API_SUBMITTER_IMPLEMENTED_H_

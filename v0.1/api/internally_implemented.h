@@ -1,4 +1,4 @@
-/* 
+/*
 Copyright (C) EEMBC(R). All Rights Reserved
 
 All EEMBC Benchmark Software are products of EEMBC and are provided under the
@@ -25,7 +25,7 @@ The file name has been changed and some functions removed.
 ==============================================================================*/
 
 /// \file
-/// \brief Internally-implemented methods required to perform inference. 
+/// \brief Internally-implemented methods required to perform inference.
 
 #include <stddef.h>
 
@@ -36,34 +36,26 @@ The file name has been changed and some functions removed.
 #define EE_FW_VERSION "ULPMark for tinyML Firmware V0.0.1"
 
 /* Version 1.0 of the benchmark only supports these models */
-#define EE_MODEL_VERSION_KWS01   "kws01"
-#define EE_MODEL_VERSION_VWW01   "vww01"
+#define EE_MODEL_VERSION_KWS01 "kws01"
+#define EE_MODEL_VERSION_VWW01 "vww01"
 #define EE_MODEL_VERSION_DCASE01 "dcase01"
-#define EE_MODEL_VERSION_RN801   "rn801"
+#define EE_MODEL_VERSION_RN801 "rn801"
 
-typedef enum
-{
-    EE_ARG_CLAIMED,
-    EE_ARG_UNCLAIMED
-} arg_claimed_t;
-typedef enum
-{
-    EE_STATUS_OK = 0,
-    EE_STATUS_ERROR
-} ee_status_t;
+typedef enum { EE_ARG_CLAIMED, EE_ARG_UNCLAIMED } arg_claimed_t;
+typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
 
 #define EE_DEVICE_NAME "dut"
 
-#define EE_CMD_SIZE       80u
-#define EE_CMD_DELIMITER  " "
+#define EE_CMD_SIZE 80u
+#define EE_CMD_DELIMITER " "
 #define EE_CMD_TERMINATOR '%'
 
-#define EE_CMD_NAME      "name"
+#define EE_CMD_NAME "name"
 #define EE_CMD_TIMESTAMP "timestamp"
 
-#define EE_MSG_READY     "m-ready\r\n"
+#define EE_MSG_READY "m-ready\r\n"
 #define EE_MSG_INIT_DONE "m-init-done\r\n"
-#define EE_MSG_NAME      "m-name-%s-[%s]\r\n"
+#define EE_MSG_NAME "m-name-%s-[%s]\r\n"
 
 #define EE_ERR_CMD "e-[Unknown command: %s]\r\n"
 
@@ -72,8 +64,7 @@ void ee_serial_command_parser_callback(char *);
 void ee_benchmark_initialize(void);
 long ee_hexdec(char *);
 void ee_infer(size_t n, size_t n_warmup);
-arg_claimed_t ee_buffer_parse(char* command);
-arg_claimed_t ee_profile_parse(char * command);
+arg_claimed_t ee_buffer_parse(char *command);
+arg_claimed_t ee_profile_parse(char *command);
 
 #endif /* MLPERF_TINY_V0_1_API_INTERNALLY_IMPLEMENTED_H_ */
-

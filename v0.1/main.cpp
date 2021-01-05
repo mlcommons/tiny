@@ -12,16 +12,15 @@ limitations under the License.
 /// \file
 /// \brief Main function to run benchmark on device.
 
-#include "api/submitter_implemented.h"
 #include "api/internally_implemented.h"
+#include "api/submitter_implemented.h"
 
 int main(int argc, char *argv[]) {
-    ee_benchmark_initialize();
-    while (1)
-    {
-        int c;
-        c = th_getchar();
-        ee_serial_callback(c);
-    }
-    return 0;
+  ee_benchmark_initialize();
+  while (1) {
+    int c;
+    c = th_getchar();
+    ee_serial_callback(c);
+  }
+  return 0;
 }
