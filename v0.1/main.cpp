@@ -10,25 +10,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 /// \file
-/// \brief Submitter-provided methods implementing platform-specific timers.
+/// \brief Main function to run benchmark on device.
 
-#ifndef MLPERF_TINY_V0_1_TIMERS_H_
-#define MLPERF_TINY_V0_1_TIMERS_H_
+#include "api/internally_implemented.h"
+#include "api/submitter_implemented.h"
 
-#include <stdint.h>
-
-namespace mlperf {
-namespace tiny {
-
-/// \brief Return the number of timer ticks per second.
-int32_t TicksPerSecond();
-
-/// \brief Return time in ticks.
-/// \detail The meaning of a tick varies per platform. The returned Ticks value
-/// can be converted to seconds using TicksPerSecond().
-int32_t CurrentTimeTicks();
-
-}  // namespace tiny
-}  // namespace mlperf
-
-#endif  // MLPERF_TINY_V0_1_TIMERS_H_
+int main(int argc, char *argv[]) {
+  ee_benchmark_initialize();
+  while (1) {
+    int c;
+    c = th_getchar();
+    ee_serial_callback(c);
+  }
+  return 0;
+}
