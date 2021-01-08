@@ -137,6 +137,7 @@ def parse_command():
       default='aww_model.tflite',
       help='File name to which the TF Lite model will be saved')
   parser.add_argument(
+<<<<<<< HEAD
       '--learning_rate',
       type=float,
       default=0.00001,
@@ -154,7 +155,7 @@ def parse_command():
       Directory where plots of accuracy vs Epochs are stored
       """)
   parser.add_argument(
-    '--preproc_dtype',
+      '--preproc_dtype',
       type=str,
       default='uint8',
       help='Data type of the preprocessed (filterbanked) audio')
