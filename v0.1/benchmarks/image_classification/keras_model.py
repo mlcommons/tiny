@@ -8,12 +8,26 @@ keras_model.py: CIFAR10_ResNetv1 from eembc
 '''
 
 import numpy as np
+import os
 
 import tensorflow as tf
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Activation, Flatten, BatchNormalization
 from tensorflow.keras.layers import Conv2D, AveragePooling2D, MaxPooling2D
 from tensorflow.keras.regularizers import l2
+
+#get model
+def get_model_name():
+    if os.path.exists("trained_models/trainedResnet.h5"):
+        return "trainedResnet.h5"
+    else:
+        return "pretrainedResnet.h5"
+
+def get_quant_model_name():
+    if os.path.exists("trained_models/trainedResnet.h5"):
+        return "trainedResnet"
+    else:
+        return "pretrainedResnet"
 
 #define model
 def resnet_v1_eembc():

@@ -17,7 +17,9 @@ from sklearn.metrics import roc_auc_score
 
 import train
 import eval_functions_eembc
-model_name = 'trainedResnet.h5'
+import keras_model
+
+model_name = keras_model.get_model_name()
 
 if __name__ == "__main__":
 
@@ -33,7 +35,7 @@ if __name__ == "__main__":
     label_classes = np.argmax(test_labels,axis=1)
     print("Label classes: ", label_classes.shape)
 
-    model = tf.keras.models.load_model('trained_models/' + model_name)
+    model = tf.keras.models.load_model('trained_models/' + model_name + '.h5')
 
     test_metrics = model.evaluate(x=test_data, y=test_labels, batch_size=32, verbose=1, return_dict=True)
 

@@ -16,15 +16,18 @@ import sys
 import train
 import eval_functions_eembc
 from sklearn.metrics import roc_auc_score
+import keras_model
 
 np.set_printoptions(threshold=sys.maxsize)
 
 QUANT_MODEL = True
 
 if QUANT_MODEL:
-    model_path = 'trained_models/tflite_quantized_resnet.tflite'
+    _name = keras_model.get_quant_model_name()
+    model_path = 'trained_models/' + _name + '_quant.tflite'
 else:
-    model_path = 'trained_models/tflite_resnet.tflite'
+    _name = keras_model.get_quant_model_name()
+    model_path = 'trained_models/' + _name + '.tflite'
 
 if __name__ == '__main__':
     # Load the TFLite model and allocate tensors.
