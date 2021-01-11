@@ -88,12 +88,6 @@ def load_cifar_10_data(data_dir, negatives=False):
     cifar_train_filenames = []
     cifar_train_labels = []
 
-    # cifar_train_data_dict
-    # 'batch_label': 'training batch 5 of 5'
-    # 'data': ndarray
-    # 'filenames': list
-    # 'labels': list
-
     for i in range(1, 6):
         cifar_train_data_dict = unpickle(data_dir + "/data_batch_{}".format(i))
         if i == 1:
@@ -110,13 +104,6 @@ def load_cifar_10_data(data_dir, negatives=False):
         cifar_train_data = np.rollaxis(cifar_train_data, 1, 4)
     cifar_train_filenames = np.array(cifar_train_filenames)
     cifar_train_labels = np.array(cifar_train_labels)
-
-    # test data
-    # cifar_test_data_dict
-    # 'batch_label': 'testing batch 1 of 1'
-    # 'data': ndarray
-    # 'filenames': list
-    # 'labels': list
 
     cifar_test_data_dict = unpickle(data_dir + "/test_batch")
     cifar_test_data = cifar_test_data_dict[b'data']
@@ -184,6 +171,5 @@ if __name__ == "__main__":
     plt.plot(np.array(range(EPOCHS)), History.history['loss'])
     plt.plot(np.array(range(EPOCHS)), History.history['accuracy'])
     plt.savefig('train_loss_acc.png')
-    #model_name = "trainedResnet_{y}{mo}{d}_{h}{mi}.h5".format(y=year, mo=month, d=day, h=hour, mi=minute)
     model_name = "trainedResnet.h5"
     new_model.save("trained_models/" + model_name)
