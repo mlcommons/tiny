@@ -18,7 +18,8 @@ if __name__ == '__main__':
 
   def representative_dataset_gen():
     for _ in range(num_calibration_steps):
-      next_input = np.expand_dims(next(ds_val.as_numpy_iterator())[0], 3)
+      next_input = next(ds_val.as_numpy_iterator())[0]
+      # next_input = np.expand_dims(next(ds_val.as_numpy_iterator())[0], 3)
       yield [next_input]
     
   converter.optimizations = [tf.lite.Optimize.DEFAULT]
