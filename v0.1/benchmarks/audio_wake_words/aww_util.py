@@ -137,7 +137,6 @@ def parse_command():
       default='aww_model.tflite',
       help='File name to which the TF Lite model will be saved')
   parser.add_argument(
-<<<<<<< HEAD
       '--learning_rate',
       type=float,
       default=0.00001,
