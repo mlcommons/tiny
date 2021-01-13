@@ -153,6 +153,6 @@ def parse_command():
       help="""\
       Directory where plots of accuracy vs Epochs are stored
       """)
-
+  
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed

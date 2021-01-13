@@ -49,9 +49,7 @@ if __name__ == '__main__':
   print(f"input_scale = {input_scale}, zero point = {input_zero_point}")
   
   for dat, label in test_data:
-    # dat_q = np.array((dat/scale)*256-128, dtype=np.int8)
     dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.uint8)
-    # dat_q = np.expand_dims(dat_q, 3)
     
     interpreter.set_tensor(input_details[0]['index'], dat_q)
     interpreter.invoke()
