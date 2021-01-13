@@ -30,7 +30,7 @@ def predict(interpreter, data):
 if __name__ == '__main__':
   Flags, unparsed = aww_util.parse_command()
 
-  num_samps = 2000
+  num_samps = 100
   scale = 0.66
 
   ds_train, ds_test, ds_val = aww_data.get_training_data(Flags)
@@ -45,8 +45,12 @@ if __name__ == '__main__':
   labels = []
   
   test_data = ds_test.unbatch().batch(1).take(num_samps).as_numpy_iterator()
+  input_scale, input_zero_point = input_details[0]["quantization"]
+  print(f"input_scale = {input_scale}, zero point = {input_zero_point}")
+  
   for dat, label in test_data:
-    dat_q = np.array((dat/scale)*256-128, dtype=np.int8)
+    # dat_q = np.array((dat/scale)*256-128, dtype=np.int8)
+    dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.uint8)
     # dat_q = np.expand_dims(dat_q, 3)
     
     interpreter.set_tensor(input_details[0]['index'], dat_q)
