@@ -10,18 +10,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 /// \file
-/// \brief Submitter-provided methods implementing device-side logging.
+/// \brief Main function to run benchmark on device.
 
-#ifndef MLPERF_TINY_V0_1_LOGGING_H_
-#define MLPERF_TINY_V0_1_LOGGING_H_
+#include <api/submitter_implemented.h>
+#include <api/internally_implemented.h>
 
-namespace mlperf {
-namespace tiny {
-
-/// \brief Log a message from the device to the host.
-void LogToHost(const char* format, ...);
-
-}  // namespace tiny
-}  // namespace mlperf
-
-#endif  // MLPERF_TINY_V0_1_LOGGING_H_
+int main(int argc, char *argv[]) {
+    ee_benchmark_initialize();
+    while (1)
+    {
+        int c;
+        c = th_getchar();
+        ee_serial_callback(c);
+    }
+    return 0;
+}
