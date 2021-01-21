@@ -1,3 +1,0 @@
-[submodule "v0.1/reference_submissions/anomaly_detection/model"]
-	path = v0.1/reference_submissions/anomaly_detection/model
-	url = https://github.com/cskiraly/dcase2020_task2_baseline
