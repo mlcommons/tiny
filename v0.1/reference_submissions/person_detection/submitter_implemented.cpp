@@ -55,18 +55,26 @@ tflite::MicroModelRunner<int8_t, int8_t, 5> *runner;
 
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
-  int8_t input[kVwwInputSize];
-  for (int i = 0; i < kVwwInputSize; i++) {
-    input[i] = QuantizeFloatToInt8(g_vww_inputs[0][i], runner->input_scale(),
-                                   runner->input_zero_point());
+  int8_t input_quantized[kVwwInputSize];
+  float input_float[kVwwInputSize];
+
+  size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input_float),
+                               kVwwInputSize * sizeof(float));
+  if (bytes / sizeof(float) != kVwwInputSize) {
+    th_printf("Input db has %d elemented, expected %d\n", bytes / sizeof(float),
+              kVwwInputSize);
+    return;
   }
-  runner->SetInput(input);
+
+  for (int i = 0; i < kVwwInputSize; i++) {
+    input_quantized[i] = QuantizeFloatToInt8(
+        input_float[i], runner->input_scale(), runner->input_zero_point());
+  }
+  runner->SetInput(input_quantized);
 }
 
 // Add to this method to return real inference results.
 void th_results() {
-  // th_printf("results12345\n");
-  const int nresults = 3;
   /**
    * The results need to be printed back in exactly this format; if easier
    * to just modify this loop than copy to results[] above, do that.
