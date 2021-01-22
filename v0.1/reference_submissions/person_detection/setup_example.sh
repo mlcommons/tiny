@@ -4,7 +4,7 @@ if [ ! -f "$TFMICRO_DIR" ]; then
   wget https://github.com/tensorflow/tensorflow/archive/master.zip
   unzip -o master.zip
   pushd tensorflow-master
-  make -f tensorflow/lite/micro/tools/make/Makefile generate_microlite_hello_world_project -j18
+  make -f tensorflow/lite/micro/tools/make/Makefile generate_hello_world_mbed_project -j18
   mkdir /tmp/mbed_tmp
   mv tensorflow/lite/micro/tools/make/gen/linux_x86_64/prj/hello_world/mbed/* /tmp/mbed_tmp
   popd
