@@ -75,6 +75,7 @@ void th_load_tensor() {
 
 // Add to this method to return real inference results.
 void th_results() {
+  const int nresults = 3;
   /**
    * The results need to be printed back in exactly this format; if easier
    * to just modify this loop than copy to results[] above, do that.
