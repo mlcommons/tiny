@@ -149,3 +149,15 @@ if __name__ == "__main__":
                                                                     machine_type=machine_type)
         with tf.io.gfile.GFile(tflite_file, 'wb') as f:
             f.write(tflite_model)
+
+        # Full integer quantization of weights and activations for micro, int8 input and output
+        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+        converter.representative_dataset = representative_dataset_gen
+        converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
+        converter.inference_input_type = tf.int8  # or tf.uint8
+        converter.inference_output_type = tf.int8  # or tf.uint8
+        tflite_model = converter.convert()
+        tflite_file = "{model}/model_{machine_type}_quant_fullint_micro_intio.tflite".format(model=param["model_directory"],
+                                                                    machine_type=machine_type)
+        with tf.io.gfile.GFile(tflite_file, 'wb') as f:
+            f.write(tflite_model)
