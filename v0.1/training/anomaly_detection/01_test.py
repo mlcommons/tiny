@@ -104,8 +104,8 @@ if __name__ == "__main__":
                     errors = numpy.mean(numpy.square(data - model.predict(data)), axis=1)
                     y_pred[file_idx] = numpy.mean(errors)
                     anomaly_score_list.append([os.path.basename(file_path), y_pred[file_idx]])
-                except:
-                    com.logger.error("file broken!!: {}".format(file_path))
+                except Exception as e:
+                    com.logger.error("file broken!!: {}, {}".format(file_path, e))
 
             # save anomaly score
             com.save_csv(save_file_path=anomaly_score_csv, save_data=anomaly_score_list)
