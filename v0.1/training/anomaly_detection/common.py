@@ -25,6 +25,11 @@ import librosa.feature
 import yaml
 from tqdm import tqdm
 
+import matplotlib
+matplotlib.use('Agg')  # No pictures displayed
+import pylab
+import librosa.display
+
 ########################################################################
 
 
@@ -132,7 +137,10 @@ def file_to_vector_array(file_name,
                          frames=5,
                          n_fft=1024,
                          hop_length=512,
-                         power=2.0):
+                         power=2.0,
+                         method="librosa",
+                         save_png=False,
+                         save_hist=False):
     """
     convert file_name to a vector array.
 
@@ -146,19 +154,27 @@ def file_to_vector_array(file_name,
     # 01 calculate the number of dimensions
     dims = n_mels * frames
 
-    # 02 generate melspectrogram using librosa
+    # 02 generate melspectrogram
     y, sr = file_load(file_name)
-    mel_spectrogram = librosa.feature.melspectrogram(y=y,
-                                                     sr=sr,
-                                                     n_fft=n_fft,
-                                                     hop_length=hop_length,
-                                                     n_mels=n_mels,
-                                                     power=power)
+    if method == "librosa":
+        # 02a generate melspectrogram using librosa
+        mel_spectrogram = librosa.feature.melspectrogram(y=y,
+                                                         sr=sr,
+                                                         n_fft=n_fft,
+                                                         hop_length=hop_length,
+                                                         n_mels=n_mels,
+                                                         power=power)
 
-    # 03 convert melspectrogram to log mel energy
-    log_mel_spectrogram = 20.0 / power * numpy.log10(mel_spectrogram + sys.float_info.epsilon)
+        # 03 convert melspectrogram to log mel energy
+        log_mel_spectrogram = 20.0 / power * numpy.log10(mel_spectrogram + sys.float_info.epsilon)
+
+
+    else:
+        logger.error("spectrogram method not supported: {}".format(method))
+        return numpy.empty((0, dims))
+
+    # 3b take central part only
     log_mel_spectrogram = log_mel_spectrogram[:,50:250];
-
 
     # 04 calculate total vector size
     vector_array_size = len(log_mel_spectrogram[0, :]) - frames + 1
@@ -171,6 +187,19 @@ def file_to_vector_array(file_name,
     vector_array = numpy.zeros((vector_array_size, dims))
     for t in range(frames):
         vector_array[:, n_mels * t: n_mels * (t + 1)] = log_mel_spectrogram[:, t: t + vector_array_size].T
+
+    # 07 (optional) save histogram in png
+    if save_png:
+        save_path = file_name.replace('.wav', '_hist_' + method + '.png')
+        librosa.display.specshow(log_mel_spectrogram)
+        pylab.savefig(save_path, bbox_inches=None, pad_inches=0)
+        pylab.close()
+
+    # 08 (optional) save histogram
+    if save_hist:
+        save_path = file_name.replace('.wav', '_hist_' + method + '.txt')
+        # transpose to obtain correct order
+        numpy.swapaxes(log_mel_spectrogram, 0, 1).tofile(save_path, sep=",")
 
     return vector_array
 
