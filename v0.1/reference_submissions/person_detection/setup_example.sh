@@ -32,9 +32,9 @@ else
   fi
 
   mbed-tools new .
-  cp ../../api . -r
-  cp ../../main.cpp .
-  cp ../../util . -r
-  cp ../../vww . -r
+  cp -r ../../api .
+  cp -r ../../main.cpp .
+  cp -r ../../util .
+  cp -r ../../vww .
 
 fi
