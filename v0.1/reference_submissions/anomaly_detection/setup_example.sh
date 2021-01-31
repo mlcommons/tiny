@@ -25,16 +25,16 @@ else
     pushd tensorflow-master
     make -f tensorflow/lite/micro/tools/make/Makefile third_party_downloads
     make -f tensorflow/lite/micro/tools/make/Makefile generate_hello_world_mbed_project -j18
-    mv tensorflow/lite/micro/tools/make/gen/linux_x86_64_default/prj/hello_world/mbed/* ../
+    mv tensorflow/lite/micro/tools/make/gen/*/prj/hello_world/mbed/* ../
     popd
     rm -rf tensorflow-master
     rm -rf tensorflow/lite/micro/examples/hello_world
   fi
 
   mbed-tools new .
-  cp ../../api . -r
+  cp -r ../../api .
   cp ../../main.cpp .
-  cp ../../util . -r
-  cp ../../vww . -r
+  cp -r ../../util .
+  cp -r ../../vww .
 
 fi
