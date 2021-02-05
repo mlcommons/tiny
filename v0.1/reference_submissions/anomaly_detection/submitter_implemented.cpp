@@ -54,43 +54,33 @@ uint8_t tensor_arena[kTensorArenaSize];
 typedef int8_t model_input_t;
 typedef int8_t model_output_t;
 
+float input_float[kInputSize];
+int8_t input_quantized[kInputSize];
+float results[kFeatureWindows];
+ 
 tflite::MicroModelRunner<model_input_t, model_output_t, 6> *runner;
 
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
-  int8_t input_quantized[kVwwInputSize];
-  float input_float[kVwwInputSize];
-
   size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input_float),
-                               kVwwInputSize * sizeof(float));
-  if (bytes / sizeof(float) != kVwwInputSize) {
+                               kFeatureElementCount * sizeof(float));
+  if (bytes / sizeof(float) != kFeatureElementCount) {
     th_printf("Input db has %d elemented, expected %d\n", bytes / sizeof(float),
-              kVwwInputSize);
+              kFeatureElementCount);
     return;
   }
-
-  for (int i = 0; i < kVwwInputSize; i++) {
-    input_quantized[i] = QuantizeFloatToInt8(
-        input_float[i], runner->input_scale(), runner->input_zero_point());
-  }
-  runner->SetInput(input_quantized);
 }
 
 // Add to this method to return real inference results.
 void th_results() {
-  const int nresults = 3;
   /**
    * The results need to be printed back in exactly this format; if easier
    * to just modify this loop than copy to results[] above, do that.
    */
   th_printf("m-results-[");
-  int kCategoryCount = 2;
-  for (size_t i = 0; i < kCategoryCount; i++) {
-    float converted =
-        DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
-                              runner->output_zero_point());
-    th_printf("%0.3f", converted);
-    if (i < (nresults - 1)) {
+  for (size_t i = 0; i < kFeatureWindows; i++) {
+    th_printf("%0.3f", results[i]);
+    if (i < (kFeatureWindows - 1)) {
       th_printf(",");
     }
   }
@@ -98,7 +88,34 @@ void th_results() {
 }
 
 // Implement this method with the logic to perform one inference cycle.
-void th_infer() { runner->Invoke(); }
+void th_infer() {
+  float input_scale = runner->input_scale();
+  float input_zero_point = runner->input_zero_point();
+  for (int i = 0; i < kInputSize; i++) {
+    input_quantized[i] = QuantizeFloatToInt8(
+        input_float[i], input_scale, input_zero_point);
+  }
+
+  for (int window = 0; window < 196; window++) {
+    runner->SetInput(input_quantized + window * kFeatureSliceSize);
+
+    runner->Invoke();
+
+    // calculate |output - input|
+    float diffsum = 0;
+
+    for (size_t i = 0; i < kFeatureElementCount; i++) {
+      float converted = DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
+                                              runner->output_zero_point());
+      float diff = converted - input_float[i + window * kFeatureSliceSize];
+      diffsum += diff * diff;
+    }
+    diffsum /= kFeatureElementCount;
+
+    results[window] = diffsum;
+  }
+
+}
 
 /// \brief optional API.
 void th_final_initialize(void) {
