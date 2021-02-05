@@ -19,7 +19,7 @@ limitations under the License.
 // if you change your model you'll need to update these constants.
 constexpr int kNumCols = 96;
 constexpr int kNumRows = 96;
-constexpr int kNumChannels = 1;
+constexpr int kNumChannels = 3;
 
 constexpr int kVwwInputSize = kNumCols * kNumRows * kNumChannels;
 

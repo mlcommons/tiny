@@ -28,6 +28,7 @@ The file name has been changed and some functions removed.
 /// \brief Internally-implemented methods required to perform inference.
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifndef MLPERF_TINY_V0_1_API_INTERNALLY_IMPLEMENTED_H_
 #define MLPERF_TINY_V0_1_API_INTERNALLY_IMPLEMENTED_H_
@@ -64,6 +65,7 @@ void ee_serial_command_parser_callback(char *);
 void ee_benchmark_initialize(void);
 long ee_hexdec(char *);
 void ee_infer(size_t n, size_t n_warmup);
+size_t ee_get_buffer(uint8_t* buffer, size_t max_len);
 arg_claimed_t ee_buffer_parse(char *command);
 arg_claimed_t ee_profile_parse(char *command);
 
