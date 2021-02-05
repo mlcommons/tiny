@@ -42,9 +42,9 @@ in th_results is copied from the original in EEMBC.
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "util/quantization_helpers.h"
 #include "util/tf_micro_model_runner.h"
-#include "vww/vww_inputs.h"
-#include "vww/vww_model_data.h"
-#include "vww/vww_model_settings.h"
+//#include "inputs.h"
+#include "model.h"
+#include "micro_model_settings.h"
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
