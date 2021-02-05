@@ -31,7 +31,6 @@ replaced by a fixed-size array.
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "api/submitter_implemented.h"
@@ -233,39 +232,30 @@ arg_claimed_t ee_buffer_parse(char *p_command) {
       }
     }
   } else if (strncmp(p_next, "print", EE_CMD_SIZE) == 0) {
-    if (gp_buff == NULL) {
-      th_printf("e-[Buffer not allocated]\r\n");
-    } else {
-      size_t i = 0;
-      const size_t max = 8;
-      for (; i < g_buff_size; ++i) {
-        if ((i + max) % max == 0 || i == 0) {
-          th_printf("m-buffer-");
-        }
-        /* N.B. Not every `printf` supports the spacing prefix! */
-        th_printf("%02x", gp_buff[i]);
-        if (((i + 1) % max == 0) || ((i + 1) == g_buff_size)) {
-          th_printf("\r\n");
-        } else {
-          th_printf("-");
-        }
-      }
-      if (i % max != 0) {
+    size_t i = 0;
+    const size_t max = 8;
+    for (; i < g_buff_size; ++i) {
+    if ((i + max) % max == 0 || i == 0) {
+        th_printf("m-buffer-");
+    }
+    /* N.B. Not every `printf` supports the spacing prefix! */
+    th_printf("%02x", gp_buff[i]);
+    if (((i + 1) % max == 0) || ((i + 1) == g_buff_size)) {
         th_printf("\r\n");
-      }
+    } else {
+        th_printf("-");
+    }
+    }
+    if (i % max != 0) {
+    th_printf("\r\n");
     }
   } else {
     size_t numbytes;
     char test[3];
     long res;
 
-    if (gp_buff == NULL) {
-      th_printf("e-[Buffer not allocated]\r\n");
-      return EE_ARG_CLAIMED;
-    }
-
     /* Two hexdigits per byte */
-    numbytes = strnlen(p_next, EE_CMD_SIZE);
+    numbytes = th_strnlen(p_next, EE_CMD_SIZE);
 
     if ((numbytes & 1) != 0) {
       th_printf("e-[Insufficent number of hex digits]\r\n");
@@ -322,4 +312,23 @@ long ee_hexdec(char *hex) {
     ret = (ret << 4) + dec;
   }
   return ret;
+}
+
+/**
+ * @brief get the buffer resulting from the last db command. Returns length 0
+ * if the db command has not been used yet.
+ *
+ * @param buffer to fill with bytes from internal buffer filled by db commands.
+ * @param maximum number of bytes to copy into provided buffer. This is
+ * typically the length of the provided buffer.
+ *
+ * @return number of bytes copied from internal buffer.
+ *
+ */
+size_t ee_get_buffer(uint8_t* buffer, size_t max_len) {
+  int len = max_len < g_buff_pos ? max_len : g_buff_pos;
+  if (buffer != nullptr) {
+    memcpy(buffer, gp_buff, len * sizeof(uint8_t));
+  }
+  return len;
 }
