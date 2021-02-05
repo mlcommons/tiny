@@ -104,11 +104,8 @@ void th_infer() { runner->Invoke(); }
 void th_final_initialize(void) {
   tflite::MicroMutableOpResolver<6> resolver;
   resolver.AddFullyConnected();
-  resolver.AddConv2D();
-  resolver.AddDepthwiseConv2D();
-  resolver.AddReshape();
-  resolver.AddSoftmax();
-  resolver.AddAveragePool2D();
+  resolver.AddQuantize();
+  resolver.AddDequantize();
   static tflite::MicroModelRunner<model_input_t, model_output_t, 6> model_runner(
       g_model, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
