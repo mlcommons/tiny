@@ -31,7 +31,7 @@ else
     rm -rf tensorflow/lite/micro/examples/hello_world
   fi
 
-  mbed-tools new .
+  mbed deploy .
   cp -r ../../api .
   cp -r ../../main.cpp .
   cp -r ../../util .

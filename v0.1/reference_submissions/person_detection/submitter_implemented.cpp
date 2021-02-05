@@ -48,7 +48,7 @@ in th_results is copied from the original in EEMBC.
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
-constexpr int kTensorArenaSize = 150 * 1024;
+constexpr int kTensorArenaSize = 200 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 
 tflite::MicroModelRunner<int8_t, int8_t, 6> *runner;
@@ -86,7 +86,11 @@ void th_results() {
     float converted =
         DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
                               runner->output_zero_point());
-    th_printf("%0.3f", converted);
+
+	// Some platforms don't implement floating point formatting.
+    th_printf("0.%d", static_cast<int>(converted * 10));
+    th_printf("%d", static_cast<int>(converted * 100) % 10);
+    th_printf("%d", static_cast<int>(converted * 1000) % 10);
     if (i < (nresults - 1)) {
       th_printf(",");
     }
@@ -99,17 +103,19 @@ void th_infer() { runner->Invoke(); }
 
 /// \brief optional API.
 void th_final_initialize(void) {
-  tflite::MicroMutableOpResolver<6> resolver;
+  static tflite::MicroMutableOpResolver<6> resolver;
   resolver.AddFullyConnected();
   resolver.AddConv2D();
   resolver.AddDepthwiseConv2D();
   resolver.AddReshape();
   resolver.AddSoftmax();
   resolver.AddAveragePool2D();
+
   static tflite::MicroModelRunner<int8_t, int8_t, 6> model_runner(
       g_person_detect_model_data, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
 }
+
 void th_pre() {}
 void th_post() {}
 
