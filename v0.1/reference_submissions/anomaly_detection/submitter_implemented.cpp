@@ -51,7 +51,10 @@ UnbufferedSerial pc(USBTX, USBRX, 115200);
 constexpr int kTensorArenaSize = 150 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 
-tflite::MicroModelRunner<int8_t, int8_t, 6> *runner;
+typedef int8_t model_input_t;
+typedef int8_t model_output_t;
+
+tflite::MicroModelRunner<model_input_t, model_output_t, 6> *runner;
 
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
@@ -106,8 +109,8 @@ void th_final_initialize(void) {
   resolver.AddReshape();
   resolver.AddSoftmax();
   resolver.AddAveragePool2D();
-  static tflite::MicroModelRunner<int8_t, int8_t, 6> model_runner(
-      g_person_detect_model_data, resolver, tensor_arena, kTensorArenaSize);
+  static tflite::MicroModelRunner<model_input_t, model_output_t, 6> model_runner(
+      g_model, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
 }
 void th_pre() {}
