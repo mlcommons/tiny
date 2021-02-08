@@ -32,9 +32,8 @@ else
   fi
 
   mbed new .
-  cp -r ../../api .
+  cp ../../api/internally* api/
   cp ../../main.cpp .
   cp -r ../../util .
-  cp -r ../../vww .
 
 fi
