@@ -1,8 +1,7 @@
 if [ "$1" == "clean" ]; then
-  rm -rf api
+  rm  api/internally*
   rm -rf main.cpp
   rm -rf util
-  rm -rf vww
   rm -rf tensorflow-master.zip
   rm -rf tensorflow
   rm -rf mbed* 
