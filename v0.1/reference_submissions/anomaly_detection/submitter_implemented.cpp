@@ -89,6 +89,10 @@ void th_results() {
 
 // Implement this method with the logic to perform one inference cycle.
 void th_infer() {
+
+  th_printf("quantization %i %i\r\n", int(runner->input_scale()*100), int(runner->input_zero_point()*100));
+  th_timestamp();
+
   float input_scale = runner->input_scale();
   float input_zero_point = runner->input_zero_point();
   for (int i = 0; i < kInputSize; i++) {
@@ -96,11 +100,20 @@ void th_infer() {
         input_float[i], input_scale, input_zero_point);
   }
 
+  th_printf("inference loop\r\n");
+  th_timestamp();
+
   for (int window = 0; window < kFeatureWindows; window++) {
+    th_printf("set input\r\n");
+    th_timestamp();
     runner->SetInput(input_quantized + window * kFeatureSliceSize);
 
+    th_printf("invoke\r\n");
+    th_timestamp();
     runner->Invoke();
 
+    th_printf("postproc\r\n");
+    th_timestamp();
     // calculate |output - input|
     float diffsum = 0;
 
@@ -111,6 +124,7 @@ void th_infer() {
       diffsum += diff * diff;
     }
     diffsum /= kFeatureElementCount;
+    th_printf("result*100 %i\r\n", int(diffsum));
 
     results[window] = diffsum;
   }
@@ -126,6 +140,7 @@ void th_final_initialize(void) {
   static tflite::MicroModelRunner<model_input_t, model_output_t, 6> model_runner(
       g_model, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
+  th_printf("Runner initialized %p\r\n", runner);
 }
 void th_pre() {}
 void th_post() {}
