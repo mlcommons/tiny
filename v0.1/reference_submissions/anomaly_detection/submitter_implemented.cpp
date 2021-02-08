@@ -119,7 +119,7 @@ void th_infer() {
 
 /// \brief optional API.
 void th_final_initialize(void) {
-  tflite::MicroMutableOpResolver<6> resolver;
+  static tflite::MicroMutableOpResolver<6> resolver;
   resolver.AddFullyConnected();
   resolver.AddQuantize();
   resolver.AddDequantize();
