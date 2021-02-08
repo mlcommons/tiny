@@ -141,6 +141,7 @@ void th_final_initialize(void) {
       g_model, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
   th_printf("Runner initialized %p\r\n", runner);
+  th_infer();
 }
 void th_pre() {}
 void th_post() {}
