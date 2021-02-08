@@ -22,7 +22,8 @@ const int kFeatureSliceSize = 128;
 const int kFeatureSliceCount = 5;
 const int kFeatureElementCount = (kFeatureSliceSize * kFeatureSliceCount);
 
-const int kInputSize = kFeatureSliceSize * 200;
-const int kFeatureWindows = 196;    // 200 - 5 + 1
+const int kSpectrogramSliceCount = 200;
+const int kInputSize = (kFeatureSliceSize * kSpectrogramSliceCount);
+const int kFeatureWindows = kSpectrogramSliceCount - kFeatureSliceCount + 1;    // 200 - 5 + 1
 
 #endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_ANOMALY_DETECTION_MICRO_FEATURES_MICRO_MODEL_SETTINGS_H_

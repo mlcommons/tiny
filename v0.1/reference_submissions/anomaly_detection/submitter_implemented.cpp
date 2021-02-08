@@ -96,7 +96,7 @@ void th_infer() {
         input_float[i], input_scale, input_zero_point);
   }
 
-  for (int window = 0; window < 196; window++) {
+  for (int window = 0; window < kFeatureWindows; window++) {
     runner->SetInput(input_quantized + window * kFeatureSliceSize);
 
     runner->Invoke();
