@@ -58,7 +58,7 @@ float input_float[kInputSize];
 int8_t input_quantized[kInputSize];
 float results[kFeatureWindows];
  
-tflite::MicroModelRunner<model_input_t, model_output_t, 6> *runner;
+tflite::MicroModelRunner<model_input_t, model_output_t, 3> *runner;
 
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
@@ -133,11 +133,11 @@ void th_infer() {
 
 /// \brief optional API.
 void th_final_initialize(void) {
-  static tflite::MicroMutableOpResolver<6> resolver;
+  static tflite::MicroMutableOpResolver<3> resolver;
   resolver.AddFullyConnected();
   resolver.AddQuantize();
   resolver.AddDequantize();
-  static tflite::MicroModelRunner<model_input_t, model_output_t, 6> model_runner(
+  static tflite::MicroModelRunner<model_input_t, model_output_t, 3> model_runner(
       g_model, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
   th_printf("Runner initialized %p\r\n", runner);
