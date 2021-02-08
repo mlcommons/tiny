@@ -63,10 +63,10 @@ tflite::MicroModelRunner<model_input_t, model_output_t, 6> *runner;
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
   size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input_float),
-                               kFeatureElementCount * sizeof(float));
-  if (bytes / sizeof(float) != kFeatureElementCount) {
+                               kInputSize * sizeof(float));
+  if (bytes / sizeof(float) != kInputSize) {
     th_printf("Input db has %d elemented, expected %d\n", bytes / sizeof(float),
-              kFeatureElementCount);
+              kInputSize);
     return;
   }
 }
