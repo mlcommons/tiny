@@ -35,6 +35,5 @@ else
   cp -r ../../api .
   cp -r ../../main.cpp .
   cp -r ../../util .
-  cp -r ../../vww .
-
+  cp -r ../../training/visual_wake_words/trained_models/vww .
 fi
