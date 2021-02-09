@@ -233,6 +233,67 @@ def get_training_data(Flags):
 
   return ds_train_specs, ds_test_specs, ds_val_specs
 
+
+def create_c_files(dataset, root_filename="input_data", interpreter=None, elems_per_row=10):
+  preamble = """
+/* Copyright 2020 The MLPerf Authors. All Rights Reserved.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+    http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+/// \file
+/// \brief Sample inputs for the visual wakewords model.
+#include "aww/aww_inputs.h"
+const float g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
+    {
+  """
+
+  dataset = dataset.unbatch().batch(1).as_numpy_iterator()
+
+  interpreter.allocate_tensors()
+  input_details = interpreter.get_input_details()
+  input_scale, input_zero_point = input_details[0]["quantization"]
+  
+  dat, label = next(dataset)
+  dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.uint8).flatten()
+  print("dat_q is type {:}".format(type(dat_q)))
+  print("dat_q is shape {:}".format(dat_q.shape))
+  
+  num_elems = len(dat_q)
+  with open(f"{root_filename}.cc", "w") as fpo:
+    for cnt, val in enumerate(dat_q):
+      if cnt < num_elems-1:
+        fpo.write("0x{:02x},".format(val))
+      else:
+        fpo.write("0x{:02x}".format(val)) # last element => no comma
+      if cnt % elems_per_row == 0:
+        fpo.write("\n")
+    fpo.write("}};\n")
+        
+
+
+
 if __name__ == '__main__':
   Flags, unparsed = aww_util.parse_command()
   ds_train, ds_test, ds_val = get_training_data(Flags)
+
+  if Flags.create_c_files:
+    if Flags.target_set[0:3].lower() == 'val':
+      target_data = ds_val
+      print("Drawing from the  validation set")
+    elif Flags.target_set[0:4].lower() == 'test':
+      target_data = ds_test
+      print("Drawing from the test set")
+    elif Flags.target_set[0:5].lower() == 'train':
+      target_data = ds_train    
+      print("Drawing from  the training set")
+
+    interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
+
+    create_c_files(dataset=target_data, root_filename="aww_input_data", interpreter=interpreter)

@@ -170,6 +170,15 @@ def parse_command():
       help="""\
       For eval_quantized_model, which set to measure.
       """)
+  parser.add_argument(
+      '--create_c_files',
+      type=bool,
+      nargs='?',
+      default=False,
+      const=True,
+      help="""\
+      If true, chooses a random input from <target_set> and converts it to a C code in files aww_inputs.{cc,h}
+      """)
   
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed
