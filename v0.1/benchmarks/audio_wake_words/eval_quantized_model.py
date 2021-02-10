@@ -55,7 +55,7 @@ if __name__ == '__main__':
   input_scale, input_zero_point = input_details[0]["quantization"]
   
   for dat, label in eval_data:
-    dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.uint8)
+    dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.int8) # should match input type in quantize.py
     
     interpreter.set_tensor(input_details[0]['index'], dat_q)
     interpreter.invoke()
