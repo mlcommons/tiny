@@ -1,5 +1,9 @@
 import os
 import argparse
+import matplotlib.pyplot as plt
+import math
+import tensorflow as tf
+from tensorflow import keras
 
 def parse_command():
   parser = argparse.ArgumentParser()
@@ -131,10 +135,15 @@ def parse_command():
       '--saved_model_path',
       type=str,
       default='trained_models/scratch',
-      help='File name to load pretrained model')
+      help='Path to load pretrained model')
+  parser.add_argument(
+      '--model_init_path',
+      type=str,
+      default=None,
+      help='Path to load pretrained model as starting point for training')
   parser.add_argument(
       '--tfl_file_name',
-      default='aww_model.tflite',
+      default='trained_models/aww_model.tflite',
       help='File name to which the TF Lite model will be saved')
   parser.add_argument(
       '--learning_rate',
@@ -149,10 +158,70 @@ def parse_command():
   parser.add_argument(
       '--plot_dir',
       type=str,
-      default=os.path.join(os.getenv('HOME'), 'plot_dir'),
+      # default=os.path.join(os.getenv('HOME'), 'plot_dir'),
+      default='./plots',
       help="""\
       Directory where plots of accuracy vs Epochs are stored
+      """)
+  parser.add_argument(
+      '--target_set',
+      type=str,
+      default='test',
+      help="""\
+      For eval_quantized_model, which set to measure.
+      """)
+  parser.add_argument(
+      '--create_c_files',
+      type=bool,
+      nargs='?',
+      default=False,
+      const=True,
+      help="""\
+      If true, chooses a random input from <target_set> and converts it to a C code in files aww_inputs.{cc,h}
       """)
   
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed
+
+
+def plot_training(plot_dir,history):
+    if not os.path.exists(plot_dir):
+        os.makedirs(plot_dir)
+    plt.subplot(2,1,1)
+    plt.plot(history.history['sparse_categorical_accuracy'], label='Training Accuracy')
+    plt.plot(history.history['val_sparse_categorical_accuracy'], label='Val Accuracy')
+    plt.title('Accuracy vs Epoch')
+    plt.ylabel('Accuracy')
+    plt.grid(True)
+    plt.subplot(2,1,2)
+    plt.plot(history.history['loss'], label='Loss')
+    plt.plot(history.history['val_loss'], label='Val Loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
+    plt.grid(True)
+    plt.legend(loc="upper left")
+    plt.savefig(plot_dir+'/acc.png')
+
+def step_function_wrapper(batch_size):
+    def step_function(epoch, lr):
+        if (epoch < 12):
+            return 0.0005
+        elif (epoch < 24):
+            return 0.0001
+        elif (epoch < 36):
+            return 0.00002
+        else:
+            return 0.00001
+    return step_function
+
+def get_callbacks(args):
+    lr_sched_name = args.lr_sched_name
+    batch_size = args.batch_size
+    initial_lr = args.learning_rate
+    callbacks = None
+    if(lr_sched_name == "step_function"):
+        callbacks = [keras.callbacks.LearningRateScheduler(step_function_wrapper(batch_size),verbose=1)]
+    return callbacks
+
+
+    
