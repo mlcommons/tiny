@@ -7,7 +7,7 @@ typically run at between 10MHz and 250MHz, and can perform inference using less
 then 50mW of power.
 
 TinyMLPerf submissions will allow device makers and researchers to choose the
-best hardware for their use case, and allows hardware vendors to showcase their
+best hardware for their use case, and allows hardware and software vendors to showcase their
 offerings.
 
 TinyMLPerf is primarily intended to benchmark hardware rather than new network

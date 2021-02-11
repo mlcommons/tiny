@@ -12,22 +12,23 @@ limitations under the License.
 /// \file
 /// \brief Model runner for TF Micro.
 
-#include "tensorflow/lite/micro/all_ops_resolver.h"
 #include "tensorflow/lite/micro/kernels/micro_ops.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
 
-template <typename inputT, typename outputT>
+template <typename inputT, typename outputT, int numOps>
 class MicroModelRunner {
  public:
-  MicroModelRunner(const uint8_t* model, uint8_t* tensor_arena,
-                   int tensor_arena_size)
+  MicroModelRunner(const uint8_t* model,
+                   MicroMutableOpResolver<numOps> resolver,
+                   uint8_t* tensor_arena, int tensor_arena_size)
       : model_(tflite::GetModel(model)),
         reporter_(&micro_reporter_),
-        interpreter_(model_, resolver_, tensor_arena, tensor_arena_size,
+        interpreter_(model_, resolver, tensor_arena, tensor_arena_size,
                      reporter_) {
     interpreter_.AllocateTensors();
   }
@@ -70,7 +71,6 @@ class MicroModelRunner {
   const tflite::Model* model_;
   tflite::MicroErrorReporter micro_reporter_;
   tflite::ErrorReporter* reporter_;
-  tflite::AllOpsResolver resolver_;
   tflite::MicroInterpreter interpreter_;
 };
 
