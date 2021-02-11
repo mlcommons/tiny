@@ -4,12 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import argparse
+from tensorflow import keras
 
 import keras_model as models
 import get_dataset as aww_data
 import aww_util
-from lr import get_callbacks
-from plot import plot
 
 num_classes = 12 # should probably draw this directly from the dataset.
 # FLAGS = None
@@ -22,12 +21,19 @@ if __name__ == '__main__':
 
   ds_train, ds_test, ds_val = aww_data.get_training_data(Flags)
   print("Done getting data")
-  model = models.get_model(args=Flags)
-  model.summary()
+
+  if Flags.model_init_path is None:
+    print("Starting with untrained model")
+    model = models.get_model(args=Flags)
+  else:
+    print(f"Starting with pre-trained model from {Flags.model_init_path}")
+    model = keras.models.load_model(Flags.model_init_path)
+
+    model.summary()
   
-  callbacks = get_callbacks(args=Flags)
+  callbacks = aww_util.get_callbacks(args=Flags)
   train_hist = model.fit(ds_train, validation_data=ds_val, epochs=Flags.epochs, callbacks=callbacks)
-  plot(Flags.plot_dir,train_hist)
+  aww_util.plot_training(Flags.plot_dir,train_hist)
   model.save(Flags.saved_model_path)
   
   if Flags.run_test_set:
