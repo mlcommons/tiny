@@ -247,10 +247,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-/// \file
-/// \brief Sample inputs for the visual wakewords model.
-#include "aww/aww_inputs.h"
-const float g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
+/// \\file
+/// \\brief Sample inputs for the visual wakewords model.
+#include "aww/aww_input_data.h"
+const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
     {
   """
 
@@ -259,20 +259,24 @@ const float g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
   interpreter.allocate_tensors()
   input_details = interpreter.get_input_details()
   input_scale, input_zero_point = input_details[0]["quantization"]
-  
+  input_type = np.int8  
+
+  print(input_details)
   dat, label = next(dataset)
-  dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.uint8).flatten()
+  dat_q = np.array(dat/input_scale + input_zero_point, dtype=input_type).flatten()
+  ofname = f"{root_filename}.cc"  
   print("dat_q is type {:}".format(type(dat_q)))
   print("dat_q is shape {:}".format(dat_q.shape))
-  
+  print(f"Writing to {ofname}")
   num_elems = len(dat_q)
-  with open(f"{root_filename}.cc", "w") as fpo:
+  with open(ofname, "w") as fpo:
+    fpo.write(preamble)
     for cnt, val in enumerate(dat_q):
       if cnt < num_elems-1:
-        fpo.write("0x{:02x},".format(val))
+        fpo.write("{:d},".format(val))
       else:
-        fpo.write("0x{:02x}".format(val)) # last element => no comma
-      if cnt % elems_per_row == 0:
+        fpo.write("{:d}".format(val)) # last element => no comma
+      if cnt+1 % elems_per_row == 0:
         fpo.write("\n")
     fpo.write("}};\n")
         
