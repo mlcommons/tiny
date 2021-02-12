@@ -26,7 +26,7 @@ If you have any questions or issues with the benchmark please [create a new issu
 ## FAQ
 **Q:** How do I submit?
 
-**A:** TinyMLPerf set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/GaB9Gc2MftothYpw7). The next submission deadline is March 12th 2021.
+**A:** TinyMLPerf has set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/GaB9Gc2MftothYpw7). The next submission deadline is March 12th 2021.
 ## 
 
 **Q:** Is power measurement included in TinyMLPerf?
@@ -41,12 +41,12 @@ If you have any questions or issues with the benchmark please [create a new issu
 
 **Q:** Will accuracy be measured?
 
-**A:** Yes accuracy will be measure on the device under test. This will ensure the validity of results in the closed division. In the open division accuracy must remain within a threshold  of the reference model. The threshold is defined by then benchmark.
+**A:** Yes accuracy will be measure on the device under test. This will ensure the validity of results in the closed division. In the open division accuracy must remain within a threshold  of the reference model. The threshold is defined by the benchmark.
 ## 
 
 **Q:** Do you require that submissions use TFLite for Micro/Mbed for the closed division?
 
-**A:** No. The submitter can use the framework of their choice and implement any optimizations. The reference benchmarks use TFLite for Micro/Mbed for portability.
+**A:** No. The submitter can use the framework of their choice and implement any post training optimizations including post training quantization. The reference benchmarks use TFLite for Micro/Mbed for portability.
 ## 
 
 **Q:** Can I submit with X device?
