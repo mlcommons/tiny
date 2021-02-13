@@ -21,6 +21,8 @@ the benchmarks using [TensorFlow Lite for Microcontrollers](https://www.tensorfl
 
 We follow the [MLPerf Inference Rules](https://github.com/mlcommons/inference_policies/blob/master/inference_rules.adoc) unless there is a specific exception related to TinyMLPerf. All benchmarks are single stream only.
 
+We additionally follow the MLPerf [submission and run rules](https://github.com/mlcommons/policies/blob/master/submission_rules.adoc).
+
 If you have any questions or issues with the benchmark please [create a new issue](https://github.com/mlcommons/tiny/issues).
 
 ## FAQ
