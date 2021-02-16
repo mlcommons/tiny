@@ -48,7 +48,7 @@ in th_results is copied from the original in EEMBC.
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
-constexpr int kTensorArenaSize = 150 * 1024;
+constexpr int kTensorArenaSize = 10 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 
 typedef int8_t model_input_t;
@@ -58,7 +58,10 @@ float input_float[kInputSize];
 int8_t input_quantized[kInputSize];
 float results[kFeatureWindows];
  
-tflite::MicroModelRunner<model_input_t, model_output_t, 3> *runner;
+tflite::ErrorReporter* error_reporter = nullptr;
+const tflite::Model* model = nullptr;
+tflite::MicroInterpreter* interpreter = nullptr;
+TfLiteTensor* model_input = nullptr;
 
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
@@ -90,11 +93,11 @@ void th_results() {
 // Implement this method with the logic to perform one inference cycle.
 void th_infer() {
 
-  th_printf("quantization %i %i\r\n", int(runner->input_scale()*100), int(runner->input_zero_point()*100));
+  th_printf("quantization %i %i\r\n", int(interpreter->input(0)->params.scale * 100), int(interpreter->input(0)->params.zero_point * 100));
   th_timestamp();
 
-  float input_scale = runner->input_scale();
-  int input_zero_point = runner->input_zero_point();
+  float input_scale = interpreter->input(0)->params.scale;
+  int input_zero_point = interpreter->input(0)->params.zero_point;
   for (int i = 0; i < kInputSize; i++) {
     input_quantized[i] = QuantizeFloatToInt8(
         input_float[i], input_scale, input_zero_point);
@@ -106,25 +109,42 @@ void th_infer() {
   for (int window = 0; window < kFeatureWindows; window++) {
     th_printf("set input\r\n");
     th_timestamp();
-    runner->SetInput(input_quantized + window * kFeatureSliceSize);
+
+    int8_t *model_input_buffer = model_input->data.int8;
+    int8_t *feature_buffer_ptr = input_quantized + (window * kFeatureSliceSize);
+
+    // Copy feature buffer to input tensor
+    for (int i = 0; i < kFeatureElementCount; i++) {
+      model_input_buffer[i] = feature_buffer_ptr[i];
+    }
+    TF_LITE_REPORT_ERROR(error_reporter, "input: %d %d %d", window,
+    (int)model_input_buffer[0], (int)model_input_buffer[1]);
 
     th_printf("invoke\r\n");
     th_timestamp();
-    runner->Invoke();
+
+    // Run the model on the spectrogram input and make sure it succeeds.
+    TfLiteStatus invoke_status = interpreter->Invoke();
+    if (invoke_status != kTfLiteOk) {
+      TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed");
+      return;
+    }
 
     th_printf("postproc\r\n");
     th_timestamp();
     // calculate |output - input|
     float diffsum = 0;
 
+    TfLiteTensor* output = interpreter->output(0);
     for (size_t i = 0; i < kFeatureElementCount; i++) {
-      float converted = DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
-                                              runner->output_zero_point());
+      float converted = DequantizeInt8ToFloat(output->data.int8[i], interpreter->output(0)->params.scale,
+                                              interpreter->output(0)->params.zero_point);
       float diff = converted - input_float[i + window * kFeatureSliceSize];
       diffsum += diff * diff;
+      if (i==0) th_printf("ae[%i] %i - %i\r\n", i, int(converted*100), int(input_float[i + window * kFeatureSliceSize] * 100));
     }
     diffsum /= kFeatureElementCount;
-    th_printf("result*100 %i\r\n", int(diffsum));
+    th_printf("result*100 %i\r\n", int(diffsum*100));
 
     results[window] = diffsum;
   }
@@ -133,16 +153,68 @@ void th_infer() {
 
 /// \brief optional API.
 void th_final_initialize(void) {
-  static tflite::MicroMutableOpResolver<3> resolver;
-  resolver.AddFullyConnected();
-  resolver.AddQuantize();
-  resolver.AddDequantize();
-  static tflite::MicroModelRunner<model_input_t, model_output_t, 3> model_runner(
-      g_model, resolver, tensor_arena, kTensorArenaSize);
-  runner = &model_runner;
-  th_printf("Runner initialized %p\r\n", runner);
-  th_infer();
+
+  // Set up logging. Google style is to avoid globals or statics because of
+  // lifetime uncertainty, but since this has a trivial destructor it's okay.
+  // NOLINTNEXTLINE(runtime-global-variables)
+  static tflite::MicroErrorReporter micro_error_reporter;
+  error_reporter = &micro_error_reporter;
+
+  // Map the model into a usable data structure. This doesn't involve any
+  // copying or parsing, it's a very lightweight operation.
+  model = tflite::GetModel(g_model);
+  if (model->version() != TFLITE_SCHEMA_VERSION) {
+    TF_LITE_REPORT_ERROR(error_reporter,
+                         "Model provided is schema version %d not equal "
+                         "to supported version %d.",
+                         model->version(), TFLITE_SCHEMA_VERSION);
+    return;
+  }
+
+  // Pull in only the operation implementations we need.
+  // This relies on a complete list of all the ops needed by this graph.
+  // An easier approach is to just use the AllOpsResolver, but this will
+  // incur some penalty in code space for op implementations that are not
+  // needed by this graph.
+  //
+  // tflite::AllOpsResolver resolver;
+  // NOLINTNEXTLINE(runtime-global-variables)
+  static tflite::MicroMutableOpResolver<3> micro_op_resolver(error_reporter);
+  if (micro_op_resolver.AddFullyConnected() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddQuantize() != kTfLiteOk) {
+    return;
+  }
+  if (micro_op_resolver.AddDequantize() != kTfLiteOk) {
+    return;
+  }
+  
+  // Build an interpreter to run the model with.
+  static tflite::MicroInterpreter static_interpreter(
+      model, micro_op_resolver, tensor_arena, kTensorArenaSize, error_reporter);
+  interpreter = &static_interpreter;
+
+  // Allocate memory from the tensor_arena for the model's tensors.
+  TfLiteStatus allocate_status = interpreter->AllocateTensors();
+  if (allocate_status != kTfLiteOk) {
+    TF_LITE_REPORT_ERROR(error_reporter, "AllocateTensors() failed");
+    return;
+  }
+
+  // Get information about the memory area to use for the model's input.
+  model_input = interpreter->input(0);
+  if ((model_input->dims->size != 2) || (model_input->dims->data[0] != 1) ||
+      (model_input->dims->data[1] !=
+       (kFeatureSliceCount * kFeatureSliceSize)) ||
+      (model_input->type != kTfLiteFloat32)) {
+    TF_LITE_REPORT_ERROR(error_reporter,
+                         "Bad input tensor parameters in model");
+    return;
+  }
+  th_printf("Initialized\r\n");
 }
+
 void th_pre() {}
 void th_post() {}
 
