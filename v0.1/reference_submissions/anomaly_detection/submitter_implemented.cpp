@@ -93,9 +93,6 @@ void th_results() {
 // Implement this method with the logic to perform one inference cycle.
 void th_infer() {
 
-  th_printf("quantization %i %i\r\n", int(interpreter->input(0)->params.scale * 100), int(interpreter->input(0)->params.zero_point * 100));
-  th_timestamp();
-
   float input_scale = interpreter->input(0)->params.scale;
   int input_zero_point = interpreter->input(0)->params.zero_point;
   for (int i = 0; i < kInputSize; i++) {
@@ -103,13 +100,9 @@ void th_infer() {
         input_float[i], input_scale, input_zero_point);
   }
 
-  th_printf("inference loop\r\n");
-  th_timestamp();
+  // Inference loop over the histogram using sliding window
 
   for (int window = 0; window < kFeatureWindows; window++) {
-    th_printf("set input\r\n");
-    th_timestamp();
-
     int8_t *model_input_buffer = model_input->data.int8;
     int8_t *feature_buffer_ptr = input_quantized + (window * kFeatureSliceSize);
 
@@ -117,11 +110,6 @@ void th_infer() {
     for (int i = 0; i < kFeatureElementCount; i++) {
       model_input_buffer[i] = feature_buffer_ptr[i];
     }
-    TF_LITE_REPORT_ERROR(error_reporter, "input: %d %d %d", window,
-    (int)model_input_buffer[0], (int)model_input_buffer[1]);
-
-    th_printf("invoke\r\n");
-    th_timestamp();
 
     // Run the model on the spectrogram input and make sure it succeeds.
     TfLiteStatus invoke_status = interpreter->Invoke();
@@ -130,8 +118,6 @@ void th_infer() {
       return;
     }
 
-    th_printf("postproc\r\n");
-    th_timestamp();
     // calculate |output - input|
     float diffsum = 0;
 
@@ -141,10 +127,8 @@ void th_infer() {
                                               interpreter->output(0)->params.zero_point);
       float diff = converted - input_float[i + window * kFeatureSliceSize];
       diffsum += diff * diff;
-      if (i==0) th_printf("ae[%i] %i - %i\r\n", i, int(converted*100), int(input_float[i + window * kFeatureSliceSize] * 100));
     }
     diffsum /= kFeatureElementCount;
-    th_printf("result*100 %i\r\n", int(diffsum*100));
 
     results[window] = diffsum;
   }
