@@ -141,7 +141,7 @@ def file_to_vector_array(file_name,
                          method="librosa",
                          save_png=False,
                          save_hist=False,
-                         save_bin=True):
+                         save_bin=False):
     """
     convert file_name to a vector array.
 
