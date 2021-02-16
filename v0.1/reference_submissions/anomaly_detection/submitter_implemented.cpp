@@ -94,7 +94,7 @@ void th_infer() {
   th_timestamp();
 
   float input_scale = runner->input_scale();
-  float input_zero_point = runner->input_zero_point();
+  int input_zero_point = runner->input_zero_point();
   for (int i = 0; i < kInputSize; i++) {
     input_quantized[i] = QuantizeFloatToInt8(
         input_float[i], input_scale, input_zero_point);
