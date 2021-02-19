@@ -19,16 +19,12 @@ cifar_10_dir = 'cifar-10-batches-py'
 model_name = model_name[:-3]
 
 def representative_dataset_generator():
-    label_output_file = open('y_labels.txt', 'a')
     train_data, train_filenames, train_labels, test_data, test_filenames, test_labels, label_names = \
         train.load_cifar_10_data(cifar_10_dir)
     _idx = np.load('calibration_samples_idxs.npy')
     for i in _idx:
-        _output_str = '{name},{classes},{label}\n'.format(name=test_filenames[i].decode('UTF-8'), classes=3, label=np.argmax(test_labels[i]))
-        label_output_file.write(_output_str)
         sample_img = np.expand_dims(np.array(test_data[i], dtype=np.float32), axis=0)
         yield [sample_img]
-    label_output_file.close()
 
 if __name__ == '__main__':
     converter = tf.lite.TFLiteConverter.from_keras_model(tfmodel)
