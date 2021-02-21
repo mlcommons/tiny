@@ -24,7 +24,7 @@ template <typename inputT, typename outputT, int numOps>
 class MicroModelRunner {
  public:
   MicroModelRunner(const uint8_t* model,
-                   MicroMutableOpResolver<numOps> resolver,
+                   MicroMutableOpResolver<numOps> &resolver,
                    uint8_t* tensor_arena, int tensor_arena_size)
       : model_(tflite::GetModel(model)),
         reporter_(&micro_reporter_),
