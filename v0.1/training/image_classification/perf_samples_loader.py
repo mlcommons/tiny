@@ -19,7 +19,7 @@ if __name__ == '__main__':
     for i in _idxs:
         _output_str = '{name},{classes},{label}\n'.format(name=test_filenames[i].decode('UTF-8'), classes=10, label=np.argmax(test_labels[i]))
         label_output_file.write(_output_str)
-        sample_img = np.array(test_data[i]).flatten(order='F')
+        sample_img = np.array(test_data[i]).flatten()
 
         f = open(perf_samples_dir + '/' + test_filenames[i].decode('UTF-8')[:-3] + 'bin', "wb")
         mydata = sample_img
