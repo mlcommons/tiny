@@ -24,6 +24,7 @@ from sklearn import metrics
 # original lib
 import common as com
 import keras_model
+import eval_functions_eembc
 ########################################################################
 
 
@@ -120,6 +121,13 @@ if __name__ == "__main__":
                 performance.append([auc, p_auc])
                 com.logger.info("AUC : {}".format(auc))
                 com.logger.info("pAUC : {}".format(p_auc))
+
+                acc_eembc = eval_functions_eembc.calculate_ae_accuracy(y_pred, y_true)
+                pr_acc_eembc = eval_functions_eembc.calculate_ae_pr_accuracy(y_pred, y_true)
+                auc_eembc = eval_functions_eembc.calculate_ae_auc(y_pred, y_true, "dummy")
+                com.logger.info("EEMBC Accuracy: {}".format(acc_eembc))
+                com.logger.info("EEMBC Precision/recall accuracy: {}".format(pr_acc_eembc))
+                com.logger.info("EEMBC AUC: {}".format(auc_eembc))
 
             print("\n============ END OF TEST FOR A MACHINE ID ============")
 
