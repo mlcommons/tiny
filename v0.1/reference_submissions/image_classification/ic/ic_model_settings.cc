@@ -15,6 +15,14 @@ limitations under the License.
 #include "ic/ic_model_settings.h"
 
 const char* kCategoryLabels[kCategoryCount] = {
-    "notperson",
-    "person",
+	"airplane",
+	"automobile",
+	"bird",
+	"cat",
+	"deer",
+	"dog",
+	"frog",
+	"horse",
+	"ship"
+	"truck",
 };

@@ -48,7 +48,7 @@ in th_results is copied from the original in EEMBC.
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
-constexpr int kTensorArenaSize = 150 * 1024;
+constexpr int kTensorArenaSize = 50 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 
 tflite::MicroModelRunner<int8_t, int8_t, 7> *runner;
@@ -56,20 +56,15 @@ tflite::MicroModelRunner<int8_t, int8_t, 7> *runner;
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
   int8_t input_quantized[kIcInputSize];
-  float input_float[kIcInputSize];
 
-  size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input_float),
-                               kIcInputSize * sizeof(float));
-  if (bytes / sizeof(float) != kIcInputSize) {
-    th_printf("Input db has %d elemented, expected %d\n", bytes / sizeof(float),
+  size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input_quantized),
+                               kIcInputSize * sizeof(uint8_t));
+  if (bytes / sizeof(uint8_t) != kIcInputSize) {
+    th_printf("Input db has %d elemented, expected %d\n", bytes / sizeof(uint8_t),
               kIcInputSize);
     return;
   }
-
-  for (int i = 0; i < kIcInputSize; i++) {
-    input_quantized[i] = QuantizeFloatToInt8(
-        input_float[i], runner->input_scale(), runner->input_zero_point());
-  }
+ 
   runner->SetInput(input_quantized);
 }
 
@@ -81,7 +76,7 @@ void th_results() {
    * to just modify this loop than copy to results[] above, do that.
    */
   th_printf("m-results-[");
-  int kCategoryCount = 2;
+  int kCategoryCount = 10;
   for (size_t i = 0; i < kCategoryCount; i++) {
     float converted =
         DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
