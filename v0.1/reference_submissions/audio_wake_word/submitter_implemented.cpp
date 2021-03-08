@@ -54,7 +54,7 @@ uint8_t tensor_arena[kTensorArenaSize];
 tflite::MicroModelRunner<int8_t, int8_t, 6> *runner;
 
 // Implement this method to prepare for inference and preprocess inputs.
-void th_load_tensor_orig() {
+void th_load_tensor() {
   int8_t input[kAwwInputSize];
 
   size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input),
@@ -67,10 +67,10 @@ void th_load_tensor_orig() {
   runner->SetInput(input);
 }
 
-// Implement this method to prepare for inference and preprocess inputs.
-void th_load_tensor() {
-  runner->SetInput(g_aww_inputs[0]);
-}
+// // Implement this method to prepare for inference and preprocess inputs.
+// void th_load_tensor() {
+//   runner->SetInput(g_aww_inputs[0]);
+// }
 
 // Add to this method to return real inference results.
 void th_results() {
@@ -110,6 +110,7 @@ void th_final_initialize(void) {
   resolver.AddSoftmax();
   resolver.AddAveragePool2D();
 
+  // jhdbg: added & before model_runner
   static tflite::MicroModelRunner<int8_t, int8_t, 6> model_runner(
          g_aww_model_data, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
