@@ -46,7 +46,8 @@ in th_results is copied from the original in EEMBC.
 #include "vww/vww_model_data.h"
 #include "vww/vww_model_settings.h"
 
-UnbufferedSerial pc(USBTX, USBRX, 115200);
+UnbufferedSerial pc(USBTX, USBRX);
+DigitalOut timestampPin(D7);
 
 constexpr int kTensorArenaSize = 200 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
@@ -82,7 +83,7 @@ void th_results() {
         DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
                               runner->output_zero_point());
 
-	// Some platforms don't implement floating point formatting.
+  // Some platforms don't implement floating point formatting.
     th_printf("0.%d", static_cast<int>(converted * 10));
     th_printf("%d", static_cast<int>(converted * 100) % 10);
     th_printf("%d", static_cast<int>(converted * 1000) % 10);
@@ -155,15 +156,29 @@ void th_printf(const char *p_fmt, ...) {
 
 char th_getchar() { return getchar(); }
 
-void th_serialport_initialize(void) { pc.baud(115200); }
+void th_serialport_initialize(void) {
+# if EE_CFG_ENERGY_MODE==1
+  pc.baud(9600);
+# else
+  pc.baud(115200);
+# endif
+}
 
 void th_timestamp(void) {
+# if EE_CFG_ENERGY_MODE==1
+  timestampPin = 0;
+  for (int i=0; i<100'000; ++i) {
+    asm("nop");
+  }
+  timestampPin = 1;
+# else
   unsigned long microSeconds = 0ul;
   /* USER CODE 2 BEGIN */
   microSeconds = us_ticker_read();
   /* USER CODE 2 END */
   /* This message must NOT be changed. */
   th_printf(EE_MSG_TIMESTAMP, microSeconds);
+# endif
 }
 
 void th_timestamp_initialize(void) {
