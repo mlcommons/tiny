@@ -48,14 +48,15 @@ in th_results is copied from the original in EEMBC.
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
-constexpr int kTensorArenaSize = 50 * 1024;
+constexpr int kTensorArenaSize = 150 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 
 tflite::MicroModelRunner<int8_t, int8_t, 7> *runner;
 
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
-  int8_t input_quantized[kIcInputSize];
+  uint8_t input_quantized[kIcInputSize];
+  int8_t input_asint[kIcInputSize];
 
   size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input_quantized),
                                kIcInputSize * sizeof(uint8_t));
@@ -64,13 +65,21 @@ void th_load_tensor() {
               kIcInputSize);
     return;
   }
+  uint16_t i = 0;
+  for(i=0; i<kIcInputSize;i++)
+  {
+	  if(input_quantized[i]<=127)
+	    input_asint[i] = ((int8_t)input_quantized[i]) - 128;
+	  else
+	    input_asint[i] = (int8_t)(input_quantized[i] - 128);
+  }
  
-  runner->SetInput(input_quantized);
+  runner->SetInput(input_asint);
 }
 
 // Add to this method to return real inference results.
 void th_results() {
-  const int nresults = 3;
+  const int nresults = 10;
   /**
    * The results need to be printed back in exactly this format; if easier
    * to just modify this loop than copy to results[] above, do that.
@@ -81,6 +90,7 @@ void th_results() {
     float converted =
         DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
                               runner->output_zero_point());
+    th_printf("%d\n", uint8_t(100*converted));
     th_printf("%0.3f", converted);
     if (i < (nresults - 1)) {
       th_printf(",");
@@ -94,7 +104,7 @@ void th_infer() { runner->Invoke(); }
 
 /// \brief optional API.
 void th_final_initialize(void) {
-  tflite::MicroMutableOpResolver<7> resolver;
+  static tflite::MicroMutableOpResolver<7> resolver;
   resolver.AddAdd();
   resolver.AddFullyConnected();
   resolver.AddConv2D();
