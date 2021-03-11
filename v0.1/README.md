@@ -26,7 +26,7 @@ If you have any questions or issues with the benchmark please [create a new issu
 ## FAQ
 **Q:** How do I submit?
 
-**A:** TinyMLPerf has set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/GaB9Gc2MftothYpw7). The next submission deadline is March 12th 2021.
+**A:** TinyMLPerf has set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/GaB9Gc2MftothYpw7). The next submission deadline is April 30th 2021.
 ## 
 
 **Q:** Is power measurement included in TinyMLPerf?
