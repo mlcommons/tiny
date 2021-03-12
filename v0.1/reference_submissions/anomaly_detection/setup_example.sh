@@ -10,7 +10,7 @@ if [ "$1" == "clean" ]; then
   rm -rf util
   rm -rf tensorflow-master.zip
   rm -rf tensorflow
-  rm -rf mbed-os*
+  rm -rf mbed-os
   rm -rf mbed_settings*
   rm -rf master*
   rm -rf tensorflow-master
