@@ -1,4 +1,0 @@
-matplotlib
-ffprobe-python
-pydub
-tensorflow_datasets

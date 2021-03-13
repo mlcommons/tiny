@@ -1,1 +1,0 @@
-python3 train.py --data_dir data/ --preprocessed_data_dir data_preprocessed --save_preprocessed_data data_preprocessed --run_test_set True --plot_dir plots --epoch 50 --dct_coefficient_count 10 --window_size_ms 40 --epochs 36
