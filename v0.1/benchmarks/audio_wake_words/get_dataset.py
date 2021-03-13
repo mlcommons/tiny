@@ -248,9 +248,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 /// \file
-/// \brief Sample inputs for the visual wakewords model.
+/// \brief Sample inputs for the audio wakewords model.
 #include "aww/aww_inputs.h"
-const float g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
+const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
     {
   """
 
@@ -259,14 +259,16 @@ const float g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
   interpreter.allocate_tensors()
   input_details = interpreter.get_input_details()
   input_scale, input_zero_point = input_details[0]["quantization"]
+  input_type = np.int8
   
   dat, label = next(dataset)
-  dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.uint8).flatten()
+  dat_q = np.array(dat/input_scale + input_zero_point, dtype=input_type).flatten()
   print("dat_q is type {:}".format(type(dat_q)))
   print("dat_q is shape {:}".format(dat_q.shape))
   
   num_elems = len(dat_q)
   with open(f"{root_filename}.cc", "w") as fpo:
+    fpo.write(preamble)
     for cnt, val in enumerate(dat_q):
       if cnt < num_elems-1:
         fpo.write("0x{:02x},".format(val))

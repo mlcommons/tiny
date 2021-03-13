@@ -110,7 +110,6 @@ void th_final_initialize(void) {
   resolver.AddSoftmax();
   resolver.AddAveragePool2D();
 
-  // jhdbg: added & before model_runner
   static tflite::MicroModelRunner<int8_t, int8_t, 6> model_runner(
          g_aww_model_data, resolver, tensor_arena, kTensorArenaSize);
   runner = &model_runner;
