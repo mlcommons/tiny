@@ -24,6 +24,7 @@ from sklearn import metrics
 # original lib
 import common as com
 import keras_model
+import eval_functions_eembc
 ########################################################################
 
 
@@ -101,11 +102,12 @@ if __name__ == "__main__":
                                                     n_fft=param["feature"]["n_fft"],
                                                     hop_length=param["feature"]["hop_length"],
                                                     power=param["feature"]["power"])
-                    errors = numpy.mean(numpy.square(data - model.predict(data)), axis=1)
+                    pred = model.predict(data)
+                    errors = numpy.mean(numpy.square(data - pred), axis=1)
                     y_pred[file_idx] = numpy.mean(errors)
                     anomaly_score_list.append([os.path.basename(file_path), y_pred[file_idx]])
-                except:
-                    com.logger.error("file broken!!: {}".format(file_path))
+                except Exception as e:
+                    com.logger.error("file broken!!: {}, {}".format(file_path, e))
 
             # save anomaly score
             com.save_csv(save_file_path=anomaly_score_csv, save_data=anomaly_score_list)
@@ -119,6 +121,13 @@ if __name__ == "__main__":
                 performance.append([auc, p_auc])
                 com.logger.info("AUC : {}".format(auc))
                 com.logger.info("pAUC : {}".format(p_auc))
+
+                acc_eembc = eval_functions_eembc.calculate_ae_accuracy(y_pred, y_true)
+                pr_acc_eembc = eval_functions_eembc.calculate_ae_pr_accuracy(y_pred, y_true)
+                auc_eembc = eval_functions_eembc.calculate_ae_auc(y_pred, y_true, "dummy")
+                com.logger.info("EEMBC Accuracy: {}".format(acc_eembc))
+                com.logger.info("EEMBC Precision/recall accuracy: {}".format(pr_acc_eembc))
+                com.logger.info("EEMBC AUC: {}".format(auc_eembc))
 
             print("\n============ END OF TEST FOR A MACHINE ID ============")
 

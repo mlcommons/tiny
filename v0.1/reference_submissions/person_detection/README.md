@@ -38,9 +38,10 @@ root>/tiny/v0.1/reference_submissions/person_detecton/
 
 cd <tiny root>/tiny/v0.1/reference_submissions/person_detection/
 rm -rf tensorflow/lite/micro/examples/hello_world
-mbed deploy .
+mbed config root .
+mbed deploy
 cp -r ../../api .
 cp -r ../../main.cpp .
 cp -r ../../util .
-cp -r ../../vww .
+cp -r ../../training/visual_wake_words/trained_models/vww .
 ```

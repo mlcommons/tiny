@@ -16,14 +16,13 @@ from test import model_name
 tfmodel_path = 'trained_models/' + model_name
 tfmodel = keras.models.load_model(tfmodel_path)
 cifar_10_dir = 'cifar-10-batches-py'
+model_name = model_name[:-3]
 
 def representative_dataset_generator():
     train_data, train_filenames, train_labels, test_data, test_filenames, test_labels, label_names = \
         train.load_cifar_10_data(cifar_10_dir)
-    _idx = np.array(range(10000))
-    np.random.shuffle(_idx)
-    for i in _idx[:500]:
-        print(i)
+    _idx = np.load('calibration_samples_idxs.npy')
+    for i in _idx:
         sample_img = np.expand_dims(np.array(test_data[i], dtype=np.float32), axis=0)
         yield [sample_img]
 
