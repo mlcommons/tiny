@@ -48,7 +48,7 @@ in th_results is copied from the original in EEMBC.
 
 UnbufferedSerial pc(USBTX, USBRX, 115200);
 
-constexpr int kTensorArenaSize = 150 * 1024;
+constexpr int kTensorArenaSize = 100 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 
 tflite::MicroModelRunner<int8_t, int8_t, 7> *runner;
