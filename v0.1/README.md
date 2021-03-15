@@ -3,7 +3,7 @@
 The TinyMLPerf benchmark suite consists four benchmarks:
 |       Use Case       |                   Description                   |          Dataset          |       Model      |
 |:--------------------:|:-----------------------------------------------:|:-------------------------:|:----------------:|
-|   Audio Wake Words   |        Small vocabulary keyword spotting        |      Speech Commands      |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/v0.1/training/audio_wake_words/keras_model.py)      |
+|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands      |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/v0.1/training/audio_wake_words/keras_model.py)      |
 |   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset |     [MobileNet](https://github.com/mlcommons/tiny/blob/master/v0.1/training/visual_wake_words/vww_model.py)    |
 | Image Classification |            Small image classification           |          Cifar10          |      [ResNet](https://github.com/mlcommons/tiny/blob/master/v0.1/training/image_classification/keras_model.py)      |
 |   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS         | [Deep AutoEncoder](https://github.com/mlcommons/tiny/blob/master/v0.1/training/anomaly_detection/keras_model.py) |
