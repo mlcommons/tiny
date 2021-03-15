@@ -25,14 +25,15 @@ else
     pushd tensorflow-master
     make -f tensorflow/lite/micro/tools/make/Makefile third_party_downloads
     make -f tensorflow/lite/micro/tools/make/Makefile generate_hello_world_mbed_project -j18
-    mv tensorflow/lite/micro/tools/make/gen/linux_x86_64_default/prj/hello_world/mbed/* ../
+    mv -n tensorflow/lite/micro/tools/make/gen/linux_x86_64_default/prj/hello_world/mbed/* ../
     popd
-    rm -rf tensorflow-master
+    rm -rf tensorflow-*
     rm -rf tensorflow/lite/micro/examples/hello_world
   fi
 
+  mbed config root .
   mbed deploy .
-  cp -r ../../api .
+  cp -r ../../api/internally* api/
   cp -r ../../main.cpp .
   cp -r ../../util .
   cp -r ../../training/visual_wake_words/trained_models/vww .
