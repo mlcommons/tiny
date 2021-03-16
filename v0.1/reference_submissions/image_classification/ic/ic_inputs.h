@@ -15,9 +15,11 @@ limitations under the License.
 #ifndef V0_1_IC_IC_INPUTS_H_
 #define V0_1_IC_IC_INPUTS_H_
 
+#include <cstdio>
+
 #include "ic/ic_model_settings.h"
 
 constexpr int kNumIcTestInputs = 1;
-extern const float g_ic_inputs[kNumIcTestInputs][kIcInputSize];
+extern const uint8_t g_ic_inputs[kNumIcTestInputs][kIcInputSize];
 
 #endif  // V0_1_IC_IC_INPUTS_H_S
