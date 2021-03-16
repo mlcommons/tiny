@@ -87,9 +87,7 @@ void th_results() {
                               runner->output_zero_point());
 
     // Some platforms don't implement floating point formatting.
-    th_printf("0.%d", static_cast<int>(converted * 10));
-    th_printf("%d", static_cast<int>(converted * 100) % 10);
-    th_printf("%d", static_cast<int>(converted * 1000) % 10);
+    th_printf("%0.3f", converted);
     if (i < (nresults - 1)) {
       th_printf(",");
     }
