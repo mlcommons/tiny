@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os, pickle
 
-import aww_util
+import kws_util
 import keras_model as models
 
 
@@ -31,9 +31,9 @@ def cast_and_pad(sample_dict):
 
 def convert_dataset(item):
     """Puts the mnist dataset in the format Keras expects, (features, labels)."""
-    image = item['audio']
+    audio = item['audio']
     label = item['label']
-    return image, label
+    return audio, label
 
 
 def get_preprocess_audio_func(model_settings,is_training=False,background_data = []):
@@ -213,6 +213,8 @@ def get_training_data(Flags):
   if Flags.num_test_samples != -1:
      ds_test = ds_test.take(Flags.num_test_samples)
     
+
+
   ds_train_specs = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                           background_data=background_data),
                                 num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -252,8 +254,8 @@ limitations under the License.
 
 /// \file
 /// \brief Sample inputs for the audio wakewords model.
-#include "aww/aww_input_data.h"
-const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
+#include "kws/kws_input_data.h"
+const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
     {
   """
 
@@ -286,7 +288,7 @@ const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
     fpo.write("}};\n")
 
 if __name__ == '__main__':
-  Flags, unparsed = aww_util.parse_command()
+  Flags, unparsed = kws_util.parse_command()
   ds_train, ds_test, ds_val = get_training_data(Flags)
 
   if Flags.create_c_files:
@@ -303,5 +305,5 @@ if __name__ == '__main__':
     interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
 
     create_c_files(dataset=target_data,
-                   root_filename="aww_input_data",
+                   root_filename="kws_input_data",
                    interpreter=interpreter)

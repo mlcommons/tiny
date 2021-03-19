@@ -140,10 +140,10 @@ def parse_command():
       '--model_init_path',
       type=str,
       default=None,
-      help='Path to load pretrained model as starting point for training')
+      help='Path to load pretrained model for evaluation or starting point for training')
   parser.add_argument(
       '--tfl_file_name',
-      default='trained_models/aww_model.tflite',
+      default='trained_models/kws_model.tflite',
       help='File name to which the TF Lite model will be saved')
   parser.add_argument(
       '--learning_rate',
@@ -177,7 +177,7 @@ def parse_command():
       default=False,
       const=True,
       help="""\
-      If true, chooses a random input from <target_set> and converts it to a C code in files aww_inputs.{cc,h}
+      If true, chooses a random input from <target_set> and converts it to a C code in files kws_inputs.{cc,h}
       """)
   
   Flags, unparsed = parser.parse_known_args()
