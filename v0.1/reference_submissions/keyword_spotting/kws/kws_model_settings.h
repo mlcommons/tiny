@@ -12,8 +12,8 @@ limitations under the License.
 /// \file
 /// \brief Visual wakewords model settings.
 
-#ifndef V0_1_AWW_MODEL_SETTINGS_H_
-#define V0_1_AWW_MODEL_SETTINGS_H_
+#ifndef V0_1_KWS_MODEL_SETTINGS_H_
+#define V0_1_KWS_MODEL_SETTINGS_H_
 
 // All of these values are derived from the values used during model training,
 // if you change your model you'll need to update these constants.
@@ -21,9 +21,9 @@ constexpr int kNumCols = 10;
 constexpr int kNumRows = 49;
 constexpr int kNumChannels = 1;
 
-constexpr int kAwwInputSize = kNumCols * kNumRows * kNumChannels;
+constexpr int kKwsInputSize = kNumCols * kNumRows * kNumChannels;
 
 constexpr int kCategoryCount = 12;
 extern const char* kCategoryLabels[kCategoryCount];
 
-#endif  // V0_1_AWW_MODEL_SETTINGS_H_
+#endif  // V0_1_KWS_MODEL_SETTINGS_H_

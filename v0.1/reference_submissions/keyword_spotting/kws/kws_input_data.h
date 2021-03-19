@@ -12,12 +12,12 @@ limitations under the License.
 /// \file
 /// \brief Input declarations for visual wakewords model.
 
-#ifndef V0_1_AWW_AWW_INPUTS_H_
-#define V0_1_AWW_AWW_INPUTS_H_
+#ifndef V0_1_KWS_KWS_INPUTS_H_
+#define V0_1_KWS_KWS_INPUTS_H_
 
-#include "aww/aww_model_settings.h"
+#include "kws/kws_model_settings.h"
 #include "mbed.h"
-constexpr int kNumAwwTestInputs = 1;
-extern const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize];
+constexpr int kNumKwsTestInputs = 1;
+extern const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize];
 
-#endif  // V0_1_AWW_AWW_INPUTS_H_
+#endif  // V0_1_KWS_KWS_INPUTS_H_

@@ -12,7 +12,7 @@ limitations under the License.
 /// \file
 /// \brief Settings for visual wakewords model.
 
-#include "aww/aww_model_settings.h"
+#include "kws/kws_model_settings.h"
 
 const char* kCategoryLabels[kCategoryCount] = {
   "word 1",

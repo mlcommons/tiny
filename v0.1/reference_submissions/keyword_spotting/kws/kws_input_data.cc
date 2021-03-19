@@ -12,8 +12,8 @@ limitations under the License.
 ==============================================================================*/
 /// ile
 /// rief Sample inputs for the visual wakewords model.
-#include "aww/aww_input_data.h"
-const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
+#include "kws/kws_input_data.h"
+const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
     {
   76,77,85,83,88,83,82,87,87,84,
   64,81,83,87,87,83,84,86,87,85,
