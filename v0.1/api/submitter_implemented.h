@@ -44,6 +44,8 @@ methods from th_libc.h and all testharness methods from th_lib.h are here.
 #define MAX_DB_INPUT_SIZE (96 * 96 * 3)
 #define TH_MODEL_VERSION EE_MODEL_VERSION_VWW01
 
+#define EE_CFG_ENERGY_MODE 0
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
