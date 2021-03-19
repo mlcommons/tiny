@@ -24,8 +24,16 @@ constexpr int kNumChannels = 3;
 constexpr int kIcInputSize = kNumCols * kNumRows * kNumChannels;
 
 constexpr int kCategoryCount = 10;
-constexpr int kPersonIndex = 1;
-constexpr int kNotAPersonIndex = 0;
+constexpr int kAirplaneIndex = 0;
+constexpr int kAutomobileIndex = 1;
+constexpr int kBirdIndex = 2;
+constexpr int kCatIndex = 3;
+constexpr int kDeerIndex = 4;
+constexpr int kDogIndex = 5;
+constexpr int kFrogIndex = 6;
+constexpr int kHorseIndex = 7;
+constexpr int kShipIndex = 8;
+constexpr int kTruckIndex = 9;
 extern const char* kCategoryLabels[kCategoryCount];
 
 #endif  // V0_1_IC_MODEL_SETTINGS_H_

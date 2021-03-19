@@ -60,9 +60,13 @@ void th_load_tensor() {
   size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input),
                                kVwwInputSize * sizeof(int8_t));
   if (bytes / sizeof(int8_t) != kVwwInputSize) {
-    th_printf("Input db has %d elemented, expected %d\n", bytes / sizeof(int8_t),
-              kVwwInputSize);
+    th_printf("Input db has %d elemented, expected %d\n",
+              bytes / sizeof(int8_t), kVwwInputSize);
     return;
+  }
+
+  for (int i = 0; i < bytes; i++) {
+    input[i] -= 128;
   }
 
   runner->SetInput(input);
@@ -82,10 +86,8 @@ void th_results() {
         DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
                               runner->output_zero_point());
 
-	// Some platforms don't implement floating point formatting.
-    th_printf("0.%d", static_cast<int>(converted * 10));
-    th_printf("%d", static_cast<int>(converted * 100) % 10);
-    th_printf("%d", static_cast<int>(converted * 1000) % 10);
+    // Some platforms don't implement floating point formatting.
+    th_printf("%0.3f", converted);
     if (i < (nresults - 1)) {
       th_printf(",");
     }

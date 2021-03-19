@@ -40,6 +40,7 @@ in th_results is copied from the original in EEMBC.
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/version.h"
 #include "util/quantization_helpers.h"
 #include "util/tf_micro_model_runner.h"
 //#include "inputs.h"
