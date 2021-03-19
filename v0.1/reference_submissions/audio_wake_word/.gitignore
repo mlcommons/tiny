@@ -1,0 +1,24 @@
+# the basic usual patterns to ignore
+*~
+tmp*
+tmp/
+__pycache__/
+.DS_Store
+Untitled*
+# some files that are copied over as part of the build process
+api/
+tensorflow/
+third_party/
+util/
+# and some stuff that the build auto-generates
+.mbed
+BUILD/
+LICENSE
+README_MBED.md
+mbed-os.lib
+mbed-os/
+mbed_app.json
+mbed_settings.py
+screenlog*
+
+
