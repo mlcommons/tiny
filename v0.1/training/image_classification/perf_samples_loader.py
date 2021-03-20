@@ -10,7 +10,7 @@ if __name__ == '__main__':
     if not os.path.exists(perf_samples_dir):
         os.makedirs(perf_samples_dir)
 
-    label_output_file = open('y_labels.txt', 'w')
+    label_output_file = open('y_labels.csv', 'w')
 
     _idxs = np.load('perf_samples_idxs.npy')
     train_data, train_filenames, train_labels, test_data, test_filenames, test_labels, label_names = \
