@@ -8,19 +8,19 @@ from tensorflow import keras
 from sklearn.metrics import roc_auc_score
 
 import keras_model as models
-import get_dataset as aww_data
-import aww_util
+import get_dataset as kws_data
+import kws_util
 import eval_functions_eembc as eembc_ev
 
 num_classes = 12 # should probably draw this directly from the dataset.
 # FLAGS = None
 
 if __name__ == '__main__':
-  Flags, unparsed = aww_util.parse_command()
+  Flags, unparsed = kws_util.parse_command()
 
   print('We will download data to {:}'.format(Flags.data_dir))
 
-  ds_train, ds_test, ds_val = aww_data.get_training_data(Flags)
+  ds_train, ds_test, ds_val = kws_data.get_training_data(Flags)
   print("Done getting data")
 
   if Flags.model_init_path is None:

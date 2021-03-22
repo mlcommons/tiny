@@ -14,6 +14,8 @@ import os, pickle
 import kws_util
 import keras_model as models
 
+word_labels = ["Down", "Go", "Left", "No", "Off", "On", "Right",
+               "Stop", "Up", "Yes", "Silence", "Unknown"]
 
 def convert_to_int16(sample_dict):
   audio = sample_dict['audio']
@@ -174,8 +176,7 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     return background_data
 
 
-def get_training_data(Flags):
-
+def get_training_data(Flags, get_waves=False):
   spectrogram_length = int((Flags.clip_duration_ms - Flags.window_size_ms +
                             Flags.window_stride_ms) / Flags.window_stride_ms)
   
@@ -207,33 +208,36 @@ def get_training_data(Flags):
   ds_test = ds_test.shuffle(test_shuffle_buffer_size)
 
   if Flags.num_train_samples != -1:
-     ds_train = ds_train.take(Flags.num_train_samples)
+    ds_train = ds_train.take(Flags.num_train_samples)
   if Flags.num_val_samples != -1:
-     ds_val = ds_val.take(Flags.num_val_samples)
+    ds_val = ds_val.take(Flags.num_val_samples)
   if Flags.num_test_samples != -1:
-     ds_test = ds_test.take(Flags.num_test_samples)
+    ds_test = ds_test.take(Flags.num_test_samples)
     
+  if get_waves:
+    ds_train = ds_train.map(cast_and_pad)
+    ds_test  =  ds_test.map(cast_and_pad)
+    ds_val   =   ds_val.map(cast_and_pad)
+  else:
+    ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
+                                                      background_data=background_data),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
+                                                      background_data=background_data),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
+                                                      background_data=background_data),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    ds_train = ds_train.map(convert_dataset)
+    ds_test = ds_test.map(convert_dataset)
+    ds_val = ds_val.map(convert_dataset)
 
-
-  ds_train_specs = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
-                                                          background_data=background_data),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  ds_test_specs  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
-                                                          background_data=background_data),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  ds_val_specs   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
-                                                          background_data=background_data),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-
-  ds_train_specs = ds_train_specs.map(convert_dataset)
-  ds_test_specs = ds_test_specs.map(convert_dataset)
-  ds_val_specs = ds_val_specs.map(convert_dataset)
   # Now that we've acquired the preprocessed data, either by processing or loading,
-  ds_train_specs = ds_train_specs.batch(Flags.batch_size)
-  ds_test_specs = ds_test_specs.batch(Flags.batch_size)  
-  ds_val_specs = ds_val_specs.batch(Flags.batch_size)
-
-  return ds_train_specs, ds_test_specs, ds_val_specs
+  ds_train = ds_train.batch(Flags.batch_size)
+  ds_test = ds_test.batch(Flags.batch_size)  
+  ds_val = ds_val.batch(Flags.batch_size)
+  
+  return ds_train, ds_test, ds_val
 
 
 def create_c_files(dataset, root_filename="input_data", interpreter=None, elems_per_row=10):

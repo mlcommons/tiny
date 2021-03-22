@@ -3,8 +3,8 @@ import os
 import numpy as np
 import argparse
 
-import get_dataset as aww_data
-import aww_util
+import get_dataset as kws_data
+import kws_util
 
 
 def predict(interpreter, data):
@@ -28,9 +28,9 @@ def predict(interpreter, data):
   
 
 if __name__ == '__main__':
-  Flags, unparsed = aww_util.parse_command()
+  Flags, unparsed = kws_util.parse_command()
 
-  ds_train, ds_test, ds_val = aww_data.get_training_data(Flags)
+  ds_train, ds_test, ds_val = kws_data.get_training_data(Flags)
   
   interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
   interpreter.allocate_tensors()
