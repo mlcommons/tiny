@@ -1,23 +1,23 @@
 #!/usr/bin/env python
 
-import matplotlib.pyplot as plt
 import numpy as np
-import os
 import argparse
+import tensorflow as tf
 from tensorflow import keras
 from sklearn.metrics import roc_auc_score
 
-import keras_model as models
 import get_dataset as kws_data
 import kws_util
-import eval_functions_eembc as eembc_ev
 
 num_classes = 12 # should probably draw this directly from the dataset.
 # FLAGS = None
 
 if __name__ == '__main__':
   fname = 'quant_cal_idxs.txt'
-  num_cal_files = 50
+  num_files_per_label = 5
+  np.random.seed(1)
+  tf.random.set_seed(2)
+
   Flags, unparsed = kws_util.parse_command()
 
   print('We will download data to {:}'.format(Flags.data_dir))
@@ -26,15 +26,19 @@ if __name__ == '__main__':
   print("Done getting data")
   
   labels = np.array([])
-  for _, batch_labels in ds_train:
+  for _, batch_labels in ds_val:
     labels = np.hstack((labels, batch_labels))
 
-  np.random.seed(31) # seed = 31 => each class has >= 3 samples
-  idxs = np.random.choice(len(labels), size=num_cal_files, replace=False)
+  cal_idxs = np.array([], dtype=int)
+  for l in np.unique(labels):
+    all_label_idxs = np.nonzero(labels==l)[0] # nonzero => tuple of arrays; get the first/only one
+    sel_label_idxs = np.random.choice(all_label_idxs, size=num_files_per_label, replace=False)
+    cal_idxs = np.concatenate((cal_idxs, sel_label_idxs))
+
   print(f"Validation set has {len(labels)} samples.")
-  print(f"Writing {num_cal_files} indices into validation set to file {fname} ...", end='')
+  print(f"Writing {len(cal_idxs)} indices into validation set to file {fname} ...", end='')
   with open(fname, 'w') as fpo:
-    for num in idxs:
+    for num in cal_idxs:
       fpo.write(f"{num}\n")
   print(".. Done")
       
