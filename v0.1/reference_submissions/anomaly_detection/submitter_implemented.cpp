@@ -48,7 +48,7 @@ in th_results is copied from the original in EEMBC.
 #include "micro_model_settings.h"
 
 UnbufferedSerial pc(USBTX, USBRX);
-DigitalOut g_timestampPin(D7)
+DigitalOut g_timestampPin(D7);
 
 constexpr int kTensorArenaSize = 10 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
