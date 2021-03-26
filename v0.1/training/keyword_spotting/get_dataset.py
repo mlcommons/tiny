@@ -10,12 +10,16 @@ from tensorflow.python.platform import gfile
 import matplotlib.pyplot as plt
 import numpy as np
 import os, pickle
+import glob
+import collections # needed for default dictionary, mapping label strings to numbers
 
 import kws_util
 import keras_model as models
 
-word_labels = ["Down", "Go", "Left", "No", "Off", "On", "Right",
-               "Stop", "Up", "Yes", "Silence", "Unknown"]
+label_ids = collections.defaultdict(lambda : 11, {"down":0, "go":1, "left":2, "no":3, "off":4, "on":5, 
+                                               "right":6, "stop":7, "up":8, "yes":9, "silence":10, "unknown":11})
+
+labels_str = list(label_ids.keys())
 
 def convert_to_int16(sample_dict):
   audio = sample_dict['audio']
@@ -32,11 +36,10 @@ def cast_and_pad(sample_dict):
   return audio16, label
 
 def convert_dataset(item):
-    """Puts the mnist dataset in the format Keras expects, (features, labels)."""
+    """Puts the dataset in the format Keras expects, (features, labels)."""
     audio = item['audio']
     label = item['label']
     return audio, label
-
 
 def get_preprocess_audio_func(model_settings,is_training=False,background_data = []):
     def prepare_processing_graph(next_element):
@@ -175,7 +178,62 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
         raise Exception('No background wav files were found in ' + search_path)
     return background_data
 
+def maybe_download_data(Flags):
+  pass # for now, manually download and extract data before running this
+  # data_url = 'http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz'
+  # data_dir = os.path.join(Flags.data_dir, 'speech_commands_v0.02')
+  # tf.keras.utils.get_file('speech_commands_v0.02.tar.gz', origin=data_url,
+  #                         extract=True, cache_dir=data_dir)
 
+
+
+def get_waveform_and_label(file_path):
+  # modified from https://www.tensorflow.org/tutorials/audio/simple_audio
+  ### JHH Right here is where you are working on.
+  parts = tf.strings.split(file_path, os.path.sep)
+  label_str = parts[-2]  # .numpy().decode('utf-8')
+  unknown_bias = tf.constant([0,0,0,0,0,0,0,0,0,0,0,0.1]) # so if nothing matches, select 11(unknown)
+  label_id = tf.argmax(tf.cast(label_str == labels_str, tf.float32) + unknown_bias)
+  audio_binary = tf.io.read_file(file_path)
+  audio, _ = tf.audio.decode_wav(audio_binary)
+  waveform = tf.squeeze(audio, axis=-1)
+  
+  return {'audio': waveform, 'label':label_id}
+
+
+def files_to_datasets(Flags):
+  data_path = os.path.join(Flags.data_dir, 'speech_commands_v0.02')
+  fname_val_files = os.path.join(data_path, 'validation_list.txt')
+  fname_test_files = os.path.join(data_path, 'testing_list.txt')
+
+  with open(fname_val_files) as fpi_val:
+    val_files = fpi_val.read().splitlines()
+  # validation_list.txt only lists partial paths
+  val_files = [os.path.join(data_path, fn) for fn in val_files]
+
+  with open(fname_test_files) as fpi_tst:
+    test_files = fpi_tst.read().splitlines()
+  # testing_list.txt only lists partial paths
+  test_files = [os.path.join(data_path, fn) for fn in test_files]
+  
+  all_files = glob.glob(data_path + '/*/*.wav')
+  # exclude the _background_noise_ files
+  train_files = [f for f in all_files if f.split('/')[-2][0] != '_']
+  # validation and test files are listed explicitly in *_list.txt; train with everything else
+  train_files = list(set(train_files) - set(test_files) - set(val_files))
+  
+  AUTOTUNE = tf.data.experimental.AUTOTUNE
+  ds_train_files = tf.data.Dataset.from_tensor_slices(train_files)
+  ds_test_files  = tf.data.Dataset.from_tensor_slices(test_files)
+  ds_val_files   = tf.data.Dataset.from_tensor_slices(val_files)
+
+  ds_train = ds_train_files.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+  ds_test  = ds_test_files.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+  ds_val   = ds_val_files.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+
+  return (ds_train, ds_test, ds_val)
+
+  
 def get_training_data(Flags, get_waves=False):
   spectrogram_length = int((Flags.clip_duration_ms - Flags.window_size_ms +
                             Flags.window_stride_ms) / Flags.window_stride_ms)
@@ -200,12 +258,12 @@ def get_training_data(Flags, get_waves=False):
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
   splits = ['train', 'test', 'validation']
-  (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
-                                                data_dir=Flags.data_dir, with_info=True)
-
-  ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-  ds_val = ds_val.shuffle(val_shuffle_buffer_size)
-  ds_test = ds_test.shuffle(test_shuffle_buffer_size)
+  # (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
+  #                                               data_dir=Flags.data_dir, with_info=True)
+  (ds_train, ds_test, ds_val) = files_to_datasets(Flags)
+  # ds_train = ds_train.shuffle(train_shuffle_buffer_size)
+  # ds_val = ds_val.shuffle(val_shuffle_buffer_size)
+  # ds_test = ds_test.shuffle(test_shuffle_buffer_size)
 
   if Flags.num_train_samples != -1:
     ds_train = ds_train.take(Flags.num_train_samples)
