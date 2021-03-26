@@ -141,7 +141,8 @@ def file_to_vector_array(file_name,
                          method="librosa",
                          save_png=False,
                          save_hist=False,
-                         save_bin=False):
+                         save_bin=False,
+                         save_parts=False):
     """
     convert file_name to a vector array.
 
@@ -207,6 +208,13 @@ def file_to_vector_array(file_name,
         save_path = file_name.replace('.wav', '_hist_' + method + '.bin')
         # transpose to obtain correct order
         numpy.swapaxes(log_mel_spectrogram, 0, 1).astype('float32').tofile(save_path)
+
+    # 08 (optional) save parts (sliding window)
+    if save_parts:
+        for i in range(vector_array_size):
+            save_path = file_name.replace('.wav', '_hist_' + method + '_part{0:03d}'.format(i) + '.bin')
+            # transpose to obtain correct order?
+            vector_array[i].astype('float32').tofile(save_path)
 
     return vector_array
 
