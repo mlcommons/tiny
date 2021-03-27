@@ -17,7 +17,7 @@ if __name__ == '__main__':
         train.load_cifar_10_data(cifar_10_dir)
 
     for i in _idxs:
-        _output_str = '{name},{classes},{label}\n'.format(name=test_filenames[i].decode('UTF-8'), classes=10, label=np.argmax(test_labels[i]))
+        _output_str = '{name},{classes},{label}\n'.format(name=test_filenames[i].decode('UTF-8')[:-3] + 'bin', classes=10, label=np.argmax(test_labels[i]))
         label_output_file.write(_output_str)
         sample_img = np.array(test_data[i]).flatten()
 
