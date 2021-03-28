@@ -104,17 +104,17 @@ def parse_command():
   parser.add_argument(
       '--num_train_samples',
       type=int,
-      default=85511,
+      default=-1, # 85511,
     help='How many samples from the training set to use',)
   parser.add_argument(
       '--num_val_samples',
       type=int,
-      default=10102,
+      default=-1, # 10102,
     help='How many samples from the validation set to use',)
   parser.add_argument(
       '--num_test_samples',
       type=int,
-      default=4890,
+      default=-1, # 4890,
     help='How many samples from the test set to use',)
   parser.add_argument(
       '--batch_size',

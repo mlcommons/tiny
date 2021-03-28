@@ -214,7 +214,12 @@ def files_to_datasets(Flags):
   with open(fname_test_files) as fpi_tst:
     test_files = fpi_tst.read().splitlines()
   # testing_list.txt only lists partial paths
-  test_files = [os.path.join(data_path, fn) for fn in test_files]
+  test_files = [os.path.join(data_path, fn).rstrip() for fn in test_files]
+  print(f"jhdbg: test_files has {len(test_files):5d} elements")
+  test_words, test_counts = np.unique([s.split('/')[-2] for s in test_files], return_counts=True)
+  for w,c in zip(test_words, test_counts):
+    print(f"word <{w:8}> has <{c:5d}> instances")
+  print("jhdbg end========")
   
   all_files = glob.glob(data_path + '/*/*.wav')
   # exclude the _background_noise_ files
