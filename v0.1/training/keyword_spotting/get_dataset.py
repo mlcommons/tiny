@@ -191,21 +191,13 @@ def get_training_data(Flags, get_waves=False):
   model_settings = models.prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                                window_size_ms, window_stride_ms,
                                dct_coefficient_count,background_frequency)
-  # this is taken from the dataset web page.
-  # there should be a better way than hard-coding this
-  train_shuffle_buffer_size = 85511
-  val_shuffle_buffer_size = 10102
-  test_shuffle_buffer_size = 4890
+
   bg_path=Flags.bg_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
   splits = ['train', 'test', 'validation']
   (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
                                                 data_dir=Flags.data_dir, with_info=True)
-
-  ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-  ds_val = ds_val.shuffle(val_shuffle_buffer_size)
-  ds_test = ds_test.shuffle(test_shuffle_buffer_size)
 
   if Flags.num_train_samples != -1:
     ds_train = ds_train.take(Flags.num_train_samples)
@@ -219,6 +211,7 @@ def get_training_data(Flags, get_waves=False):
     ds_test  =  ds_test.map(cast_and_pad)
     ds_val   =   ds_val.map(cast_and_pad)
   else:
+    # extract spectral features and add background noise
     ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -228,6 +221,7 @@ def get_training_data(Flags, get_waves=False):
     ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    # change output from a dictionary to a feature,label tuple
     ds_train = ds_train.map(convert_dataset)
     ds_test = ds_test.map(convert_dataset)
     ds_val = ds_val.map(convert_dataset)
