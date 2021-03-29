@@ -176,7 +176,7 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     return background_data
 
 
-def get_training_data(Flags, get_waves=False):
+def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   spectrogram_length = int((Flags.clip_duration_ms - Flags.window_size_ms +
                             Flags.window_stride_ms) / Flags.window_stride_ms)
   
@@ -195,7 +195,17 @@ def get_training_data(Flags, get_waves=False):
   bg_path=Flags.bg_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
-  splits = ['train', 'test', 'validation']
+
+  if val_cal_subset:  # only return the subset of val set used for quantization calibration
+    with open("quant_cal_idxs.txt") as fpi:
+      cal_indices = [int(line) for line in fpi]
+    cal_indices.sort()
+    val_slice_str = f"validation[{cal_indices[0]}:{cal_indices[0]+1}]"
+    for i in range(1,len(cal_indices)):
+      val_slice_str += f"+validation[{cal_indices[i]}:{cal_indices[i]+1}]" 
+    splits = ['train', 'test', val_slice_str]
+  else:
+      splits = ['train', 'test', 'validation']
   (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
                                                 data_dir=Flags.data_dir, with_info=True)
 

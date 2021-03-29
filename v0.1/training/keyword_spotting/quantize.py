@@ -13,7 +13,7 @@ if __name__ == '__main__':
   converter = tf.lite.TFLiteConverter.from_saved_model(Flags.saved_model_path)
   converter.optimizations = [tf.lite.Optimize.DEFAULT]
   
-  _, _, ds_val = kws_data.get_training_data(Flags)
+  _, _, ds_val = kws_data.get_training_data(Flags, val_cal_subset=True)
   ds_val = ds_val.unbatch().batch(1) 
   print("finished loading and unbatching/rebatching dataset")
 
@@ -21,16 +21,9 @@ if __name__ == '__main__':
     cal_indices = [int(line) for line in fpi]
   cal_indices.sort()
 
-  
   def representative_dataset_gen():
-    current_index = 0
     for idx in cal_indices:
-      # we want to element idx out of ds_val.  is there a cleaner way? JH
-      print(f"About to find element {idx}")
-      while current_index <= idx:
-        next_input = next(ds_val.as_numpy_iterator())[0]
-        current_index += 1
-      print(f"About to return element {idx}")
+      next_input = next(ds_val.as_numpy_iterator())[0]
       yield [next_input]
     
   converter.optimizations = [tf.lite.Optimize.DEFAULT]
