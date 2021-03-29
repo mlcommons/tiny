@@ -58,7 +58,7 @@ typedef int8_t model_output_t;
 
 float input_float[kInputSize];
 int8_t input_quantized[kInputSize];
-float results[kFeatureWindows];
+float result;
  
 tflite::ErrorReporter* error_reporter = nullptr;
 const tflite::Model* model = nullptr;
@@ -74,26 +74,6 @@ void th_load_tensor() {
               kInputSize);
     return;
   }
-}
-
-// Add to this method to return real inference results.
-void th_results() {
-  /**
-   * The results need to be printed back in exactly this format; if easier
-   * to just modify this loop than copy to results[] above, do that.
-   */
-  th_printf("m-results-[");
-  for (size_t i = 0; i < kFeatureWindows; i++) {
-    th_printf("%0.3f", results[i]);
-    if (i < (kFeatureWindows - 1)) {
-      th_printf(",");
-    }
-  }
-  th_printf("]\r\n");
-}
-
-// Implement this method with the logic to perform one inference cycle.
-void th_infer() {
 
   float input_scale = interpreter->input(0)->params.scale;
   int input_zero_point = interpreter->input(0)->params.zero_point;
@@ -102,39 +82,48 @@ void th_infer() {
         input_float[i], input_scale, input_zero_point);
   }
 
-  // Inference loop over the histogram using sliding window
+}
 
-  for (int window = 0; window < kFeatureWindows; window++) {
-    int8_t *model_input_buffer = model_input->data.int8;
-    int8_t *feature_buffer_ptr = input_quantized + (window * kFeatureSliceSize);
+// Add to this method to return real inference results.
+void th_results() {
+  /**
+   * The results need to be printed back in exactly this format; if easier
+   * to just modify this loop than copy to results[] above, do that.
+   */
+  th_printf("m-results-[%0.3f]\r\n", result);
+}
 
-    // Copy feature buffer to input tensor
-    for (int i = 0; i < kFeatureElementCount; i++) {
-      model_input_buffer[i] = feature_buffer_ptr[i];
-    }
+// Implement this method with the logic to perform one inference cycle.
+void th_infer() {
 
-    // Run the model on the spectrogram input and make sure it succeeds.
-    TfLiteStatus invoke_status = interpreter->Invoke();
-    if (invoke_status != kTfLiteOk) {
-      TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed");
-      return;
-    }
+  int8_t *model_input_buffer = model_input->data.int8;
+  int8_t *feature_buffer_ptr = input_quantized;
 
-    // calculate |output - input|
-    float diffsum = 0;
-
-    TfLiteTensor* output = interpreter->output(0);
-    for (size_t i = 0; i < kFeatureElementCount; i++) {
-      float converted = DequantizeInt8ToFloat(output->data.int8[i], interpreter->output(0)->params.scale,
-                                              interpreter->output(0)->params.zero_point);
-      float diff = converted - input_float[i + window * kFeatureSliceSize];
-      diffsum += diff * diff;
-    }
-    diffsum /= kFeatureElementCount;
-
-    results[window] = diffsum;
+  // Copy feature buffer to input tensor
+  for (int i = 0; i < kFeatureElementCount; i++) {
+    model_input_buffer[i] = feature_buffer_ptr[i];
+  }
+  
+  // Run the model on the spectrogram input and make sure it succeeds.
+  TfLiteStatus invoke_status = interpreter->Invoke();
+  if (invoke_status != kTfLiteOk) {
+    TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed");
+    return;
   }
 
+  // calculate |output - input|
+  float diffsum = 0;
+
+  TfLiteTensor* output = interpreter->output(0);
+  for (size_t i = 0; i < kFeatureElementCount; i++) {
+    float converted = DequantizeInt8ToFloat(output->data.int8[i], interpreter->output(0)->params.scale,
+                                            interpreter->output(0)->params.zero_point);
+    float diff = converted - input_float[i];
+    diffsum += diff * diff;
+  }
+  diffsum /= kFeatureElementCount;
+
+  result = diffsum;
 }
 
 /// \brief optional API.
