@@ -16,10 +16,7 @@ limitations under the License.
 #include "api/submitter_implemented.h"
 
 int main(int argc, char *argv[]) {
-  th_printf("jhdbg: Just Starting\r\n");
-  th_printf("jhdbg: before eebm_init\r\n");
   ee_benchmark_initialize();
-  th_printf("jhdbg: after eebm_init\r\n");
   while (1) {
     int c;
     c = th_getchar();
