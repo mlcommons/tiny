@@ -6,10 +6,23 @@
 = TinyMLPerf Inference Rules
 
 Version 0.1
-Updated April 30th, 2021
+Updated April 30th, 2021.
+
 This version has been updated, but is not yet final.
 
-Points of contact: Colby Banbury (cbanbury@g.harvard.edu)
+Chairs: 
+
+* Colby Banbury* (cbanbury@g.harvard.edu)
+* Vijay Janapa Reddi
+
+*point of contact
+
+Benchmark Owners:
+
+* Visual Wake Words - Nat Jeffries
+* Anomaly Detection - Csaba Kiraly
+* Keyword Spotting - Jeremy Holleman
+* Image Classification - Pietro Montino
 
 == Overview
 
@@ -103,74 +116,11 @@ Results that cannot be replicated are not valid results.
 === Audit Process
 
 In depth audits will not be conducted in this version (V0.1) of TinyMLPerf
-// In each round, two submissions will be audited: one selected by the review committee, and one at random from all submissions. A "submission" for audit purposes shall denote a combination of a submitter and a platform (equivalent to a line in the results table). Only Available submissions in Closed division are auditable.
-
-// The process of random selection is in two stages: first a submitter is randomly chosen from all submitters with auditable submissions, then one of those submissions is randomly chosen.
-
-// An auditor shall be chosen by the review committee who has no conflict of interest with the submitter.
-
-// The burden is on the submitter to provide sufficient materials to demonstrate that the submission is compliant with the rules. Any such materials, including software, documentation, testing results and machine access will be provided to the auditor under NDA.
-
-// The submitter shall provide two days of hardware access, at a time mutually agreed with the auditor. The first day will be used to run a pre-agreed list of tests, and to verify other system parameters if needed. The second day will allow the auditor to run additional tests based on outcome of the first day.
-
-// The audit will ideally conclude before publication, but in any case, no more than 30 days after publication. The auditor shall submit to the review committee a report describing the work that was performed, a list of unresolved issues, and a recommendation on whether the submission is compliant.
-
-// Submissions that fail the audit at a material level will be moved to open or removed, by review committee decision.
 
 
 == Scenarios
 
 TinyMLPerf only supports the Single Stream scenario in this version (V0.1).
-
-// In order to enable representative testing of a wide variety of inference
-// platforms and use cases, MLPerf has defined four different scenarios as
-// described in the table below.
-
-// |===
-// |Scenario |Query Generation |Duration |Samples/query |Latency Constraint |Tail Latency | Performance Metric
-// |Single stream |LoadGen sends next query as soon as SUT completes the previous query | 1024 queries and 600 seconds |1 |None |90% | 90%-ile measured latency
-// |Multiple stream |LoadGen sends a new query every _latency constraint_ if the SUT has completed the prior query, otherwise the new query is dropped and is counted as one overtime query | 270,336 queries and 600 seconds |Variable, see metric |Benchmark specific |99% | Maximum number of inferences per query supported
-// |Server |LoadGen sends new queries to the SUT according to a Poisson distribution |270,336 queries and 600 seconds |1 |Benchmark specific |99% | Maximum Poisson throughput parameter supported
-// |Offline |LoadGen sends all samples to the SUT at start in a single query | 1 query and 600 seconds | At least 24,576 |None |N/A | Measured throughput
-// |===
-
-// The number of queries is selected to ensure sufficient statistical confidence in
-// the reported metric. Specifically, the top line in the following table. Lower
-// lines are being evaluated for future versions of MLPerf Inference (e.g., 95%
-// tail latency for v0.6 and 99% tail latency for v0.7).
-
-// |===
-// |Tail Latency Percentile |Confidence Interval |Margin-of-Error |Inferences |Rounded Inferences
-// |90%|99%|0.50%|23,886|3*2^13 = 24,576
-// |95%|99%|0.25%|50,425|7*2^13 = 57,344
-// |97%|99%|0.15%|85,811|11*2^13 = 90,112
-// |99%|99%|0.05%|262,742|33*2^13 = 270,336
-// |===
-
-// A submission may comprise any combination of benchmark and scenario results.
-
-// The number of runs required for each scenario is defined below:
-
-// * Single Stream: 1
-
-// * Multi-Stream: 1
-
-// * Server: 1
-
-// * Offline: 1
-
-// Each sample has the following definition:
-
-// |===
-// |Model| definition of one sample
-// |Resnet50-v1.5	    |one image
-// |SSD-ResNet34	    |one image
-// |SSD-MobileNet-v1   | one image
-// |3D UNET	        |one image
-// |RNNT	            |one raw speech sample up to 15 seconds
-// |BERT	            |one sequence
-// |DLRM	            |up to 700 user-item pairs (more details in FAQ)
-// |===
 
 == Benchmarks
 
@@ -226,7 +176,7 @@ The suite includes the following benchmarks:
 1. An Open benchmark must perform a task matching an existing Closed benchmark, and be substitutable in LoadGen for that benchmark.
 1. The accuracy dataset must be the same as an existing Closed benchmark.
 1. Accuracy constraints are not applicable: instead the submission must report the accuracy obtained.
-1. A open submission must be classified as "Available", "Preview", or "Research, Development, or Internal".
+1. An open submission must be classified as "Available", "Preview", or "Research, Development, or Internal". See the https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#73-results-categories[submission rules] for more information on these classifications.
 1. The model can be of any origin (trained on any dataset, quantized in any way, and sparsified in anyway).
 
 == Benchmark Runner
