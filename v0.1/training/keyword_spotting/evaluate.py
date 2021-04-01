@@ -54,8 +54,8 @@ if __name__ == '__main__':
   print(40*"=")
   
   print("==== EEMBC calculate_auc ====")
-  label_names = ['word_1', 'word_2', 'word_3', 'word_4', 'word_5',
-                 'word_6', 'word_7', 'word_8', 'word_9', 'word_10',
-                'silence', 'unknown']
+  label_names = ["go", "left", "no", "off", "on", "right",
+                 "stop", "up", "yes", "silence", "unknown"]
+
   auc_eembc = eembc_ev.calculate_auc(outputs, labels, label_names, Flags.model_architecture)
   print("---------------------")

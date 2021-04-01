@@ -14,11 +14,12 @@ num_classes = 12 # should probably draw this directly from the dataset.
 
 if __name__ == '__main__':
   fname = 'quant_cal_idxs.txt'
-  num_files_per_label = 5
-  np.random.seed(1)
-  tf.random.set_seed(2)
+  num_files_per_label = 10
 
   Flags, unparsed = kws_util.parse_command()
+
+  np.random.seed(2)
+  tf.random.set_seed(2)
 
   print('We will download data to {:}'.format(Flags.data_dir))
 

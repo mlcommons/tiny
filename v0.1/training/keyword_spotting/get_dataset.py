@@ -176,7 +176,7 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     return background_data
 
 
-def get_training_data(Flags, get_waves=False):
+def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   spectrogram_length = int((Flags.clip_duration_ms - Flags.window_size_ms +
                             Flags.window_stride_ms) / Flags.window_stride_ms)
   
@@ -191,21 +191,34 @@ def get_training_data(Flags, get_waves=False):
   model_settings = models.prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                                window_size_ms, window_stride_ms,
                                dct_coefficient_count,background_frequency)
-  # this is taken from the dataset web page.
-  # there should be a better way than hard-coding this
-  train_shuffle_buffer_size = 85511
-  val_shuffle_buffer_size = 10102
-  test_shuffle_buffer_size = 4890
+
   bg_path=Flags.bg_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
+
   splits = ['train', 'test', 'validation']
   (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
                                                 data_dir=Flags.data_dir, with_info=True)
 
-  ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-  ds_val = ds_val.shuffle(val_shuffle_buffer_size)
-  ds_test = ds_test.shuffle(test_shuffle_buffer_size)
+  if val_cal_subset:  # only return the subset of val set used for quantization calibration
+    with open("quant_cal_idxs.txt") as fpi:
+      cal_indices = [int(line) for line in fpi]
+    cal_indices.sort()
+    # cal_indices are the positions of specific inputs that are selected to calibrate the quantization
+    count = 0  # count will be the index into the validation set.
+    val_sub_audio = []
+    val_sub_labels = []
+    for d in ds_val:
+      if count in cal_indices:          # this is one of the calibration inpus
+        new_audio = d['audio'].numpy()  # so add it to a stack of tensors 
+        if len(new_audio) < 16000:      # from_tensor_slices doesn't work for ragged tensors, so pad to 16k
+          new_audio = np.pad(new_audio, (0, 16000-len(new_audio)), 'constant')
+        val_sub_audio.append(new_audio)
+        val_sub_labels.append(d['label'].numpy())
+      count += 1
+    # and create a new dataset for just the calibration inputs.
+    ds_val = tf.data.Dataset.from_tensor_slices({"audio": val_sub_audio,
+                                                 "label": val_sub_labels})
 
   if Flags.num_train_samples != -1:
     ds_train = ds_train.take(Flags.num_train_samples)
@@ -219,6 +232,7 @@ def get_training_data(Flags, get_waves=False):
     ds_test  =  ds_test.map(cast_and_pad)
     ds_val   =   ds_val.map(cast_and_pad)
   else:
+    # extract spectral features and add background noise
     ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
@@ -228,6 +242,7 @@ def get_training_data(Flags, get_waves=False):
     ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    # change output from a dictionary to a feature,label tuple
     ds_train = ds_train.map(convert_dataset)
     ds_test = ds_test.map(convert_dataset)
     ds_val = ds_val.map(convert_dataset)
@@ -275,8 +290,6 @@ const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
   dat_q = np.array(dat/input_scale + input_zero_point, dtype=input_type)
   dat_q = dat_q.flatten()
 
-  print("dat_q is type {:}".format(type(dat_q)))
-  print("dat_q is shape {:}".format(dat_q.shape))
   print(f"Writing to {ofname}")
   num_elems = len(dat_q)
 
