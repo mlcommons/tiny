@@ -9,29 +9,33 @@ import kws_util
 if __name__ == '__main__':
   Flags, unparsed = kws_util.parse_command()
 
-  num_calibration_steps = 100
   converter = tf.lite.TFLiteConverter.from_saved_model(Flags.saved_model_path)
   converter.optimizations = [tf.lite.Optimize.DEFAULT]
   
-  _, _, ds_val = kws_data.get_training_data(Flags) # , val_cal_subset=True)
-  ds_val = ds_val.unbatch().batch(1) 
-  print("finished loading and unbatching/rebatching dataset")
-
   with open("quant_cal_idxs.txt") as fpi:
     cal_indices = [int(line) for line in fpi]
   cal_indices.sort()
-  cal_indices = np.arange(15)
-  
-  # def representative_dataset_gen():
-  #   for idx in cal_indices:
-  #     next_input = next(ds_val.as_numpy_iterator())[0]
-  #     yield [next_input]
 
+  num_calibration_steps = len(cal_indices)
+
+  _, _, ds_val = kws_data.get_training_data(Flags, val_cal_subset=True)
+  ds_val = ds_val.unbatch().batch(1) 
+
+  if False: # enable if you want to check the distribution of labels in the calibration set
+    label_counts = {}
+    for label in range(12):
+      label_counts[label] = 0
+    for _, label in ds_val.as_numpy_iterator():
+      label_counts[label[0]] += 1
+    for label in range(12):
+      print(f"Cal set has {label_counts[label]} of label {label}")
+    
+
+  ds_iter = ds_val.as_numpy_iterator()
   def representative_dataset_gen():
     for _ in range(num_calibration_steps):
-      next_input = next(ds_val.as_numpy_iterator())[0]
+      next_input = next(ds_iter)[0]
       yield [next_input]
-
   
   converter.optimizations = [tf.lite.Optimize.DEFAULT]
   converter.representative_dataset = representative_dataset_gen

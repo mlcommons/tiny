@@ -196,18 +196,29 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
 
+  splits = ['train', 'test', 'validation']
+  (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
+                                                data_dir=Flags.data_dir, with_info=True)
+
   if val_cal_subset:  # only return the subset of val set used for quantization calibration
     with open("quant_cal_idxs.txt") as fpi:
       cal_indices = [int(line) for line in fpi]
     cal_indices.sort()
-    val_slice_str = f"validation[{cal_indices[0]}:{cal_indices[0]+1}]"
-    for i in range(1,len(cal_indices)):
-      val_slice_str += f"+validation[{cal_indices[i]}:{cal_indices[i]+1}]" 
-    splits = ['train', 'test', val_slice_str]
-  else:
-      splits = ['train', 'test', 'validation']
-  (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
-                                                data_dir=Flags.data_dir, with_info=True)
+    # cal_indices are the positions of specific inputs that are selected to calibrate the quantization
+    count = 0  # count will be the index into the validation set.
+    val_sub_audio = []
+    val_sub_labels = []
+    for d in ds_val:
+      if count in cal_indices:          # this is one of the calibration inpus
+        new_audio = d['audio'].numpy()  # so add it to a stack of tensors 
+        if len(new_audio) < 16000:      # from_tensor_slices doesn't work for ragged tensors, so pad to 16k
+          new_audio = np.pad(new_audio, (0, 16000-len(new_audio)), 'constant')
+        val_sub_audio.append(new_audio)
+        val_sub_labels.append(d['label'].numpy())
+      count += 1
+    # and create a new dataset for just the calibration inputs.
+    ds_val = tf.data.Dataset.from_tensor_slices({"audio": val_sub_audio,
+                                                 "label": val_sub_labels})
 
   if Flags.num_train_samples != -1:
     ds_train = ds_train.take(Flags.num_train_samples)
@@ -279,8 +290,6 @@ const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
   dat_q = np.array(dat/input_scale + input_zero_point, dtype=input_type)
   dat_q = dat_q.flatten()
 
-  print("dat_q is type {:}".format(type(dat_q)))
-  print("dat_q is shape {:}".format(dat_q.shape))
   print(f"Writing to {ofname}")
   num_elems = len(dat_q)
 
