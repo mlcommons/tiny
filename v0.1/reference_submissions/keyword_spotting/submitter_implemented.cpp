@@ -67,20 +67,16 @@ void th_load_tensor() {
   runner->SetInput(input);
 }
 
-// // Implement this method to prepare for inference and preprocess inputs.
-// void th_load_tensor() {
-//   runner->SetInput(g_kws_inputs[0]);
-// }
-
 // Add to this method to return real inference results.
 void th_results() {
-  const int nresults = 3;
   /**
    * The results need to be printed back in exactly this format; if easier
    * to just modify this loop than copy to results[] above, do that.
    */
   th_printf("m-results-[");
   int kCategoryCount = 12;
+
+
   for (size_t i = 0; i < kCategoryCount; i++) {
     float converted =
         DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
@@ -90,7 +86,7 @@ void th_results() {
     th_printf("0.%d", static_cast<int>(converted * 10));
     th_printf("%d", static_cast<int>(converted * 100) % 10);
     th_printf("%d", static_cast<int>(converted * 1000) % 10);
-    if (i < (nresults - 1)) {
+    if (i < (kCategoryCount - 1)) {
       th_printf(",");
     }
   }
