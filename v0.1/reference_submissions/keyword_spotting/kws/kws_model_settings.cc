@@ -15,20 +15,11 @@ limitations under the License.
 #include "kws/kws_model_settings.h"
 
 const char* kCategoryLabels[kCategoryCount] = {
-  "word 1",
-  "word 2",
-  "word 3 ",
-  "word 4 ",
-  "word 5 ",
-  "word 6 ",
-  "word 7 ",
-  "word 8 ",
-  "word 9 ",
-  "word 10",
-  "word 11",
-  "word 12"
+  "down", "go", "left", "no", "off", "on",
+  "right", "stop", "up", "yes", "silence", "unknown"
 };
   
+
 
 
 
