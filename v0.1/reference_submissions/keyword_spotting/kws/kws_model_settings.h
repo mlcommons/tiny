@@ -12,28 +12,18 @@ limitations under the License.
 /// \file
 /// \brief Visual wakewords model settings.
 
-#ifndef V0_1_IC_MODEL_SETTINGS_H_
-#define V0_1_IC_MODEL_SETTINGS_H_
+#ifndef V0_1_KWS_MODEL_SETTINGS_H_
+#define V0_1_KWS_MODEL_SETTINGS_H_
 
 // All of these values are derived from the values used during model training,
 // if you change your model you'll need to update these constants.
-constexpr int kNumCols = 32;
-constexpr int kNumRows = 32;
-constexpr int kNumChannels = 3;
+constexpr int kNumCols = 10;
+constexpr int kNumRows = 49;
+constexpr int kNumChannels = 1;
 
-constexpr int kIcInputSize = kNumCols * kNumRows * kNumChannels;
+constexpr int kKwsInputSize = kNumCols * kNumRows * kNumChannels;
 
-constexpr int kCategoryCount = 10;
-constexpr int kAirplaneIndex = 0;
-constexpr int kAutomobileIndex = 1;
-constexpr int kBirdIndex = 2;
-constexpr int kCatIndex = 3;
-constexpr int kDeerIndex = 4;
-constexpr int kDogIndex = 5;
-constexpr int kFrogIndex = 6;
-constexpr int kHorseIndex = 7;
-constexpr int kShipIndex = 8;
-constexpr int kTruckIndex = 9;
+constexpr int kCategoryCount = 12;
 extern const char* kCategoryLabels[kCategoryCount];
 
-#endif  // V0_1_IC_MODEL_SETTINGS_H_
+#endif  // V0_1_KWS_MODEL_SETTINGS_H_

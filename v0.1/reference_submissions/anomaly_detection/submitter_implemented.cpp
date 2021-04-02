@@ -40,13 +40,15 @@ in th_results is copied from the original in EEMBC.
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
+#include "tensorflow/lite/version.h"
 #include "util/quantization_helpers.h"
 #include "util/tf_micro_model_runner.h"
 //#include "inputs.h"
 #include "model.h"
 #include "micro_model_settings.h"
 
-UnbufferedSerial pc(USBTX, USBRX, 115200);
+UnbufferedSerial pc(USBTX, USBRX);
+DigitalOut g_timestampPin(D7);
 
 constexpr int kTensorArenaSize = 10 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
@@ -243,15 +245,36 @@ void th_printf(const char *p_fmt, ...) {
 
 char th_getchar() { return getchar(); }
 
-void th_serialport_initialize(void) { pc.baud(115200); }
+void th_serialport_initialize(void) {
+#if EE_CFG_ENERGY_MODE == 1
+       pc.baud(9600);
+#else
+       pc.baud(115200);
+#endif
+}
+
 
 void th_timestamp(void) {
-  unsigned long microSeconds = 0ul;
-  /* USER CODE 2 BEGIN */
-  microSeconds = us_ticker_read();
-  /* USER CODE 2 END */
-  /* This message must NOT be changed. */
-  th_printf(EE_MSG_TIMESTAMP, microSeconds);
+#if EE_CFG_ENERGY_MODE == 1
+/* USER CODE 1 BEGIN */
+/* Step 1. Pull pin low */
+       g_timestampPin = 0;
+       for (int i=0; i<100000; ++i) {
+               asm("nop");
+       }
+/* Step 2. Hold low for at least 1us */
+/* Step 3. Release driver */
+       g_timestampPin = 1;
+
+/* USER CODE 1 END */
+#else
+       unsigned long microSeconds = 0ul;
+       /* USER CODE 2 BEGIN */
+       microSeconds = us_ticker_read();
+       /* USER CODE 2 END */
+       /* This message must NOT be changed. */
+       th_printf(EE_MSG_TIMESTAMP, microSeconds);
+#endif
 }
 
 void th_timestamp_initialize(void) {

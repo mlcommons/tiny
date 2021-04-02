@@ -10,19 +10,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 /// \file
-/// \brief Settings for visual wakewords model.
+/// \brief Input declarations for visual wakewords model.
 
-#include "ic/ic_model_settings.h"
+#ifndef V0_1_KWS_KWS_INPUTS_H_
+#define V0_1_KWS_KWS_INPUTS_H_
 
-const char* kCategoryLabels[kCategoryCount] = {
-	"airplane",
-	"automobile",
-	"bird",
-	"cat",
-	"deer",
-	"dog",
-	"frog",
-	"horse",
-	"ship"
-	"truck",
-};
+#include "kws/kws_model_settings.h"
+#include "mbed.h"
+constexpr int kNumKwsTestInputs = 1;
+extern const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize];
+
+#endif  // V0_1_KWS_KWS_INPUTS_H_

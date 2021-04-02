@@ -10,19 +10,20 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 /// \file
-/// \brief Settings for visual wakewords model.
+/// \brief Main function to run benchmark on device.
 
-#include "ic/ic_model_settings.h"
+#include "api/internally_implemented.h"
+#include "api/submitter_implemented.h"
 
-const char* kCategoryLabels[kCategoryCount] = {
-	"airplane",
-	"automobile",
-	"bird",
-	"cat",
-	"deer",
-	"dog",
-	"frog",
-	"horse",
-	"ship"
-	"truck",
-};
+int main(int argc, char *argv[]) {
+  th_printf("jhdbg: Just Starting\r\n");
+  th_printf("jhdbg: before eebm_init\r\n");
+  ee_benchmark_initialize();
+  th_printf("jhdbg: after eebm_init\r\n");
+  while (1) {
+    int c;
+    c = th_getchar();
+    ee_serial_callback(c);
+  }
+  return 0;
+}

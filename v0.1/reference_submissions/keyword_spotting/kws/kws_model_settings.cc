@@ -12,17 +12,28 @@ limitations under the License.
 /// \file
 /// \brief Settings for visual wakewords model.
 
-#include "ic/ic_model_settings.h"
+#include "kws/kws_model_settings.h"
 
 const char* kCategoryLabels[kCategoryCount] = {
-	"airplane",
-	"automobile",
-	"bird",
-	"cat",
-	"deer",
-	"dog",
-	"frog",
-	"horse",
-	"ship"
-	"truck",
+  "word 1",
+  "word 2",
+  "word 3 ",
+  "word 4 ",
+  "word 5 ",
+  "word 6 ",
+  "word 7 ",
+  "word 8 ",
+  "word 9 ",
+  "word 10",
+  "word 11",
+  "word 12"
 };
+  
+
+
+
+
+
+
+
+
