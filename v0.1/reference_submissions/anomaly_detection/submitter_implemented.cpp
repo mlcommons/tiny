@@ -193,7 +193,7 @@ void th_final_initialize(void) {
   if ((model_input->dims->size != 2) || (model_input->dims->data[0] != 1) ||
       (model_input->dims->data[1] !=
        (kFeatureSliceCount * kFeatureSliceSize)) ||
-      (model_input->type != kTfLiteFloat32)) {
+      (model_input->type != kTfLiteInt8)) {
     TF_LITE_REPORT_ERROR(error_reporter,
                          "Bad input tensor parameters in model");
     return;
