@@ -1,4 +1,4 @@
-
+# converts tflite file into CC
 xxd -i trained_models/kws_model.tflite                    >  kws_model_data.cc
 
 sed -i '1 s/^/#include "kws_model_data.h"\n\n/'              kws_model_data.cc
