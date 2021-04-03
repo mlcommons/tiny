@@ -109,10 +109,16 @@ void th_load_tensor() {
         input_float[i], input_scale, input_zero_point);
   }
 
+  // copy input into interpreter's buffer
+  copy_input();
 }
 
 // Add to this method to return real inference results.
 void th_results() {
+
+  // calculate |output - input|
+  calculate_result();
+
   /**
    * The results need to be printed back in exactly this format; if easier
    * to just modify this loop than copy to results[] above, do that.
@@ -123,18 +129,12 @@ void th_results() {
 // Implement this method with the logic to perform one inference cycle.
 void th_infer() {
 
-  // copy input into interpreter's buffer
-  copy_input();
-
   // Run the model on the spectrogram input and make sure it succeeds.
   TfLiteStatus invoke_status = interpreter->Invoke();
   if (invoke_status != kTfLiteOk) {
     TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed");
     return;
   }
-
-  // calculate |output - input|
-  calculate_result();
 }
 
 /// \brief optional API.
