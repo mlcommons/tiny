@@ -122,6 +122,18 @@ def parse_command():
       default=100,
       help='How many items to train with at once',)
   parser.add_argument(
+      '--num_bin_files',
+      type=int,
+      default=1000,
+      help='How many binary test files for benchmark runner to create',)
+  parser.add_argument(
+      '--bin_file_path',
+      type=str,
+      default=os.path.join(os.getenv('HOME'), 'kws_test_files'),
+      help="""\
+      Directory where plots of binary test files for benchmark runner are written.
+      """)
+  parser.add_argument(
       '--model_architecture',
       type=str,
       default='ds_cnn',
