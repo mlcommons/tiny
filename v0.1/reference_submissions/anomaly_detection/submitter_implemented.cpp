@@ -65,6 +65,33 @@ const tflite::Model* model = nullptr;
 tflite::MicroInterpreter* interpreter = nullptr;
 TfLiteTensor* model_input = nullptr;
 
+// copy input into interpreter's buffer
+void copy_input() {
+  int8_t *model_input_buffer = model_input->data.int8;
+  int8_t *feature_buffer_ptr = input_quantized;
+
+  // Copy feature buffer to input tensor
+  for (int i = 0; i < kFeatureElementCount; i++) {
+    model_input_buffer[i] = feature_buffer_ptr[i];
+  }
+}
+
+// calculate |output - input|
+void calculate_result(){
+  float diffsum = 0;
+
+  TfLiteTensor* output = interpreter->output(0);
+  for (size_t i = 0; i < kFeatureElementCount; i++) {
+    float converted = DequantizeInt8ToFloat(output->data.int8[i], interpreter->output(0)->params.scale,
+                                            interpreter->output(0)->params.zero_point);
+    float diff = converted - input_float[i];
+    diffsum += diff * diff;
+  }
+  diffsum /= kFeatureElementCount;
+
+  result = diffsum;
+}
+
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
   size_t bytes = ee_get_buffer(reinterpret_cast<uint8_t *>(input_float),
@@ -96,14 +123,9 @@ void th_results() {
 // Implement this method with the logic to perform one inference cycle.
 void th_infer() {
 
-  int8_t *model_input_buffer = model_input->data.int8;
-  int8_t *feature_buffer_ptr = input_quantized;
+  // copy input into interpreter's buffer
+  copy_input();
 
-  // Copy feature buffer to input tensor
-  for (int i = 0; i < kFeatureElementCount; i++) {
-    model_input_buffer[i] = feature_buffer_ptr[i];
-  }
-  
   // Run the model on the spectrogram input and make sure it succeeds.
   TfLiteStatus invoke_status = interpreter->Invoke();
   if (invoke_status != kTfLiteOk) {
@@ -112,18 +134,7 @@ void th_infer() {
   }
 
   // calculate |output - input|
-  float diffsum = 0;
-
-  TfLiteTensor* output = interpreter->output(0);
-  for (size_t i = 0; i < kFeatureElementCount; i++) {
-    float converted = DequantizeInt8ToFloat(output->data.int8[i], interpreter->output(0)->params.scale,
-                                            interpreter->output(0)->params.zero_point);
-    float diff = converted - input_float[i];
-    diffsum += diff * diff;
-  }
-  diffsum /= kFeatureElementCount;
-
-  result = diffsum;
+  calculate_result();
 }
 
 /// \brief optional API.
