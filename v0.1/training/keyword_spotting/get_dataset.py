@@ -120,25 +120,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     return prepare_processing_graph
 
 
-def good_preproc_data_available(Flags):
-  # Check whether preprocessed data is available in the Flags.preprocessed_data_dir with
-  # the same preprocessing parameters (window stride, window size, feature count, sample rate)
-  fname_params = os.path.join(Flags.preprocessed_data_dir, 'preproc_params.pkl')
-
-  try:
-    with open(fname_params, 'rb') as fpi:
-      preproc_params = pickle.load(fpi)
-    good_data = preproc_params['clip_duration_ms']       == Flags.clip_duration_ms and \
-                (preproc_params['dct_coefficient_count']  == Flags.dct_coefficient_count) and \
-                (preproc_params['sample_rate']            == Flags.sample_rate) and \
-                (preproc_params['window_size_ms']         == Flags.window_size_ms) and \
-                (preproc_params['window_stride_ms']       == Flags.window_stride_ms) and \
-                (preproc_params['num_test_samples']       >= Flags.num_test_samples) and \
-                (preproc_params['num_train_samples']      >= Flags.num_train_samples) and \
-                (preproc_params['num_val_samples']        >= Flags.num_val_samples)
-  except(FileNotFoundError, pickle.UnpicklingError, KeyError):
-    good_data = False # the params file was not there, wasn't a pickle, or was missing a key
-  return good_data
 
 def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     """Searches a folder for background noise audio, and loads it into memory.
