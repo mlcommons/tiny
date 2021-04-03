@@ -115,12 +115,12 @@ def parse_command():
       '--run_test_set',
       type=bool,
       default=True,
-      help='Run model.eval() on test set if True')
+      help='In train.py, run model.eval() on test set if True')
   parser.add_argument(
       '--saved_model_path',
       type=str,
       default='trained_models/scratch',
-      help='Path to load pretrained model')
+      help='In quantize.py, path to load pretrained model from; in train.py, destination for trained model')
   parser.add_argument(
       '--model_init_path',
       type=str,
@@ -129,7 +129,7 @@ def parse_command():
   parser.add_argument(
       '--tfl_file_name',
       default='trained_models/kws_model.tflite',
-      help='File name to which the TF Lite model will be saved')
+      help='File name to which the TF Lite model will be saved (quantize.py) or loaded (eval_quantized_model)')
   parser.add_argument(
       '--learning_rate',
       type=float,
