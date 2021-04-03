@@ -22,21 +22,6 @@ def parse_command():
       Where to find background noise folder.
       """)
   parser.add_argument(
-      '--preprocessed_data_dir',
-      type=str,
-      default=os.path.join(os.getenv('HOME'), 'data/speech_commands_preprocessed'),
-      help="""\
-      Where to store preprocessed speech data (spectrograms) or load it, if it exists
-      with the same parameters as are used in the current run.
-      """)
-  parser.add_argument(
-      '--save_preprocessed_data',
-      type=bool,
-      default=True,
-      help="""\
-      Where to download the speech training data to. Or where it is already saved.
-      """)
-  parser.add_argument(
       '--background_volume',
       type=float,
       default=0.1,
@@ -142,12 +127,12 @@ def parse_command():
       '--run_test_set',
       type=bool,
       default=True,
-      help='Run model.eval() on test set if True')
+      help='In train.py, run model.eval() on test set if True')
   parser.add_argument(
       '--saved_model_path',
       type=str,
       default='trained_models/scratch',
-      help='Path to load pretrained model')
+      help='In quantize.py, path to load pretrained model from; in train.py, destination for trained model')
   parser.add_argument(
       '--model_init_path',
       type=str,
@@ -156,7 +141,7 @@ def parse_command():
   parser.add_argument(
       '--tfl_file_name',
       default='trained_models/kws_model.tflite',
-      help='File name to which the TF Lite model will be saved')
+      help='File name to which the TF Lite model will be saved (quantize.py) or loaded (eval_quantized_model)')
   parser.add_argument(
       '--learning_rate',
       type=float,
@@ -170,7 +155,6 @@ def parse_command():
   parser.add_argument(
       '--plot_dir',
       type=str,
-      # default=os.path.join(os.getenv('HOME'), 'plot_dir'),
       default='./plots',
       help="""\
       Directory where plots of accuracy vs Epochs are stored
@@ -182,16 +166,7 @@ def parse_command():
       help="""\
       For eval_quantized_model, which set to measure.
       """)
-  parser.add_argument(
-      '--create_c_files',
-      type=bool,
-      nargs='?',
-      default=False,
-      const=True,
-      help="""\
-      If true, chooses a random input from <target_set> and converts it to a C code in files kws_inputs.{cc,h}
-      """)
-  
+
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed
 
