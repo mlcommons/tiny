@@ -9,8 +9,10 @@ import kws_util
 if __name__ == '__main__':
   Flags, unparsed = kws_util.parse_command()
 
-  num_test_files = 50
-  test_file_path = os.path.join(os.getenv('HOME'), 'kws_test_files')
+  num_test_files = Flags.num_bin_files
+  test_file_path = Flags.bin_file_path
+  
+  print(f"Extracting {num_test_files} to {test_file_path}")
   word_labels = ["Down", "Go", "Left", "No", "Off", "On", "Right",
                  "Stop", "Up", "Yes", "Silence", "Unknown"]
 
