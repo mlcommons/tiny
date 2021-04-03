@@ -131,7 +131,7 @@ def parse_command():
   parser.add_argument(
       '--saved_model_path',
       type=str,
-      default='trained_models/scratch',
+      default='trained_models/kws_model',
       help='In quantize.py, path to load pretrained model from; in train.py, destination for trained model')
   parser.add_argument(
       '--model_init_path',
