@@ -40,7 +40,7 @@ The file name has been changed and some functions removed.
 #define EE_MODEL_VERSION_KWS01 "kws01"
 #define EE_MODEL_VERSION_VWW01 "vww01"
 #define EE_MODEL_VERSION_DCASE01 "ad01"
-#define EE_MODEL_VERSION_RN801 "ic01"
+#define EE_MODEL_VERSION_IC01 "ic01"
 
 typedef enum { EE_ARG_CLAIMED, EE_ARG_UNCLAIMED } arg_claimed_t;
 typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;

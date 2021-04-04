@@ -1,4 +1,4 @@
-Person detection reference submission for MLCommons TinyML benchmark
+Image Classification reference submission for MLCommons TinyML benchmark
 
 Quick Start
 ===========
@@ -13,5 +13,4 @@ Compile using Mbed CLI tools
 
 Deploy on Nucleo board
 
-    cp ./BUILD/NUCLEO_L4R5ZI/GCC_ARM/anomaly_detection.bin /Volumes/NODE_L4R5ZI/
-
+    cp ./BUILD/NUCLEO_L4R5ZI/GCC_ARM/image_classification.bin /Volumes/NODE_L4R5ZI/

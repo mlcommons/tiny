@@ -28,8 +28,8 @@ def predict(interpreter, data):
   
 
 if __name__ == '__main__':
-  Flags, unparsed = kws_util.parse_command()
 
+  Flags, unparsed = kws_util.parse_command()
   ds_train, ds_test, ds_val = kws_data.get_training_data(Flags)
   
   interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
@@ -66,4 +66,5 @@ if __name__ == '__main__':
 
   num_correct = np.sum(np.array(labels) == output_data)
   acc = num_correct / len(labels)
+
   print(f"Accuracy on {Flags.target_set} = {acc:5.3f} ({num_correct}/{len(labels)})")

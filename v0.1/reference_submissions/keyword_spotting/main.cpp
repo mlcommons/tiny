@@ -16,7 +16,9 @@ limitations under the License.
 #include "api/submitter_implemented.h"
 
 int main(int argc, char *argv[]) {
+
   ee_benchmark_initialize();
+
   while (1) {
     int c;
     c = th_getchar();
