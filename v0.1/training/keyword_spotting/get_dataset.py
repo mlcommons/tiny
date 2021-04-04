@@ -272,11 +272,6 @@ const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
   dat_q = np.array(dat/input_scale + input_zero_point, dtype=input_type)
   dat_q = dat_q.flatten()
 
-<<<<<<< HEAD:v0.1/training/keyword_spotting/get_dataset.py
-=======
-  print("dat_q is type {:}".format(type(dat_q)))
-  print("dat_q is shape {:}".format(dat_q.shape))
->>>>>>> remotes/tiny_main/master:v0.1/training/audio_wake_words/get_dataset.py
   print(f"Writing to {ofname}")
   num_elems = len(dat_q)
 
