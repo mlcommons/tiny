@@ -289,20 +289,3 @@ const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
 if __name__ == '__main__':
   Flags, unparsed = kws_util.parse_command()
   ds_train, ds_test, ds_val = get_training_data(Flags)
-
-  if Flags.create_c_files:
-    if Flags.target_set[0:3].lower() == 'val':
-      target_data = ds_val
-      print("Drawing from the  validation set")
-    elif Flags.target_set[0:4].lower() == 'test':
-      target_data = ds_test
-      print("Drawing from the test set")
-    elif Flags.target_set[0:5].lower() == 'train':
-      target_data = ds_train    
-      print("Drawing from  the training set")
-
-    interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
-
-    create_c_files(dataset=target_data,
-                   root_filename="kws_input_data",
-                   interpreter=interpreter)
