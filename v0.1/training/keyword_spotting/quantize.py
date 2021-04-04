@@ -9,7 +9,9 @@ import kws_util
 if __name__ == '__main__':
   Flags, unparsed = kws_util.parse_command()
 
-  converter = tf.lite.TFLiteConverter.from_saved_model(Flags.saved_model_path)
+  print(f"Converting trained model {Flags.saved_model_path} to TFL model at {Flags.tfl_file_name}")
+  model = tf.keras.models.load_model(Flags.saved_model_path)
+  converter = tf.lite.TFLiteConverter.from_keras_model(model)
   converter.optimizations = [tf.lite.Optimize.DEFAULT]
   
   with open("quant_cal_idxs.txt") as fpi:
@@ -21,7 +23,7 @@ if __name__ == '__main__':
   _, _, ds_val = kws_data.get_training_data(Flags, val_cal_subset=True)
   ds_val = ds_val.unbatch().batch(1) 
 
-  if False: # enable if you want to check the distribution of labels in the calibration set
+  if True: # enable if you want to check the distribution of labels in the calibration set
     label_counts = {}
     for label in range(12):
       label_counts[label] = 0
@@ -45,5 +47,5 @@ if __name__ == '__main__':
 
   tflite_quant_model = converter.convert()
   with open(Flags.tfl_file_name, "wb") as fpo:
-    fpo.write(tflite_quant_model)
-
+    num_bytes_written = fpo.write(tflite_quant_model)
+  print(f"Wrote {num_bytes_written} / {len(tflite_quant_model)} bytes to tflite file")
