@@ -67,6 +67,7 @@ void th_load_tensor() {
   runner->SetInput(input);
 }
 
+
 // Add to this method to return real inference results.
 void th_results() {
   /**
@@ -75,7 +76,6 @@ void th_results() {
    */
   th_printf("m-results-[");
   int kCategoryCount = 12;
-
 
   for (size_t i = 0; i < kCategoryCount; i++) {
     float converted =
@@ -86,6 +86,7 @@ void th_results() {
     th_printf("0.%d", static_cast<int>(converted * 10));
     th_printf("%d", static_cast<int>(converted * 100) % 10);
     th_printf("%d", static_cast<int>(converted * 1000) % 10);
+
     if (i < (kCategoryCount - 1)) {
       th_printf(",");
     }
