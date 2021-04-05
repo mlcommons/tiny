@@ -11,9 +11,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os, pickle
 
-import aww_util
+import kws_util
 import keras_model as models
 
+word_labels = ["Down", "Go", "Left", "No", "Off", "On", "Right",
+               "Stop", "Up", "Yes", "Silence", "Unknown"]
 
 def convert_to_int16(sample_dict):
   audio = sample_dict['audio']
@@ -31,9 +33,9 @@ def cast_and_pad(sample_dict):
 
 def convert_dataset(item):
     """Puts the mnist dataset in the format Keras expects, (features, labels)."""
-    image = item['audio']
+    audio = item['audio']
     label = item['label']
-    return image, label
+    return audio, label
 
 
 def get_preprocess_audio_func(model_settings,is_training=False,background_data = []):
@@ -118,25 +120,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     return prepare_processing_graph
 
 
-def good_preproc_data_available(Flags):
-  # Check whether preprocessed data is available in the Flags.preprocessed_data_dir with
-  # the same preprocessing parameters (window stride, window size, feature count, sample rate)
-  fname_params = os.path.join(Flags.preprocessed_data_dir, 'preproc_params.pkl')
-
-  try:
-    with open(fname_params, 'rb') as fpi:
-      preproc_params = pickle.load(fpi)
-    good_data = preproc_params['clip_duration_ms']       == Flags.clip_duration_ms and \
-                (preproc_params['dct_coefficient_count']  == Flags.dct_coefficient_count) and \
-                (preproc_params['sample_rate']            == Flags.sample_rate) and \
-                (preproc_params['window_size_ms']         == Flags.window_size_ms) and \
-                (preproc_params['window_stride_ms']       == Flags.window_stride_ms) and \
-                (preproc_params['num_test_samples']       >= Flags.num_test_samples) and \
-                (preproc_params['num_train_samples']      >= Flags.num_train_samples) and \
-                (preproc_params['num_val_samples']        >= Flags.num_val_samples)
-  except(FileNotFoundError, pickle.UnpicklingError, KeyError):
-    good_data = False # the params file was not there, wasn't a pickle, or was missing a key
-  return good_data
 
 def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     """Searches a folder for background noise audio, and loads it into memory.
@@ -174,8 +157,7 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     return background_data
 
 
-def get_training_data(Flags):
-
+def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   spectrogram_length = int((Flags.clip_duration_ms - Flags.window_size_ms +
                             Flags.window_stride_ms) / Flags.window_stride_ms)
   
@@ -190,48 +172,68 @@ def get_training_data(Flags):
   model_settings = models.prepare_model_settings(label_count, sample_rate, clip_duration_ms,
                                window_size_ms, window_stride_ms,
                                dct_coefficient_count,background_frequency)
-  # this is taken from the dataset web page.
-  # there should be a better way than hard-coding this
-  train_shuffle_buffer_size = 85511
-  val_shuffle_buffer_size = 10102
-  test_shuffle_buffer_size = 4890
+
   bg_path=Flags.bg_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
+
   splits = ['train', 'test', 'validation']
   (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
                                                 data_dir=Flags.data_dir, with_info=True)
 
-  ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-  ds_val = ds_val.shuffle(val_shuffle_buffer_size)
-  ds_test = ds_test.shuffle(test_shuffle_buffer_size)
+  if val_cal_subset:  # only return the subset of val set used for quantization calibration
+    with open("quant_cal_idxs.txt") as fpi:
+      cal_indices = [int(line) for line in fpi]
+    cal_indices.sort()
+    # cal_indices are the positions of specific inputs that are selected to calibrate the quantization
+    count = 0  # count will be the index into the validation set.
+    val_sub_audio = []
+    val_sub_labels = []
+    for d in ds_val:
+      if count in cal_indices:          # this is one of the calibration inpus
+        new_audio = d['audio'].numpy()  # so add it to a stack of tensors 
+        if len(new_audio) < 16000:      # from_tensor_slices doesn't work for ragged tensors, so pad to 16k
+          new_audio = np.pad(new_audio, (0, 16000-len(new_audio)), 'constant')
+        val_sub_audio.append(new_audio)
+        val_sub_labels.append(d['label'].numpy())
+      count += 1
+    # and create a new dataset for just the calibration inputs.
+    ds_val = tf.data.Dataset.from_tensor_slices({"audio": val_sub_audio,
+                                                 "label": val_sub_labels})
 
   if Flags.num_train_samples != -1:
-     ds_train = ds_train.take(Flags.num_train_samples)
+    ds_train = ds_train.take(Flags.num_train_samples)
   if Flags.num_val_samples != -1:
-     ds_val = ds_val.take(Flags.num_val_samples)
+    ds_val = ds_val.take(Flags.num_val_samples)
   if Flags.num_test_samples != -1:
-     ds_test = ds_test.take(Flags.num_test_samples)
+    ds_test = ds_test.take(Flags.num_test_samples)
     
-  ds_train_specs = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
-                                                          background_data=background_data),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  ds_test_specs  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
-                                                          background_data=background_data),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-  ds_val_specs   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
-                                                          background_data=background_data),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+  if get_waves:
+    ds_train = ds_train.map(cast_and_pad)
+    ds_test  =  ds_test.map(cast_and_pad)
+    ds_val   =   ds_val.map(cast_and_pad)
+  else:
+    # extract spectral features and add background noise
+    ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
+                                                      background_data=background_data),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
+                                                      background_data=background_data),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
+                                                      background_data=background_data),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    # change output from a dictionary to a feature,label tuple
+    ds_train = ds_train.map(convert_dataset)
+    ds_test = ds_test.map(convert_dataset)
+    ds_val = ds_val.map(convert_dataset)
 
-  ds_train_specs = ds_train_specs.map(convert_dataset)
-  ds_test_specs = ds_test_specs.map(convert_dataset)
-  ds_val_specs = ds_val_specs.map(convert_dataset)
   # Now that we've acquired the preprocessed data, either by processing or loading,
-  ds_train_specs = ds_train_specs.batch(Flags.batch_size)
-  ds_test_specs = ds_test_specs.batch(Flags.batch_size)  
-  ds_val_specs = ds_val_specs.batch(Flags.batch_size)
-
-  return ds_train_specs, ds_test_specs, ds_val_specs
+  ds_train = ds_train.batch(Flags.batch_size)
+  ds_test = ds_test.batch(Flags.batch_size)  
+  ds_val = ds_val.batch(Flags.batch_size)
+  
+  return ds_train, ds_test, ds_val
 
 
 def create_c_files(dataset, root_filename="input_data", interpreter=None, elems_per_row=10):
@@ -252,8 +254,9 @@ limitations under the License.
 
 /// \file
 /// \brief Sample inputs for the audio wakewords model.
-#include "aww/aww_input_data.h"
-const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
+
+#include "kws/kws_input_data.h"
+const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
     {
   """
 
@@ -269,8 +272,6 @@ const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
   dat_q = np.array(dat/input_scale + input_zero_point, dtype=input_type)
   dat_q = dat_q.flatten()
 
-  print("dat_q is type {:}".format(type(dat_q)))
-  print("dat_q is shape {:}".format(dat_q.shape))
   print(f"Writing to {ofname}")
   num_elems = len(dat_q)
 
@@ -286,22 +287,5 @@ const int8_t g_aww_inputs[kNumAwwTestInputs][kAwwInputSize] = {
     fpo.write("}};\n")
 
 if __name__ == '__main__':
-  Flags, unparsed = aww_util.parse_command()
+  Flags, unparsed = kws_util.parse_command()
   ds_train, ds_test, ds_val = get_training_data(Flags)
-
-  if Flags.create_c_files:
-    if Flags.target_set[0:3].lower() == 'val':
-      target_data = ds_val
-      print("Drawing from the  validation set")
-    elif Flags.target_set[0:4].lower() == 'test':
-      target_data = ds_test
-      print("Drawing from the test set")
-    elif Flags.target_set[0:5].lower() == 'train':
-      target_data = ds_train    
-      print("Drawing from  the training set")
-
-    interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
-
-    create_c_files(dataset=target_data,
-                   root_filename="aww_input_data",
-                   interpreter=interpreter)
