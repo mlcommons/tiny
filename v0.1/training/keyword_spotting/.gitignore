@@ -2,7 +2,7 @@
 tmp*
 tmp/
 __pycache__/
-trained_models/
-
+.DS_Store
 Untitled*
 aww_model.tflite
+.ipynb_checkpoints/

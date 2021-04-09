@@ -47,7 +47,8 @@ in th_results is copied from the original in EEMBC.
 #include "model.h"
 #include "micro_model_settings.h"
 
-UnbufferedSerial pc(USBTX, USBRX, 115200);
+UnbufferedSerial pc(USBTX, USBRX);
+DigitalOut g_timestampPin(D7);
 
 constexpr int kTensorArenaSize = 10 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
@@ -57,12 +58,39 @@ typedef int8_t model_output_t;
 
 float input_float[kInputSize];
 int8_t input_quantized[kInputSize];
-float results[kFeatureWindows];
+float result;
  
 tflite::ErrorReporter* error_reporter = nullptr;
 const tflite::Model* model = nullptr;
 tflite::MicroInterpreter* interpreter = nullptr;
 TfLiteTensor* model_input = nullptr;
+
+// copy input into interpreter's buffer
+void copy_input() {
+  int8_t *model_input_buffer = model_input->data.int8;
+  int8_t *feature_buffer_ptr = input_quantized;
+
+  // Copy feature buffer to input tensor
+  for (int i = 0; i < kFeatureElementCount; i++) {
+    model_input_buffer[i] = feature_buffer_ptr[i];
+  }
+}
+
+// calculate |output - input|
+void calculate_result(){
+  float diffsum = 0;
+
+  TfLiteTensor* output = interpreter->output(0);
+  for (size_t i = 0; i < kFeatureElementCount; i++) {
+    float converted = DequantizeInt8ToFloat(output->data.int8[i], interpreter->output(0)->params.scale,
+                                            interpreter->output(0)->params.zero_point);
+    float diff = converted - input_float[i];
+    diffsum += diff * diff;
+  }
+  diffsum /= kFeatureElementCount;
+
+  result = diffsum;
+}
 
 // Implement this method to prepare for inference and preprocess inputs.
 void th_load_tensor() {
@@ -73,26 +101,6 @@ void th_load_tensor() {
               kInputSize);
     return;
   }
-}
-
-// Add to this method to return real inference results.
-void th_results() {
-  /**
-   * The results need to be printed back in exactly this format; if easier
-   * to just modify this loop than copy to results[] above, do that.
-   */
-  th_printf("m-results-[");
-  for (size_t i = 0; i < kFeatureWindows; i++) {
-    th_printf("%0.3f", results[i]);
-    if (i < (kFeatureWindows - 1)) {
-      th_printf(",");
-    }
-  }
-  th_printf("]\r\n");
-}
-
-// Implement this method with the logic to perform one inference cycle.
-void th_infer() {
 
   float input_scale = interpreter->input(0)->params.scale;
   int input_zero_point = interpreter->input(0)->params.zero_point;
@@ -101,39 +109,32 @@ void th_infer() {
         input_float[i], input_scale, input_zero_point);
   }
 
-  // Inference loop over the histogram using sliding window
+  // copy input into interpreter's buffer
+  copy_input();
+}
 
-  for (int window = 0; window < kFeatureWindows; window++) {
-    int8_t *model_input_buffer = model_input->data.int8;
-    int8_t *feature_buffer_ptr = input_quantized + (window * kFeatureSliceSize);
+// Add to this method to return real inference results.
+void th_results() {
 
-    // Copy feature buffer to input tensor
-    for (int i = 0; i < kFeatureElementCount; i++) {
-      model_input_buffer[i] = feature_buffer_ptr[i];
-    }
+  // calculate |output - input|
+  calculate_result();
 
-    // Run the model on the spectrogram input and make sure it succeeds.
-    TfLiteStatus invoke_status = interpreter->Invoke();
-    if (invoke_status != kTfLiteOk) {
-      TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed");
-      return;
-    }
+  /**
+   * The results need to be printed back in exactly this format; if easier
+   * to just modify this loop than copy to results[] above, do that.
+   */
+  th_printf("m-results-[%0.3f]\r\n", result);
+}
 
-    // calculate |output - input|
-    float diffsum = 0;
+// Implement this method with the logic to perform one inference cycle.
+void th_infer() {
 
-    TfLiteTensor* output = interpreter->output(0);
-    for (size_t i = 0; i < kFeatureElementCount; i++) {
-      float converted = DequantizeInt8ToFloat(output->data.int8[i], interpreter->output(0)->params.scale,
-                                              interpreter->output(0)->params.zero_point);
-      float diff = converted - input_float[i + window * kFeatureSliceSize];
-      diffsum += diff * diff;
-    }
-    diffsum /= kFeatureElementCount;
-
-    results[window] = diffsum;
+  // Run the model on the spectrogram input and make sure it succeeds.
+  TfLiteStatus invoke_status = interpreter->Invoke();
+  if (invoke_status != kTfLiteOk) {
+    TF_LITE_REPORT_ERROR(error_reporter, "Invoke failed");
+    return;
   }
-
 }
 
 /// \brief optional API.
@@ -192,7 +193,7 @@ void th_final_initialize(void) {
   if ((model_input->dims->size != 2) || (model_input->dims->data[0] != 1) ||
       (model_input->dims->data[1] !=
        (kFeatureSliceCount * kFeatureSliceSize)) ||
-      (model_input->type != kTfLiteFloat32)) {
+      (model_input->type != kTfLiteInt8)) {
     TF_LITE_REPORT_ERROR(error_reporter,
                          "Bad input tensor parameters in model");
     return;
@@ -244,15 +245,36 @@ void th_printf(const char *p_fmt, ...) {
 
 char th_getchar() { return getchar(); }
 
-void th_serialport_initialize(void) { pc.baud(115200); }
+void th_serialport_initialize(void) {
+#if EE_CFG_ENERGY_MODE == 1
+       pc.baud(9600);
+#else
+       pc.baud(921600);
+#endif
+}
+
 
 void th_timestamp(void) {
-  unsigned long microSeconds = 0ul;
-  /* USER CODE 2 BEGIN */
-  microSeconds = us_ticker_read();
-  /* USER CODE 2 END */
-  /* This message must NOT be changed. */
-  th_printf(EE_MSG_TIMESTAMP, microSeconds);
+#if EE_CFG_ENERGY_MODE == 1
+/* USER CODE 1 BEGIN */
+/* Step 1. Pull pin low */
+       g_timestampPin = 0;
+       for (int i=0; i<100000; ++i) {
+               asm("nop");
+       }
+/* Step 2. Hold low for at least 1us */
+/* Step 3. Release driver */
+       g_timestampPin = 1;
+
+/* USER CODE 1 END */
+#else
+       unsigned long microSeconds = 0ul;
+       /* USER CODE 2 BEGIN */
+       microSeconds = us_ticker_read();
+       /* USER CODE 2 END */
+       /* This message must NOT be changed. */
+       th_printf(EE_MSG_TIMESTAMP, microSeconds);
+#endif
 }
 
 void th_timestamp_initialize(void) {

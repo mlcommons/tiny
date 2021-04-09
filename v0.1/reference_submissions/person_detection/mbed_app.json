@@ -1,0 +1,22 @@
+{
+    "config": {
+	"main-stack-size": {
+            "value": 65536
+	}
+    },
+    "requires": ["bare-metal"]
+    ,"macros": [
+        "LINUX",
+        "TF_LITE_DISABLE_X86_NEON",
+        "TF_LITE_STATIC_MEMORY",
+        "TF_LITE_USE_CTIME"
+    ]
+    ,"target_overrides": {
+        "*": {
+            "target.printf_lib": "minimal-printf",
+            "platform.minimal-printf-enable-floating-point": true,
+            "platform.minimal-printf-set-floating-point-max-decimals": 6,
+            "platform.minimal-printf-enable-64-bit": false
+        }
+    }
+}
