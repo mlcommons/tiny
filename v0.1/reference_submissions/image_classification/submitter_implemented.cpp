@@ -92,7 +92,6 @@ void th_results() {
     float converted =
         DequantizeInt8ToFloat(runner->GetOutput()[i], runner->output_scale(),
                               runner->output_zero_point());
-    th_printf("%d\n", uint8_t(100*converted));
 
     th_printf("%0.3f", converted);
     if (i < (nresults - 1)) {
