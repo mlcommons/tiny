@@ -14,3 +14,7 @@ TinyMLPerf is primarily intended to benchmark hardware rather than new network
 architectures, or embedded neural net runtimes. The reference benchmarks are provided using
 TensorFlow Lite for Microcontrollers (TFLM). Submitters can directly use the TFLM, although 
 submitters are encouraged to use the software stack that works best on their hardware.
+
+For more information, check out v0.1 of the benchmark.
+
+Join the working group here: [https://groups.google.com/a/mlcommons.org/g/tiny](https://groups.google.com/u/1/a/mlcommons.org/g/tiny)
