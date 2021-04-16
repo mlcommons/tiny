@@ -39,23 +39,11 @@ mv kws_model_data.cc ../../reference_submissions/keyword_spotting/kws/
 ```
 
 
-In the lines below, edit `TF_DIR` to indicate where you want to clone the TensorFlow github repo and set `LOCAL_ARCH` appropriately for your architecture.  The following commands will clone TF, change into the TF source tree, build the hello_world project for mbed and copy it back into your mbed build tree.  They will then create an mbed project in the `reference_submissions/keyword_spotting` directory and compile it.
+Change to `reference_submissions/keyword_spotting/` and edit the file `mbed_setup.sh`. Edit `TF_DIR` to indicate where you want to clone the TensorFlow github repo, or where you already have the TF source available. Set `LOCAL_ARCH` appropriately for your host architecture (the machine on which you are running the compiler, not the target device).  The script will clone TF, change into the TF source tree, build the hello_world project for mbed and copy it back into your mbed build tree.  It will then create an mbed project in the `reference_submissions/keyword_spotting` directory.
+
+Now you can compile it with this command. Change the target for a different DUT.
 
 ```
-TF_DIR=/path/to/source/of/tensorflow # replace with your path
-git clone https://github.com/tensorflow/tensorflow.git ${TF_DIR}
-LOCAL_ARCH=linux_x86_64w  # OR osx_x86_64  OR  osx_arm64_default
-pushd $TF_DIR
-gmake -f tensorflow/lite/micro/tools/make/Makefile generate_hello_world_mbed_project
-popd
-mv ${TF_DIR}/tensorflow/lite/micro/tools/make/gen/${LOCAL_ARCH}/prj/hello_world/mbed/* .
-mbed config root .                                                                     
-mbed deploy
-cp -r  ../../api . 
-cp ../../main.cpp .
-cp -r ../../util . 
-rm -rf tensorflow/lite/micro/examples/hello_world
-cp -r ../../vww 
 mbed compile --target NUCLEO_L4R5ZI --toolchain GCC_ARM -v
 ```
 
