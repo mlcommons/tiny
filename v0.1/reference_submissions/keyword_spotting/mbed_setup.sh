@@ -1,6 +1,6 @@
 ## remove these first two lines
-echo "You need to modify this script before running it"
-exit 1 
+echo "You need to modify this script before running it.  Exiting"
+return 1 
 TF_DIR=/path/to/source/of/tensorflow # replace with your path
 git clone https://github.com/tensorflow/tensorflow.git ${TF_DIR}
 LOCAL_ARCH=linux_x86_64w  # OR osx_x86_64  OR  osx_arm64_default
