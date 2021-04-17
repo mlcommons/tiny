@@ -39,7 +39,11 @@ mv kws_model_data.cc ../../reference_submissions/keyword_spotting/kws/
 ```
 
 
-Change to `reference_submissions/keyword_spotting/` and edit the file `mbed_setup.sh`. Edit `TF_DIR` to indicate where you want to clone the TensorFlow github repo, or where you already have the TF source available. Set `LOCAL_ARCH` appropriately for your host architecture (the machine on which you are running the compiler, not the target device).  The script will clone TF, change into the TF source tree, build the hello_world project for mbed and copy it back into your mbed build tree.  It will then create an mbed project in the `reference_submissions/keyword_spotting` directory.
+Change to `reference_submissions/keyword_spotting/`,  edit the file `mbed_setup.sh` and source it. 
+```
+source ./mbed_setup.sh
+```
+Edit `TF_DIR` to indicate where you want to clone the TensorFlow github repo, or where you already have the TF source available. Set `LOCAL_ARCH` appropriately for your host architecture (the machine on which you are running the compiler, not the target device).  The script will clone TF, change into the TF source tree, build the hello_world project for mbed and copy it back into your mbed build tree.  It will then create an mbed project in the `reference_submissions/keyword_spotting` directory.
 
 Now you can compile it with this command. Change the target for a different DUT.
 
