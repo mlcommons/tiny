@@ -10,7 +10,7 @@ popd
 mv ${TF_DIR}/tensorflow/lite/micro/tools/make/gen/${LOCAL_ARCH}/prj/hello_world/mbed/* .
 mbed config root .
 mbed deploy
-mkdir api
+
 cp ../../api/internally_implemented.* api
 cp ../../main.cpp .
 cp -r ../../util . 
