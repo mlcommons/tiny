@@ -165,10 +165,10 @@ The suite includes the following benchmarks:
 
 |===
 |       Use Case       |                   Description                   |          Dataset          |       Model      | Quality Target 
-|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands      |      DS-CNN      |   TBD (Top 1)
-|   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset |     MobileNet    |   TBD (Top 1)
-| Image Classification |            Small image classification           |          Cifar10          |      ResNet      |   TBD (Top 1)
-|   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS         | Deep AutoEncoder |   TBD (AUC)
+|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands      |      DS-CNN      |   90% (Top 1)
+|   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset |     MobileNet    |   80% (Top 1)
+| Image Classification |            Small image classification           |          Cifar10          |      ResNet      |   85% (Top 1)
+|   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS         | Deep AutoEncoder |   0.85 (AUC)
 |===
 
 ==== Relaxed constraints for the Open division
