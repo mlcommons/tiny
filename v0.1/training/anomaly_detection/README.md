@@ -17,7 +17,8 @@ versions, and it's quantized versions.
 ## Quick start
 
 Pre-trained models with validation logs are readily available in
-the `trained_models` folder.
+the `trained_models` folder. Some of these serve as reference for the TinyMLPerf benchmark
+for closed submissions. Please refer to the README in the `trained_models` folder for more detail.
 
 To go through the whole training and validation process, instead, run the following commands:
 
@@ -33,6 +34,9 @@ To go through the whole training and validation process, instead, run the follow
 
 # Convert the model to TFlite, and test conversion quality
 ./convert_to_tflite.sh
+
+# Convert the generated TFlite model to C source file:
+xxd -i model/model_ToyCar_quant_fullint_micro_intio.tflite > model.ccx
 ```
 
 ## Description
