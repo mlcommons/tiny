@@ -6,14 +6,20 @@ DCASE 2020 Challenge Task 2 "Unsupervised Detection of Anomalous Sounds for Mach
 The description of the original challenge is available at:
 http://dcase.community/challenge2020/task-unsupervised-detection-of-anomalous-sounds
 
-The original code was extended with TFLite conversion and verification.
-
-Besides the training scripts, the repository also contains the pre-trained version of the reference model
-and its converted versions.
+This directory contains the original code, extended with
+- wrapper scripts for the MLCommons training process,
+- more pre-processing options and scripts,
+- TFLite conversion and quantization scripts,
+- verification scripts for the quantized model,
+- the pre-trained version of the reference model, it's TFLite converted
+versions, and it's quantized versions.
 
 ## Quick start
 
-Run the following commands to go through the whole training and validation process
+Pre-trained models with validation logs are readily available in
+the `trained_models` folder.
+
+To go through the whole training and validation process, instead, run the following commands:
 
 ``` Bash
 # Download training data from Zenodo
@@ -25,39 +31,40 @@ Run the following commands to go through the whole training and validation proce
 # Train and test the model
 ./train.sh
 
-# Convert the model to TFlite, and thest conversion quality
+# Convert the model to TFlite, and test conversion quality
 ./convert_to_tflite.sh
 ```
 
 ## Description
 The baseline system consists of four main scripts:
 - `00_train.py`
-  - This script trains models for each Machine Type by using the directory **dev_data/<Machine_Type>/train/** or **eval_data/<Machine_Type>/train/**.
+  - This script trains models for each Machine Type by using the directory **dev_data/<Machine_Type>/train/** or **eval_data/<Machine_Type>/train/**. Note that in TinyMLPerf we use the ToyCar Machine Type only.
 - `01_test.py`
   - This script makes csv files for each Machine ID including the anomaly scores for each wav file in the directory **dev_data/<Machine_Type>/test/** or **eval_data/<Machine_Type>/test/**.
   - The csv files will be stored in the directory **result/**.
   - If the mode is "development", it also makes the csv files including the AUC and pAUC for each Machine ID. 
 - `02_convert.py`
-  - This script converts the previously generated models to TFLite and quantized TFLite models. For the quantization ,it uses the data in **dev_data/<Machine_Type>/train/**.
+  - This script converts the previously generated models to TFLite and quantized TFLite models. For the quantization, it uses the data in **dev_data/<Machine_Type>/train/**.
 - `03_tflite_test.py`
-  - This script makes csv files for each Machine ID and each TFLite model version, similar to `01_test.sh`
+  - This script makes csv files for each Machine ID and each TFLite model version, including quantized models, similar to `01_test.sh`
 
 ## Detailed Usage
 
-Either use the scripts described in **Quick Start** instructions, or follow the steps below.  
+Either use the scripts described in **Quick Start** instructions, or follow the steps below, adapted from the original repo from the DCASE competition authors. 
 
 ### 1. Clone repository
 Clone this repository from Github.
 
 ### 2. Download datasets
-We will launch the datasets in three stages. 
-So, please download the datasets in each stage:
+Datasets were provided in three stages during the DCASE competition.
 - Development dataset
   - Download `dev_data_<Machine_Type>.zip` from https://zenodo.org/record/3678171.
 - "Additional training dataset", i.e. the evaluation dataset for training
   - After launch, download `eval_data_train_<Machine_Type>.zip` from https://zenodo.org/record/3727685 (not available until April. 1).
 - "Evaluation dataset", i.e. the evaluation for test
   - After launch, download `eval_data_test_<Machine_Type>.zip` from https://zenodo.org/record/3841772 (not available until June. 1).
+
+TinyMLPerf uses the ToyCar machine type only. It uses the Development and Additional training datasets for generating the reference model.
 
 ### 3. Unzip dataset
 Unzip the downloaded files and make the directory structure as follows:
@@ -116,6 +123,7 @@ Unzip the downloaded files and make the directory structure as follows:
 
 ### 4. Change parameters
 You can change the parameters for feature extraction and model definition by editing `baseline.yaml`.
+The version checked in to the repository was used while generating the TinyMLPerf reference model.
 
 ### 5. Run training script (for development dataset)
 Run the training script `00_train.py`. 
@@ -211,27 +219,6 @@ id		AUC		pAUC
 6		0.552833	0.482895
 Average		0.664557	0.506004
 ```
-
-### 8. Run training script for "additional training dataset" (after April 1)
-After the "additional training dataset" is launched, download and unzip it.
-Move it to **eval_data/<Machine_Type>/train/**.
-Run the training script `00_train.py` with the option `-e`. 
-```
-$ python3.6 00_train.py -e
-```
-Models are trained by using the "additional training dataset" **eval_data/<Machine_Type>/train/**.
-
-### 9. Run test script for "evaluation dataset" (after June 1)
-After the "evaluation dataset" for test is launched, download and unzip it.
-Move it to **eval_data/<Machine_Type>/test/**.
-Run the test script `01_test.py` with the option `-e`. 
-```
-$ python3.6 01_test.py -e
-```
-Anomaly scores are calculated using the "evaluation dataset" **eval_data/<Machine_Type>/test/**.
-The anomaly scores are stored as csv files in the directory **result/**.
-You can submit the csv files for the challenge.
-From the submitted csv files, we will calculate the AUCs, pAUCs, and your ranking.
 
 ## Dependency
 The original source code was developed on Ubuntu 16.04 LTS and 18.04 LTS. The TinyMLPerf extension was developed on **OS X**.
