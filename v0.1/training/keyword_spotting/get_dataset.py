@@ -96,29 +96,101 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
             background_add = tf.add(background_mul, sliced_foreground)
             sliced_foreground = tf.clip_by_value(background_add, -1.0, 1.0)
         
-        stfts = tf.signal.stft(sliced_foreground, frame_length=model_settings['window_size_samples'], 
+        if model_settings['feature_type'] == 'mfcc':
+            stfts = tf.signal.stft(sliced_foreground, frame_length=model_settings['window_size_samples'], 
                                frame_step=model_settings['window_stride_samples'], fft_length=None,
                                window_fn=tf.signal.hann_window
                                )
-        spectrograms = tf.abs(stfts)
-        num_spectrogram_bins = stfts.shape[-1]
-        #default values used by contrib_audio.mfcc as shown here https://kite.com/python/docs/tensorflow.contrib.slim.rev_block_lib.contrib_framework_ops.audio_ops.mfcc
-        lower_edge_hertz, upper_edge_hertz, num_mel_bins = 20.0, 4000.0, 40 
-        linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix( num_mel_bins, num_spectrogram_bins, model_settings['sample_rate'],
+            spectrograms = tf.abs(stfts)
+            num_spectrogram_bins = stfts.shape[-1]
+            # default values used by contrib_audio.mfcc as shown here
+            # https://kite.com/python/docs/tensorflow.contrib.slim.rev_block_lib.contrib_framework_ops.audio_ops.mfcc
+            lower_edge_hertz, upper_edge_hertz, num_mel_bins = 20.0, 4000.0, 40 
+            linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix( num_mel_bins, num_spectrogram_bins, model_settings['sample_rate'],
                                                                             lower_edge_hertz, upper_edge_hertz)
-        mel_spectrograms = tf.tensordot(spectrograms, linear_to_mel_weight_matrix, 1)
-        mel_spectrograms.set_shape(spectrograms.shape[:-1].concatenate(linear_to_mel_weight_matrix.shape[-1:]))
-        # Compute a stabilized log to get log-magnitude mel-scale spectrograms.
-        log_mel_spectrograms = tf.math.log(mel_spectrograms + 1e-6)
-        # Compute MFCCs from log_mel_spectrograms and take the first 13.
-        mfccs = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrograms)[..., :model_settings['dct_coefficient_count']]
-        mfccs = tf.reshape(mfccs,[model_settings['spectrogram_length'], model_settings['dct_coefficient_count'], 1])
-        next_element['audio'] = mfccs
-        #next_element['label'] = tf.one_hot(next_element['label'],12)
+            mel_spectrograms = tf.tensordot(spectrograms, linear_to_mel_weight_matrix, 1)
+            mel_spectrograms.set_shape(spectrograms.shape[:-1].concatenate(linear_to_mel_weight_matrix.shape[-1:]))
+            # Compute a stabilized log to get log-magnitude mel-scale spectrograms.
+            log_mel_spectrograms = tf.math.log(mel_spectrograms + 1e-6)
+            # Compute MFCCs from log_mel_spectrograms and take the first 13.
+            mfccs = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrograms)[..., :model_settings['dct_coefficient_count']]
+            mfccs = tf.reshape(mfccs,[model_settings['spectrogram_length'], model_settings['dct_coefficient_count'], 1])
+            next_element['audio'] = mfccs
+            #next_element['label'] = tf.one_hot(next_element['label'],12)
+        elif model_settings['feature_type'] == 'lfbe':
+            # apply preemphasis
+          
+            paddings = tf.constant([[0, 0], [1, 0]])
+            sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
+            sliced_foreground = sliced_foreground[:, 1:] - self._preephasis_coef * sliced_foreground[:, :-1]
+        
+            # quantize wav data to 12 bits and dequantize it back
+            pcm_12_int = tf_quantize(sliced_foreground, 12)
+            pcm_12 = tf_dequantize(pcm_12_int, 12)
+        
+            # compute fft
+            stfts = tf.signal.stft(pcm_12,  frame_length=model_settings['window_size_samples'], 
+                                   frame_step=model_settings['window_stride_samples'], fft_length=None,
+                                   window_fn=functools.partial(
+                                     tf.signal.hamming_window, periodic=False),
+                                   pad_end=False,
+                                   name='STFT')
+        
+            # compute magnitude spectrum [batch_size, num_frames, NFFT]
+            magspec = tf.abs(stfts)
+            num_spectrogram_bins = magspec.shape[-1]
+        
+            # compute power spectrum [batch_size, num_frames, NFFT]
+            powspec = (1 / model_settings['window_size_samples']) * tf.square(magspec)
+            powspec_max = tf.reduce_max(input_tensor=powspec)
+            powspec = tf.clip_by_value(powspec, 1e-30, powspec_max)
+        
+            def log10(x):
+                """Compute log base 10 on the tensorflow graph.
+        
+                Args:
+                    x (tensor): The inputs we want to compute the log based 10 for.
+        
+                Return:
+                    (tensor): The input taken to log 10.
+                """
+                numerator = tf.math.log(x)
+                denominator = tf.math.log(tf.constant(10, dtype=numerator.dtype))
+                return numerator / denominator
+        
+            # Warp the linear-scale, magnitude spectrograms into the mel-scale.
+            num_spectrogram_bins = magspec.shape[-1]
+            lower_edge_hertz, upper_edge_hertz = 0.0, model_settings['sample_rate'] / 2.0
+            linear_to_mel_weight_matrix = (
+                tf.signal.linear_to_mel_weight_matrix(
+                    num_mel_bins=model_settings['dct_coefficient_count'],
+                    num_spectrogram_bins=num_spectrogram_bins,
+                    sample_rate=model_settings['sample_rate'],
+                    lower_edge_hertz=lower_edge_hertz,
+                    upper_edge_hertz=upper_edge_hertz))
+            mel_spectrograms = tf.tensordot(powspec, linear_to_mel_weight_matrix,1)
+            mel_spectrograms.set_shape(magspec.shape[:-1].concatenate(
+                linear_to_mel_weight_matrix.shape[-1:]))
+        
+            log_mel_spec = 10 * log10(mel_spectrograms)
+            log_mel_spec = tf.expand_dims(log_mel_spec, -1, name="mel_spec")
+        
+            log_mel_spec = (log_mel_spec + self._power_offset - 32 + 32.0) / 64.0
+            log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
+        
+            batch_size = tf.shape(input=sliced_foreground)[0]
+        
+            log_mel_spec = tf.reshape(log_mel_spec,
+                                      [batch_size, -1, self._num_melbin_filters])
+        
+            log_mel_spec_int = tf_quantize(
+                log_mel_spec, self._output_quantization_bit, signed=False)
+            log_mel_spec = tf_dequantize(
+                log_mel_spec_int, self._output_quantization_bit, signed=False)
+            next_element['audio'] = log_mel_spec
         return next_element
     
     return prepare_processing_graph
-
 
 
 def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
@@ -161,17 +233,10 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   spectrogram_length = int((Flags.clip_duration_ms - Flags.window_size_ms +
                             Flags.window_stride_ms) / Flags.window_stride_ms)
   
-  dct_coefficient_count=Flags.dct_coefficient_count 
-  window_size_ms=Flags.window_size_ms 
-  window_stride_ms=Flags.window_stride_ms
-  clip_duration_ms=Flags.clip_duration_ms #expected duration in ms
-  sample_rate=Flags.sample_rate
   label_count=12
   background_frequency = Flags.background_frequency
   background_volume_range_= Flags.background_volume
-  model_settings = models.prepare_model_settings(label_count, sample_rate, clip_duration_ms,
-                               window_size_ms, window_stride_ms,
-                               dct_coefficient_count,background_frequency)
+  model_settings = models.prepare_model_settings(label_count, Flags)
 
   bg_path=Flags.bg_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
@@ -289,3 +354,7 @@ const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
 if __name__ == '__main__':
   Flags, unparsed = kws_util.parse_command()
   ds_train, ds_test, ds_val = get_training_data(Flags)
+
+  for dat in ds_train.take(1):
+    print("Here's one element from the training set.")
+    print(dat)
