@@ -7,6 +7,8 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from tensorflow.python.platform import gfile
 
+import functools
+
 import matplotlib.pyplot as plt
 import numpy as np
 import os, pickle
@@ -119,15 +121,18 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
             #next_element['label'] = tf.one_hot(next_element['label'],12)
         elif model_settings['feature_type'] == 'lfbe':
             # apply preemphasis
-          
+            preemphasis_coef = 1 - 2 ** -5
+            power_offset = 52
+            num_mel_bins = model_settings['dct_coefficient_count']
             paddings = tf.constant([[0, 0], [1, 0]])
+            sliced_foreground = tf.expand_dims(sliced_foreground, 0)
             sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
-            sliced_foreground = sliced_foreground[:, 1:] - self._preephasis_coef * sliced_foreground[:, :-1]
-        
+            sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
+
             # quantize wav data to 12 bits and dequantize it back
-            pcm_12_int = tf_quantize(sliced_foreground, 12)
-            pcm_12 = tf_dequantize(pcm_12_int, 12)
-        
+            # pcm_12_int = tf_quantize(sliced_foreground, 12)
+            # pcm_12 = tf_dequantize(pcm_12_int, 12)
+            pcm_12 = sliced_foreground
             # compute fft
             stfts = tf.signal.stft(pcm_12,  frame_length=model_settings['window_size_samples'], 
                                    frame_step=model_settings['window_stride_samples'], fft_length=None,
@@ -163,7 +168,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
             lower_edge_hertz, upper_edge_hertz = 0.0, model_settings['sample_rate'] / 2.0
             linear_to_mel_weight_matrix = (
                 tf.signal.linear_to_mel_weight_matrix(
-                    num_mel_bins=model_settings['dct_coefficient_count'],
+                    num_mel_bins=num_mel_bins,
                     num_spectrogram_bins=num_spectrogram_bins,
                     sample_rate=model_settings['sample_rate'],
                     lower_edge_hertz=lower_edge_hertz,
@@ -175,18 +180,18 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
             log_mel_spec = 10 * log10(mel_spectrograms)
             log_mel_spec = tf.expand_dims(log_mel_spec, -1, name="mel_spec")
         
-            log_mel_spec = (log_mel_spec + self._power_offset - 32 + 32.0) / 64.0
+            log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
             log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
         
             batch_size = tf.shape(input=sliced_foreground)[0]
         
             log_mel_spec = tf.reshape(log_mel_spec,
-                                      [batch_size, -1, self._num_melbin_filters])
+                                      [batch_size, -1, num_mel_bins])
         
-            log_mel_spec_int = tf_quantize(
-                log_mel_spec, self._output_quantization_bit, signed=False)
-            log_mel_spec = tf_dequantize(
-                log_mel_spec_int, self._output_quantization_bit, signed=False)
+            # log_mel_spec_int = tf_quantize(
+            #     log_mel_spec, self._output_quantization_bit, signed=False)
+            # log_mel_spec = tf_dequantize(
+            #     log_mel_spec_int, self._output_quantization_bit, signed=False)
             next_element['audio'] = log_mel_spec
         return next_element
     
@@ -356,5 +361,6 @@ if __name__ == '__main__':
   ds_train, ds_test, ds_val = get_training_data(Flags)
 
   for dat in ds_train.take(1):
-    print("Here's one element from the training set.")
-    print(dat)
+    print("One element from the training set has shape:")
+    print(f"Input tensor shape: {dat[0].shape}")
+    print(f"Label shape: {dat[1].shape}")
