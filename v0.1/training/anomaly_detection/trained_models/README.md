@@ -5,8 +5,8 @@ TFLite converted versions, Post-Training Quantization (PTQ) versions and validat
 
 The golden models for the anomaly detection `ad01` benchmarks are included in the current folder.
 - `ad01.h5`: the reference model before quantization
-- `ad01_fp32`: the quantized model with FP32 input/output
-- `ad01_int8`: the same quantized model with INT8 input/output
+- `ad01_fp32`: simple TFLite conversion of the above, without quantization, but with BatchNormalizations folded into FC layers
+- `ad01_int8`: the quantized model with INT8 input/output
 
 The latter can be converted into a C source file using
 ```
@@ -16,7 +16,7 @@ xxd -i model_ToyCar_quant_fullint_micro_intio.tflite > model.ccx
 Models (the same as above and more) are also included under the `ToyCar/baseline_tf23/model` folder, as 
 generated during the training and by the conversions scripts. These include:
 - `model_ToyCar.hdf5`: the reference model before quantization
-- `model_ToyCar.tflite`: simple TFLite conversion, without quantization
+- `model_ToyCar.tflite`: simple TFLite conversion, without quantization, but with BatchNormalizations folded into FC layers
 - `model_ToyCar_quant.tflite`: PTQ of weights, but not the activations
 - `model_ToyCar_quant_fullint.tflite`: PTQ of both weight and activations using a representative dataset
 - `model_ToyCar_quant_fullint_micro.tflite`: As previous, enforcing TFLite supported OPs
