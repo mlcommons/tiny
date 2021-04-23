@@ -14,9 +14,7 @@ from tensorflow.keras.layers import Input, Dense, Activation, Flatten, BatchNorm
 from tensorflow.keras.layers import Conv2D, DepthwiseConv2D, AveragePooling2D
 from tensorflow.keras.regularizers import l2
 
-def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
-                               window_size_ms, window_stride_ms,
-                               dct_coefficient_count,background_frequency):
+def prepare_model_settings(label_count, args):
       """Calculates common settings needed for all models.
       Args:
         label_count: How many classes are to be recognized.
@@ -28,25 +26,27 @@ def prepare_model_settings(label_count, sample_rate, clip_duration_ms,
       Returns:
         Dictionary containing common settings.
       """
-      desired_samples = int(sample_rate * clip_duration_ms / 1000)
-      window_size_samples = int(sample_rate * window_size_ms / 1000)
-      window_stride_samples = int(sample_rate * window_stride_ms / 1000)
+
+      desired_samples = int(args.sample_rate * args.clip_duration_ms / 1000)
+      window_size_samples = int(args.sample_rate * args.window_size_ms / 1000)
+      window_stride_samples = int(args.sample_rate * args.window_stride_ms / 1000)
       length_minus_window = (desired_samples - window_size_samples)
       if length_minus_window < 0:
         spectrogram_length = 0
       else:
         spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
-      fingerprint_size = dct_coefficient_count * spectrogram_length
+      fingerprint_size = args.dct_coefficient_count * spectrogram_length
       return {
           'desired_samples': desired_samples,
           'window_size_samples': window_size_samples,
           'window_stride_samples': window_stride_samples,
+          'feature_type': args.feature_type, 
           'spectrogram_length': spectrogram_length,
-          'dct_coefficient_count': dct_coefficient_count,
+          'dct_coefficient_count': args.dct_coefficient_count,
           'fingerprint_size': fingerprint_size,
           'label_count': label_count,
-          'sample_rate': sample_rate,
-          'background_frequency': 0.8,
+          'sample_rate': args.sample_rate,
+          'background_frequency': 0.8, # args.background_frequency
           'background_volume_range_': 0.1
       }
 
@@ -56,9 +56,7 @@ def get_model(args):
   model_name = args.model_architecture
 
   label_count=12
-  model_settings = prepare_model_settings(label_count, args.sample_rate, args.clip_duration_ms,
-                               args.window_size_ms, args.window_stride_ms,
-                               args.dct_coefficient_count,args.background_frequency)
+  model_settings = prepare_model_settings(label_count, args)
 
   if model_name=="fc4":
     model = tf.keras.models.Sequential([
