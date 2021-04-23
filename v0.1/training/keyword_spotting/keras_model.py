@@ -62,15 +62,16 @@ def get_model(args):
 
   if model_name=="fc4":
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(input_shape=(model_settings['spectrogram_length'], model_settings['dct_coefficient_count'])),
+        tf.keras.layers.Flatten(input_shape=(model_settings['spectrogram_length'],
+                                             model_settings['dct_coefficient_count'])),
         tf.keras.layers.Dense(256, activation='relu'),
-        # tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.Dense(256, activation='relu'),
-        # tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.Dense(256, activation='relu'),
-        # tf.keras.layers.Dropout(0.2),
+        tf.keras.layers.Dropout(0.2),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.Dense(model_settings['label_count'], activation="softmax")
     ])
@@ -81,7 +82,8 @@ def get_model(args):
     filters = 64
     weight_decay = 1e-4
     regularizer = l2(weight_decay)
-
+    final_pool_size = (int(input_shape[0]/2), int(input_shape[1]/2))
+    
     # Model layers
     # Input pure conv2d
     inputs = Input(shape=input_shape)
@@ -126,17 +128,12 @@ def get_model(args):
     # Reduce size and apply final softmax
     x = Dropout(rate=0.4)(x)
 
-    x = AveragePooling2D(pool_size=(25,5))(x)
-
+    x = AveragePooling2D(pool_size=final_pool_size)(x)
     x = Flatten()(x)
     outputs = Dense(model_settings['label_count'], activation='softmax')(x)
 
     # Instantiate model.
     model = Model(inputs=inputs, outputs=outputs)
-
-
-
-
   else:
     raise ValueError("Model name {:} not supported".format(model_name))
 
