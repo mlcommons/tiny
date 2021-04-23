@@ -119,6 +119,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
             mfccs = tf.reshape(mfccs,[model_settings['spectrogram_length'], model_settings['dct_coefficient_count'], 1])
             next_element['audio'] = mfccs
             #next_element['label'] = tf.one_hot(next_element['label'],12)
+            print(f"mfccs shape just before return is {mfccs.shape}")
         elif model_settings['feature_type'] == 'lfbe':
             # apply preemphasis
             preemphasis_coef = 1 - 2 ** -5
@@ -128,7 +129,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
             sliced_foreground = tf.expand_dims(sliced_foreground, 0)
             sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
             sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
-
+            sliced_foreground = tf.squeeze(sliced_foreground) # ??? 
             # quantize wav data to 12 bits and dequantize it back
             # pcm_12_int = tf_quantize(sliced_foreground, 12)
             # pcm_12 = tf_dequantize(pcm_12_int, 12)
@@ -145,7 +146,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
             magspec = tf.abs(stfts)
             num_spectrogram_bins = magspec.shape[-1]
         
-            # compute power spectrum [batch_size, num_frames, NFFT]
+            # compute power spectrum [num_frames, NFFT]
             powspec = (1 / model_settings['window_size_samples']) * tf.square(magspec)
             powspec_max = tf.reduce_max(input_tensor=powspec)
             powspec = tf.clip_by_value(powspec, 1e-30, powspec_max)
@@ -164,7 +165,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
                 return numerator / denominator
         
             # Warp the linear-scale, magnitude spectrograms into the mel-scale.
-            num_spectrogram_bins = magspec.shape[-1]
             lower_edge_hertz, upper_edge_hertz = 0.0, model_settings['sample_rate'] / 2.0
             linear_to_mel_weight_matrix = (
                 tf.signal.linear_to_mel_weight_matrix(
@@ -173,21 +173,17 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
                     sample_rate=model_settings['sample_rate'],
                     lower_edge_hertz=lower_edge_hertz,
                     upper_edge_hertz=upper_edge_hertz))
+
             mel_spectrograms = tf.tensordot(powspec, linear_to_mel_weight_matrix,1)
             mel_spectrograms.set_shape(magspec.shape[:-1].concatenate(
                 linear_to_mel_weight_matrix.shape[-1:]))
-        
+
             log_mel_spec = 10 * log10(mel_spectrograms)
             log_mel_spec = tf.expand_dims(log_mel_spec, -1, name="mel_spec")
         
             log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
             log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
-        
-            batch_size = tf.shape(input=sliced_foreground)[0]
-        
-            log_mel_spec = tf.reshape(log_mel_spec,
-                                      [batch_size, -1, num_mel_bins])
-        
+
             # log_mel_spec_int = tf_quantize(
             #     log_mel_spec, self._output_quantization_bit, signed=False)
             # log_mel_spec = tf_dequantize(
