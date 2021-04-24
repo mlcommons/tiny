@@ -1,6 +1,7 @@
 import tensorflow as tf
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 import argparse
 
 import get_dataset as kws_data
@@ -42,12 +43,13 @@ if __name__ == '__main__':
     input_details = interpreter.get_input_details()
     output_details = interpreter.get_output_details()
     input_shape = input_details[0]['shape']
+    input_shape[0] = 0
     input_scale, input_zero_point = input_details[0]["quantization"]
 
   elif Flags.feature_type == "lfbe":
     # iterate over all the input tensors in the quant calibration subset of ds_val
     # find the range and mid-point, and calculate scale and zero_point
-    input_shape = (1, model_settings['spectrogram_length'],
+    input_shape = (0, model_settings['spectrogram_length'],
                    model_settings['dct_coefficient_count'], 1)
     all_dat   = np.zeros(input_shape, dtype='float32')
 
@@ -55,9 +57,17 @@ if __name__ == '__main__':
       all_dat = np.concatenate((all_dat, dat))
     
     all_dat = np.concatenate((all_dat, dat))
-    input_scale = (np.max(all_dat)- np.min(all_dat)) / 255.0
+    input_scale = 1.0*(np.max(all_dat)- np.min(all_dat)) / 255.0
     input_zero_point = (np.max(all_dat)+np.min(all_dat))/(2*input_scale)
 
+    orig_min = np.min(all_dat)
+    orig_max = np.max(all_dat)    
+    input_scale = (orig_max - orig_min) / 255.0
+    input_zero_point = -1*(orig_max+orig_min)/(2*input_scale)
+    # quantizing as quantized_value = int(original_value/input_scale + input_zero_point)
+    print(f"Calibration data ranged from {orig_min} to {orig_max}.")
+
+  print(f"Scale factor = {input_scale}, zero point = {input_zero_point}")
   output_data = []
   labels = []  
   file_names = []
@@ -68,9 +78,14 @@ if __name__ == '__main__':
   # recording what the model predicted for each input
   test_tfl_on_bin_files = False
 
+  all_dat   = np.zeros(input_shape, dtype='float32')
+  all_dat_q   = np.zeros(input_shape, dtype=np.int8)
+  
   eval_data = eval_data.unbatch().batch(1).take(num_test_files).as_numpy_iterator()
   for dat, label in eval_data:
-    dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.int8) # should match input type in quantize.py
+    dat_q = np.array(dat/input_scale + input_zero_point) 
+    dat_q  = np.clip(dat_q, -128, 127).astype(np.int8)  # should match input type in quantize.py
+
     label_str = word_labels[label[0]]
     fname = f"tst_{count:06d}_{label_str}_{label[0]}.bin"
     with open(os.path.join(test_file_path, fname), "wb") as fpo:
@@ -84,8 +99,13 @@ if __name__ == '__main__':
 
     labels.append(label[0])
     file_names.append(fname)
+    all_dat   = np.concatenate((all_dat,   dat  ))
+    all_dat_q = np.concatenate((all_dat_q, dat_q))
     count += 1
-        
+
+  print(f"FP32      feature data ranges from {np.min(all_dat)} to {np.max(all_dat)} with mean = {np.mean(all_dat)}")
+  print(f"Quantized feature data ranges from {np.min(all_dat_q)} to {np.max(all_dat_q)} with mean = {np.mean(all_dat_q)}")
+    
   with open(os.path.join(test_file_path, "y_labels.csv"), "w") as fpo_true_labels:
     for (fname, lbl) in zip(file_names, labels):
       fpo_true_labels.write(f"{fname}, {num_labels}, {lbl}\n")
@@ -98,7 +118,10 @@ if __name__ == '__main__':
       for (fname, out) in zip(file_names, output_data):
         fpo_tflm_labels.write(f"{fname}, {num_labels}, {out}\n")
 
-
-  
+  fig, axes = plt.subplots(3,1, figsize=(6, 8))
+  axes[0].plot(all_dat.flatten(), all_dat_q.flatten(), 'r.')
+  axes[1].hist(all_dat.flatten(),bins=20);
+  axes[2].hist(all_dat_q.flatten(),bins=20);
+  plt.savefig('test_data_quantization.png')
 
 
