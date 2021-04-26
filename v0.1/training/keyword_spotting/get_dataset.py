@@ -310,56 +310,6 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   return ds_train, ds_test, ds_val
 
 
-def create_c_files(dataset, root_filename="input_data", interpreter=None, elems_per_row=10):
-  print("** WARNING **: This routine (create_c_files) is not completed")
-
-  preamble = """
-/* Copyright 2020 The MLPerf Authors. All Rights Reserved.
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-==============================================================================*/
-
-/// \file
-/// \brief Sample inputs for the audio wakewords model.
-
-#include "kws/kws_input_data.h"
-const int8_t g_kws_inputs[kNumKwsTestInputs][kKwsInputSize] = {
-    {
-  """
-
-  dataset = dataset.unbatch().batch(1).as_numpy_iterator()
-
-  interpreter.allocate_tensors()
-  input_details = interpreter.get_input_details()
-  input_scale, input_zero_point = input_details[0]["quantization"]
-
-  input_type = np.int8
-  
-  dat, label = next(dataset)
-  dat_q = np.array(dat/input_scale + input_zero_point, dtype=input_type)
-  dat_q = dat_q.flatten()
-
-  print(f"Writing to {ofname}")
-  num_elems = len(dat_q)
-
-  with open(f"{root_filename}.cc", "w") as fpo:
-    fpo.write(preamble)
-    for cnt, val in enumerate(dat_q):
-      if cnt < num_elems-1:
-        fpo.write("{:d},".format(val))
-      else:
-        fpo.write("{:d}".format(val)) # last element => no comma
-      if cnt+1 % elems_per_row == 0:
-        fpo.write("\n")
-    fpo.write("}};\n")
-
 if __name__ == '__main__':
   Flags, unparsed = kws_util.parse_command()
   ds_train, ds_test, ds_val = get_training_data(Flags)
