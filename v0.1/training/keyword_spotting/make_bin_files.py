@@ -46,7 +46,7 @@ if __name__ == '__main__':
     input_shape[0] = 0
     input_scale, input_zero_point = input_details[0]["quantization"]
 
-  elif Flags.feature_type == "lfbe":
+  elif Flags.feature_type == "lfbe" or Flags.feature_type == "td_samples":
     # iterate over all the input tensors in the quant calibration subset of ds_val
     # find the range and mid-point, and calculate scale and zero_point
     input_shape = (0, model_settings['spectrogram_length'],
@@ -66,7 +66,7 @@ if __name__ == '__main__':
     input_zero_point = -1*(orig_max+orig_min)/(2*input_scale)
     # quantizing as quantized_value = int(original_value/input_scale + input_zero_point)
     print(f"Calibration data ranged from {orig_min} to {orig_max}.")
-
+    
   print(f"Scale factor = {input_scale}, zero point = {input_zero_point}")
   output_data = []
   labels = []  
@@ -81,6 +81,9 @@ if __name__ == '__main__':
   all_dat   = np.zeros(input_shape, dtype='float32')
   all_dat_q   = np.zeros(input_shape, dtype=np.int8)
   
+  # make the target directory and all directories above it if it doesn't exist
+  os.makedirs(test_file_path, exist_ok = True) 
+
   eval_data = eval_data.unbatch().batch(1).take(num_test_files).as_numpy_iterator()
   for dat, label in eval_data:
     dat_q = np.array(dat/input_scale + input_zero_point) 
@@ -103,7 +106,7 @@ if __name__ == '__main__':
     all_dat_q = np.concatenate((all_dat_q, dat_q))
     count += 1
 
-  print(f"FP32      feature data ranges from {np.min(all_dat)} to {np.max(all_dat)} with mean = {np.mean(all_dat)}")
+  print(f"FP32      feature data ranges from {np.min(all_dat)  } to {np.max(all_dat)  } with mean = {np.mean(all_dat)}")
   print(f"Quantized feature data ranges from {np.min(all_dat_q)} to {np.max(all_dat_q)} with mean = {np.mean(all_dat_q)}")
     
   with open(os.path.join(test_file_path, "y_labels.csv"), "w") as fpo_true_labels:

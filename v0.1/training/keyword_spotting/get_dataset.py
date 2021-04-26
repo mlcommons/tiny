@@ -129,16 +129,13 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       power_offset = 52
       num_mel_bins = model_settings['dct_coefficient_count']
       paddings = tf.constant([[0, 0], [1, 0]])
+      # for some reason, tf.pad only works with the extra batch dimension, but then we remove it after pad
       sliced_foreground = tf.expand_dims(sliced_foreground, 0)
       sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
-      sliced_foreground = tf.squeeze(sliced_foreground) # ??? 
-      # quantize wav data to 12 bits and dequantize it back
-      # pcm_12_int = tf_quantize(sliced_foreground, 12)
-      # pcm_12 = tf_dequantize(pcm_12_int, 12)
-      pcm_12 = sliced_foreground
+      sliced_foreground = tf.squeeze(sliced_foreground) 
       # compute fft
-      stfts = tf.signal.stft(pcm_12,  frame_length=model_settings['window_size_samples'], 
+      stfts = tf.signal.stft(sliced_foreground,  frame_length=model_settings['window_size_samples'], 
                              frame_step=model_settings['window_stride_samples'], fft_length=None,
                              window_fn=functools.partial(
                                tf.signal.hamming_window, periodic=False),
@@ -192,6 +189,16 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       # log_mel_spec = tf_dequantize(
       #     log_mel_spec_int, self._output_quantization_bit, signed=False)
       next_element['audio'] = log_mel_spec
+
+    elif model_settings['feature_type'] == 'td_samples':
+      ## sliced_foreground should have the right data.  Make sure it's the right format (int16)
+      # and just return it.
+      paddings = [[0, 16000-tf.shape(sliced_foreground)[0]]]
+      wav_padded = tf.pad(sliced_foreground, paddings)
+      wav_padded = tf.expand_dims(wav_padded, -1)
+      wav_padded = tf.expand_dims(wav_padded, -1)
+      next_element['audio'] = wav_padded
+      
     return next_element
   
   return prepare_processing_graph
@@ -234,8 +241,6 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
 
 
 def get_training_data(Flags, get_waves=False, val_cal_subset=False):
-  spectrogram_length = int((Flags.clip_duration_ms - Flags.window_size_ms +
-                            Flags.window_stride_ms) / Flags.window_stride_ms)
   
   label_count=12
   background_frequency = Flags.background_frequency
