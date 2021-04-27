@@ -204,9 +204,12 @@ suite result, e.g. “a MLPerf result of 4.5.”
 
 === Open Division
 
-The Open division allows using arbitrary pre- or post-processing and model,
-including retraining.  The qualified name “MLPerf Open” must be used when
+The Open division allows using an arbitrary dataset set, training script, or model.
+The qualified name “MLPerf Open” must be used when
 referring to an Open Division suite result, e.g. “a MLPerf Open result of 7.2.”
+
+Pre- and Post-processing are not timed in V0.1 of the benchmark and are therefore 
+can not be changed.
 
 == Data Sets
 
@@ -230,8 +233,7 @@ The dataset must be unchanged at the start of each run.
 
 Pre- and post-processing is untimed for all benchmarks.
 
-In the closed division, pre- and post-processing must be the same as the reference implementation.
-In the open division, arbitrary pre- and post-processing may be used.
+Pre- and post-processing must be the same as the reference implementation.
 
 == Model
 
