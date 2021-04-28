@@ -63,7 +63,10 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     background_volume_range_= model_settings['background_volume_range_']
 
     wav_decoder = tf.cast(next_element['audio'], tf.float32)
-    wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
+    if model_settings['feature_type'] != "td_samples":
+      wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
+    else:
+      wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
     #Previously, decode_wav was used with desired_samples as the length of array. The
     # default option of this function was to pad zeros if the desired samples are not found
     wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
@@ -78,7 +81,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     scaled_foreground.shape
     padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
     sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
-    
   
     if is_training and background_data != []:
       background_volume_range = tf.constant(background_volume_range_,dtype=tf.float32)
@@ -122,7 +124,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       mfccs = tf.reshape(mfccs,[model_settings['spectrogram_length'], model_settings['dct_coefficient_count'], 1])
       next_element['audio'] = mfccs
       #next_element['label'] = tf.one_hot(next_element['label'],12)
-      print(f"mfccs shape just before return is {mfccs.shape}")
+
     elif model_settings['feature_type'] == 'lfbe':
       # apply preemphasis
       preemphasis_coef = 1 - 2 ** -5
@@ -149,17 +151,11 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       # compute power spectrum [num_frames, NFFT]
       powspec = (1 / model_settings['window_size_samples']) * tf.square(magspec)
       powspec_max = tf.reduce_max(input_tensor=powspec)
-      powspec = tf.clip_by_value(powspec, 1e-30, powspec_max)
+      powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
     
       def log10(x):
-        """Compute log base 10 on the tensorflow graph.
-    
-        Args:
-            x (tensor): The inputs we want to compute the log based 10 for.
-    
-        Return:
-            (tensor): The input taken to log 10.
-        """
+        # Compute log base 10 on the tensorflow graph.
+        # x is a tensor.  returns log10(x) as a tensor
         numerator = tf.math.log(x)
         denominator = tf.math.log(tf.constant(10, dtype=numerator.dtype))
         return numerator / denominator
@@ -184,10 +180,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
       log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
 
-      # log_mel_spec_int = tf_quantize(
-      #     log_mel_spec, self._output_quantization_bit, signed=False)
-      # log_mel_spec = tf_dequantize(
-      #     log_mel_spec_int, self._output_quantization_bit, signed=False)
       next_element['audio'] = log_mel_spec
 
     elif model_settings['feature_type'] == 'td_samples':
