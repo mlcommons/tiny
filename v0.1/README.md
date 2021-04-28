@@ -45,7 +45,9 @@ If you have any questions or issues with the benchmark please [create a new issu
 
 **Q:** Will accuracy be measured?
 
-**A:** Yes accuracy will be measure on the device under test. This will ensure the validity of results in the closed division. In the open division accuracy must remain within a threshold  of the reference model. The threshold is defined by the benchmark.
+**A:** Yes accuracy will be measured on the device under test. This will ensure the validity of results in the closed division. In the closed division the accuracy must remain within a threshold of the reference model. The threshold is defined by the benchmark.
+
+In the open division the accuracy is measured and reported but does not have to hit the threshold.
 ## 
 
 **Q:** Do you require that submissions use TFLite for Micro/Mbed for the closed division?
