@@ -34,6 +34,8 @@ if __name__ == '__main__':
   model_settings = models.prepare_model_settings(num_labels, Flags)
 
   if Flags.feature_type == "mfcc":
+    output_type = np.int8
+    quant_min, quant_max = -128, 127
     # we should really do both of these in the way that the LFBE is doing
     # since the MFCC style depends on a specific TFL model, but since
     # now (4/24/21) bin files for mfcc features are already published,
@@ -46,26 +48,35 @@ if __name__ == '__main__':
     input_shape[0] = 0
     input_scale, input_zero_point = input_details[0]["quantization"]
 
-  elif Flags.feature_type == "lfbe" or Flags.feature_type == "td_samples":
+  elif Flags.feature_type == "lfbe":
+    output_type = np.uint8
+    quant_min, quant_max = 0, 255
     # iterate over all the input tensors in the quant calibration subset of ds_val
     # find the range and mid-point, and calculate scale and zero_point
     input_shape = (0, model_settings['spectrogram_length'],
                    model_settings['dct_coefficient_count'], 1)
     all_dat   = np.zeros(input_shape, dtype='float32')
 
-    for dat, label in ds_val.as_numpy_iterator():
+    # collect all the calibration data
+    for dat, label in ds_val.as_numpy_iterator(): 
       all_dat = np.concatenate((all_dat, dat))
-    
-    all_dat = np.concatenate((all_dat, dat))
-    input_scale = 1.0*(np.max(all_dat)- np.min(all_dat)) / 255.0
+
+    input_scale = 1.0*(np.max(all_dat) - np.min(all_dat)) / 255.0
     input_zero_point = (np.max(all_dat)+np.min(all_dat))/(2*input_scale)
 
     orig_min = np.min(all_dat)
     orig_max = np.max(all_dat)    
-    input_scale = (orig_max - orig_min) / 255.0
-    input_zero_point = -1*(orig_max+orig_min)/(2*input_scale)
-    # quantizing as quantized_value = int(original_value/input_scale + input_zero_point)
+    input_scale = 1.0 / 255.0  # LFBEs are clipped to [0.0,1.0] in feature extraction
+    input_zero_point = 0.0
+    # quantizing as:  quantized_value = int(original_value/input_scale + input_zero_point)
     print(f"Calibration data ranged from {orig_min} to {orig_max}.")
+
+  elif Flags.feature_type == "td_samples":
+    input_shape = (0, 16000, 1, 1)
+    output_type = np.int16
+    quant_min, quant_max = -2.0**15, 2.0**15-1
+    input_scale = 1.0/2**15
+    input_zero_point = 0.0
     
   print(f"Scale factor = {input_scale}, zero point = {input_zero_point}")
   output_data = []
@@ -79,7 +90,7 @@ if __name__ == '__main__':
   test_tfl_on_bin_files = False
 
   all_dat   = np.zeros(input_shape, dtype='float32')
-  all_dat_q   = np.zeros(input_shape, dtype=np.int8)
+  all_dat_q   = np.zeros(input_shape, dtype=output_type)
   
   # make the target directory and all directories above it if it doesn't exist
   os.makedirs(test_file_path, exist_ok = True) 
@@ -87,7 +98,7 @@ if __name__ == '__main__':
   eval_data = eval_data.unbatch().batch(1).take(num_test_files).as_numpy_iterator()
   for dat, label in eval_data:
     dat_q = np.array(dat/input_scale + input_zero_point) 
-    dat_q  = np.clip(dat_q, -128, 127).astype(np.int8)  # should match input type in quantize.py
+    dat_q  = np.clip(dat_q, quant_min, quant_max).astype(output_type)  # should match input type in quantize.py
 
     label_str = word_labels[label[0]]
     fname = f"tst_{count:06d}_{label_str}_{label[0]}.bin"
@@ -125,6 +136,5 @@ if __name__ == '__main__':
   axes[0].plot(all_dat.flatten(), all_dat_q.flatten(), 'r.')
   axes[1].hist(all_dat.flatten(),bins=20);
   axes[2].hist(all_dat_q.flatten(),bins=20);
-  plt.savefig('test_data_quantization.png')
-
+  plt.savefig(f"test_data_quantization_{Flags.feature_type}.png")
 
