@@ -204,7 +204,7 @@ suite result, e.g. “a MLPerf result of 4.5.”
 
 === Open Division
 
-The Open division allows using an arbitrary dataset set, training script, or model.
+The Open division allows using an arbitrary training dataset, training script, or model.
 The qualified name “MLPerf Open” must be used when
 referring to an Open Division suite result, e.g. “a MLPerf Open result of 7.2.”
 
