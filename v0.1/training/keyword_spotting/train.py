@@ -39,7 +39,7 @@ if __name__ == '__main__':
     print(f"Starting with pre-trained model from {Flags.model_init_path}")
     model = keras.models.load_model(Flags.model_init_path)
 
-    model.summary()
+  model.summary()
   
   callbacks = kws_util.get_callbacks(args=Flags)
   train_hist = model.fit(ds_train, validation_data=ds_val, epochs=Flags.epochs, callbacks=callbacks)
