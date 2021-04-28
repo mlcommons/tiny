@@ -97,8 +97,7 @@ if __name__ == '__main__':
 
   eval_data = eval_data.unbatch().batch(1).take(num_test_files).as_numpy_iterator()
   for dat, label in eval_data:
-    dat_q = np.array(dat/input_scale + input_zero_point) 
-    dat_q  = np.clip(dat_q, quant_min, quant_max).astype(output_type)  # should match input type in quantize.py
+    dat_q = np.array(dat/input_scale + input_zero_point, dtype=output_type) # should match input type in quantize.py
 
     label_str = word_labels[label[0]]
     fname = f"tst_{count:06d}_{label_str}_{label[0]}.bin"
