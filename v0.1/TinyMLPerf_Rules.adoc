@@ -1,0 +1,378 @@
+:toc:
+:toclevels: 4
+
+:sectnums:
+
+= TinyMLPerf Inference Rules
+
+Version 0.1
+Updated April 30th, 2021.
+
+This version has been updated, but is not yet final.
+
+Chairs: 
+
+* Colby Banbury* (cbanbury@g.harvard.edu)
+* Vijay Janapa Reddi
+
+*point of contact
+
+Benchmark Owners:
+
+* Visual Wake Words - Nat Jeffries
+* Anomaly Detection - Csaba Kiraly
+* Keyword Spotting - Jeremy Holleman
+* Image Classification - Pietro Montino
+
+== Overview
+
+This document describes how to implement one or more benchmarks in the TinyMLPerf
+Inference Suite and how to use those implementations to measure the performance
+of an ML system performing inference.
+
+There are seperate rules for the submission, review, and publication process for all MLPerf benchmarks https://github.com/mlperf/policies/blob/master/submission_rules.adoc[here].
+
+The MLPerf name and logo are trademarks. In order to refer to a result using the
+MLPerf name, the result must conform to the letter and spirit of the rules
+specified in this document. The MLPerf organization reserves the right to solely
+determine if a use of its name or logo is acceptable.
+
+=== Definitions (read this section carefully)
+
+The following definitions are used throughout this document:
+
+A _sample_ is the unit on which inference is run. E.g., an image, or a sentence.
+
+_Quality_ always refers to a model’s ability to produce “correct” outputs.
+
+A _system under test_ consists of a defined set of hardware and software
+resources that will be measured for performance.  The hardware resources may
+include processors, accelerators, memories, disks, and interconnect. The
+software resources may include an operating system, compilers, libraries, and
+drivers that significantly influences the running time of a benchmark.
+
+A _reference implementation_ is a specific implementation of a benchmark
+provided by the MLPerf organization.  The reference implementation is the
+canonical implementation of a benchmark. All valid submissions to the closed division
+of a benchmarkmust be *equivalent* to the reference implementation.
+
+A _run_ is a complete execution of a benchmark implementation on a system under
+the control of the load generator that consists of completing a set of inference
+queries, including data pre- and post-processing, meeting a quality requirement
+ in accordance with the division.
+
+A _run result_ consists of the scenario-specific metric.
+
+== General rules
+
+The following rules apply to all benchmark implementations.
+
+=== Strive to be fair
+
+Benchmarking should be conducted to measure the framework and system performance
+as fairly as possible. Ethics and reputation matter.
+
+=== System and framework must be consistent
+
+The same system and framework must be used for a suite result or set of
+benchmark results reported in a single context.
+
+=== Benchmark implementations must be shared
+
+Source code used for the benchmark implementations must be open-sourced under a
+license that permits a commercial entity to freely use the implementation for
+benchmarking. The code must be available as long as the results are actively
+used.
+
+=== Non-determinism is restricted
+
+The only forms of acceptable non-determinism are:
+
+* Floating point operation order
+
+* Random traversal of the inputs
+
+* Rounding
+
+All random numbers must be based on fixed random seeds and a deterministic random
+number generator. The deterministic random number generator is the Mersenne Twister
+19937 generator ([std::mt19937](http://www.cplusplus.com/reference/random/mt19937/)).
+The random seeds will be announced two weeks before the benchmark submission deadline.
+
+=== Benchmark detection is not allowed
+
+The framework and system should not detect and behave differently for
+benchmarks.
+
+=== Input-based optimization is not allowed
+
+The implementation should not encode any information about the content of the
+input dataset in any form.
+
+=== Replicability is mandatory
+
+Results that cannot be replicated are not valid results.
+
+=== Audit Process
+
+In depth audits will not be conducted in this version (V0.1) of TinyMLPerf
+
+
+== Scenarios
+
+TinyMLPerf only supports the Single Stream scenario in this version (V0.1).
+
+== Benchmarks
+
+The MLPerf organization provides a reference implementation of each benchmark,
+which includes the following elements: Code that implements the model in a
+framework.  A plain text “README.md” file that describes:
+
+* Problem
+
+** Dataset/Environment
+
+** Publication/Attribution
+
+** Data pre- and post-processing
+
+** Performance, accuracy, and calibration data sets
+
+* Model
+
+** Publication/Attribution
+
+** List of layers
+
+** Weights and biases
+
+* Quality target
+
+* Directions
+
+** Steps to configure machine
+
+** Steps to download the dataset
+
+** Steps to run and time
+
+
+=== Benchmarks
+
+==== Constraints for the Closed division
+
+The suite includes the following benchmarks:
+
+|===
+|       Use Case       |                   Description                   |          Dataset          |       Model      | Quality Target 
+|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands      |      DS-CNN      |   90% (Top 1)
+|   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset |     MobileNet    |   80% (Top 1)
+| Image Classification |            Small image classification           |          Cifar10          |      ResNet      |   85% (Top 1)
+|   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS         | Deep AutoEncoder |   0.85 (AUC)
+|===
+
+==== Relaxed constraints for the Open division
+
+1. An Open benchmark must perform a task matching an existing Closed benchmark, and be substitutable in LoadGen for that benchmark.
+1. The accuracy dataset must be the same as an existing Closed benchmark.
+1. Accuracy constraints are not applicable: instead the submission must report the accuracy obtained.
+1. An open submission must be classified as "Available", "Preview", or "Research, Development, or Internal". See the https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#73-results-categories[submission rules] for more information on these classifications.
+1. The model can be of any origin (trained on any dataset, quantized in any way, and sparsified in anyway).
+
+== Benchmark Runner
+
+=== EEMBC ULPMark™-ML and MLCommons TinyMLperf Runner
+The benchmark suite is run using the EEMBC ULPMark™-ML and MLCommons TinyMLperf Runner, which detects the DUT, sends inputs, and reads outputs over UART.
+
+The alpha version of the runner is available here: https://github.com/eembc/alpha-runner
+
+Note: The same code must be run for both the accuracy and performance Runner modes.
+
+== Divisions
+
+There are two divisions of the benchmark suite, the Closed division and the Open
+division.
+
+=== Closed Division
+
+The Closed division requires using pre-processing, post-processing, and model
+that is equivalent to the reference or alternative implementation.  The closed
+division allows calibration for quantization and does not allow any retraining.
+
+The unqualified name “MLPerf” must be used when referring to a Closed Division
+suite result, e.g. “a MLPerf result of 4.5.”
+
+=== Open Division
+
+The Open division allows using an arbitrary training dataset, training script, or model.
+The qualified name “MLPerf Open” must be used when
+referring to an Open Division suite result, e.g. “a MLPerf Open result of 7.2.”
+
+Pre- and Post-processing are not timed in V0.1 of the benchmark and are therefore 
+can not be changed.
+
+== Data Sets
+
+For each benchmark, MLPerf will provide pointers to:
+
+* An accuracy data set, to be used to determine whether a submission meets the
+  quality target, and used as a validation set
+
+* A speed/performance data set that is a subset of the accuracy data set to be
+  used to measure performance
+
+For each benchmark, MLPerf will provide pointers to:
+
+* A calibration data set, to be used for quantization (see quantization
+  section), that is a small subset of the training data set used to generate the
+  weights
+
+The dataset must be unchanged at the start of each run.
+
+=== Pre- and post-processing
+
+Pre- and post-processing is untimed for all benchmarks.
+
+Pre- and post-processing must be the same as the reference implementation, except in the open division of Keyword Spotting where there are three options provided for pre-processing.
+
+== Model
+
+CLOSED: MLPerf provides a reference implementation of each benchmark. The benchmark implementation must use a model that is
+equivalent, as defined in these rules, to the model used in the reference implementation.
+
+OPEN: The benchmark implementation may use a different model to perform the same
+task. Retraining is allowed.
+
+=== Weight Definition and Quantization
+
+CLOSED: MLPerf will provide trained weights and biases in fp32 format for both
+the reference and alternative implementations.
+
+MLPerf will provide a calibration data set for all models. 
+Submitters may do arbitrary purely mathematical, reproducible quantization
+using only the calibration data and weight and bias tensors from the benchmark
+owner provided model to any numerical format
+that achieves the desired quality. The quantization method must be publicly
+described at a level where it could be reproduced.
+
+To be considered principled, the description of the quantization method must be
+much much smaller than the non-zero weights it produces.
+
+Calibration is allowed and must only use the calibration data set provided by
+the benchmark owner. Submitters may choose to use only a subset of the calibration data set.
+
+Additionally, MLPerf may provide an INT8 reference for all models.
+
+OPEN: Weights and biases must be initialized to the same values for each run,
+any quantization scheme is allowed that achieves the desired quality.
+
+=== Model Equivalence
+
+All implementations are allowed as long as the accuracy bounds are
+met and the reference weights are used. Reference weights may be modified
+according to the quantization rules.
+
+Examples of allowed techniques include, but are not limited to:
+
+* Arbitrary frameworks and runtimes: TensorFlow lite for microcontrollers, CMSIS-NN, Micro TVM
+  etc, provided they conform to the rest of the rules
+
+* Running any given control flow or operations on or off an accelerator
+
+* Arbitrary data arrangement
+
+* Different in-memory representations of inputs, weights, activations, and outputs
+
+* Variation in matrix-multiplication or convolution algorithm provided the
+  algorithm produces asymptotically accurate results when evaluated with
+  asymptotic precision
+
+* Mathematically equivalent transformations (e.g. Tanh versus Logistic, ReluX
+  versus ReluY, any linear transformation of an activation function)
+
+* Approximations (e.g. replacing a transcendental function with a polynomial)
+
+* Processing queries out-of-order within discretion provided by scenario
+
+* Replacing dense operations with mathematically equivalent sparse operations
+
+* Hand picking different numerical precisions for different operations
+
+* Fusing or unfusing operations
+
+* Mixture of experts combining differently quantized weights
+
+* Stochastic quantization algorithms with seeds for reproducibility
+
+* Dead code elimination
+
+* Incorporating explicit statistical information about the calibration set
+  (eg. min, max, mean, distribution)
+
+* Empirical performance and accuracy tuning based on the performance and accuracy
+  set (eg. selecting numerics experimentally)
+  
+* Sorting an embedding table based on frequency of access in the training set.
+  (Submtters should include in their submission details of how the ordering was
+  derived.)
+
+The following techniques are disallowed:
+
+* Wholesale weight replacement or supplements
+
+* Discarding non-zero weight elements, including pruning
+
+* Caching queries or responses
+
+* Coalescing identical queries
+
+* Modifying weights during the timed portion of an inference run (no online
+  learning or related techniques)
+
+* Weight quantization algorithms that are similar in size to the non-zero
+  weights they produce
+
+* Hard coding the total number of queries
+
+* Incorporating explicit statistical information about the performance or
+  accuracy sets (eg. min, max, mean, distribution)
+
+* Techniques that only improve performance when there are identical
+  samples in a query.
+
+== FAQ
+
+Q: Do I have to use the reference implementation framework?
+
+A: No, you can use another framework provided that it matches the reference in
+the required areas.
+
+Q: Do I have to use the reference implementation scripts?
+
+A: No, you don’t have to use the reference scripts. The reference is there to
+settle conformance questions - with a few exceptions, a submission to the closed
+division must match what the reference is doing.
+
+Q: Can I submit a single benchmark (e.g., Visual Wake Words) or do I have to submit all benchmarks?
+
+A: You can submit any of the benchmarks that are interesting, from just one benchmark to the entire set of benchmarks.
+
+Q: For my submission, I am going to use a different model format (e.g., ONNX vs
+TensorFlow Lite).  Should the conversion routine/script be included in the
+submission? Or is it sufficient to submit the converted model?
+
+A: The goal is reproducibility, so you should include the conversion
+routine/scripts.
+
+Q: Can we give the driver a hint to preload the image data to somewhere closer to the accelerator?
+
+A: No.
+
+Q: Can we preload image data somewhere closer to the accelerator that is mapped into host memory?
+
+A: No.
+
+Q: Can we preload image data in host memory somewhere that is mapped into accelerator memory?
+
+A: Yes, provided the image data isn't eventually cached on the device.
+

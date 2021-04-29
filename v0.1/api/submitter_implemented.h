@@ -37,14 +37,29 @@ methods from th_libc.h and all testharness methods from th_lib.h are here.
 /// \brief These defines set logging prefixes for test harness integration.
 /// \detail This API is designed for performance evaluation only. In order to
 /// gather energy measurments we recommend using the EEMBC test suite.
-#define EE_MSG_TIMESTAMP_MODE "m-timestamp-mode-energy\r\n"
 #define EE_MSG_TIMESTAMP "m-lap-us-%lu\r\n"
 #define TH_VENDOR_NAME_STRING "unspecified"
 
 #define MAX_DB_INPUT_SIZE (96 * 96 * 3)
-#define TH_MODEL_VERSION EE_MODEL_VERSION_VWW01
+#ifndef TH_MODEL_VERSION
+// See "internally_implemented.h" for a list
+#error "PLease set TH_MODEL_VERSION to one of the EE_MODEL_VERSION_* defines"
+// e.g.: to inform the user of model `ic01` use this:
+// #define TH_MODEL_VERSION EE_MODEL_VERSION_IC01
+#endif
 
+// Use this to switch between DUT-direct (perf) & DUT-inderrect (energy) modes
+#ifndef EE_CFG_ENERGY_MODE
 #define EE_CFG_ENERGY_MODE 0
+#endif
+
+// This is a visual cue to the user when reviewing logs or plugging an
+// unknown device into the system.
+#if EE_CFG_ENERGY_MODE == 1
+#define EE_MSG_TIMESTAMP_MODE "m-timestamp-mode-energy\r\n"
+#else
+#define EE_MSG_TIMESTAMP_MODE "m-timestamp-mode-performance\r\n"
+#endif
 
 #include <stdarg.h>
 #include <stdio.h>
