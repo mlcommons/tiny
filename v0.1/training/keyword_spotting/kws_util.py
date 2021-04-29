@@ -77,10 +77,16 @@ def parse_command():
       default=20.0,
       help='How long each spectrogram timeslice is',)
   parser.add_argument(
+      '--feature_type',
+      type=str,
+      default="mfcc",
+      choices=["mfcc", "lfbe", "td_samples"],
+      help='Type of input features. Valid values: "mfcc" (default), "lfbe", "td_samples"',)
+  parser.add_argument(
       '--dct_coefficient_count',
       type=int,
       default=10,
-      help='How many bins to use for the MFCC fingerprint',)
+      help='How many MFCC or log filterbank energy features')
   parser.add_argument(
       '--epochs',
       type=int,

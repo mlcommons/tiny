@@ -1,9 +1,0 @@
-mkdir -p c_files
-python make_bin_files.py --num_bin_files=1 --bin_file_path=./c_files
-
-xxd -i trained_models/kws_model.tflite > c_files/kws_model_data.cc
-
-sed -i '1 s/^/#include "kws_model_data.h"\n\n/'  c_files/kws_model_data.cc
-sed -i 's/unsigned char/const unsigned char/' c_files/kws_model_data.cc
-sed -i 's/trained_models_kws_model_tflite/g_kws_model_data/' c_files/kws_model_data.cc
-sed -i 's/unsigned int/const unsigned int/' c_files/kws_model_data.cc
