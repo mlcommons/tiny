@@ -19,9 +19,9 @@ from tensorflow.keras.regularizers import l2
 #get model
 def get_model_name():
     if os.path.exists("trained_models/trainedResnet.h5"):
-        return "trainedResnet.h5"
+        return "trainedResnet"
     else:
-        return "pretrainedResnet.h5"
+        return "pretrainedResnet"
 
 def get_quant_model_name():
     if os.path.exists("trained_models/trainedResnet.h5"):
