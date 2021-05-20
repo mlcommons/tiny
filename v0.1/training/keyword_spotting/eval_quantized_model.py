@@ -55,9 +55,14 @@ if __name__ == '__main__':
   input_scale, input_zero_point = input_details[0]["quantization"]
   
   for dat, label in eval_data:
-    dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.int8) # should match input type in quantize.py
-    
-    interpreter.set_tensor(input_details[0]['index'], dat_q)
+    if input_details[0]['dtype'] == np.float32:
+      interpreter.set_tensor(input_details[0]['index'], dat)
+    elif input_details[0]['dtype'] == np.int8:
+      dat_q = np.array(dat/input_scale + input_zero_point, dtype=np.int8) # should match input type in quantize.py
+      interpreter.set_tensor(input_details[0]['index'], dat_q)
+    else:
+      raise ValueError("TFLite file has input dtype {:}.  Only np.int8 and np.float32 are supported".format(
+        input_details[0]['dtype']))
     interpreter.invoke()
     # The function `get_tensor()` returns a copy of the tensor data.
     # Use `tensor()` in order to get a pointer to the tensor.
