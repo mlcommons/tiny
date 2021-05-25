@@ -1,4 +1,4 @@
-# This benchmark suite is under construction. 
+# This MLPerf™ benchmark suite is under construction. 
 
 The TinyMLPerf benchmark suite consists four benchmarks:
 |       Use Case       |                   Description                   |          Dataset          |       Model      | Quality Target<br>(Closed&#160;Division)
