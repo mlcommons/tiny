@@ -41,24 +41,23 @@ mv kws_model_data.cc ../../reference_submissions/keyword_spotting/kws/
 
 
 ### Deploy to the MCU Board
-Change to the directory `../../reference_submissions/keyword_spotting/` and  edit the file `mbed_setup.sh`. 
+Change to the directory `../../reference_submissions/keyword_spotting/`
 
-Edit `TF_DIR` to indicate where you want to clone the TensorFlow github repo, or where you already have the TF source available. Set `LOCAL_ARCH` appropriately for your host architecture (the machine on which you are running the compiler, not the target device).  _Note:_ The script will not run unmodified.
-
-Now source it. 
+Now run the setup script.
 ```
-source ./mbed_setup.sh
+./setup_example.sh
 ```
 
-The script will clone TF, change into the TF source tree, build the hello_world project for mbed and copy it back into your mbed build tree.  It will then create an mbed project in the `reference_submissions/keyword_spotting` directory.
+The script will clone TF, change into the TF source tree, build the hello_world project for mbed with the ARM CMSIS-NN kernels and copy it back into your mbed build tree.  It will then create an mbed project in the `reference_submissions/keyword_spotting` directory.
 
 
 Now you can compile it with this command. Change the target for a different DUT.
 
 ```
-mbed compile --target NUCLEO_L4R5ZI --toolchain GCC_ARM -v
+mbed compile -m NUCLEO_L4R5ZI -t GCC_ARM
 ```
 
+NOTE: You can install the Mbed CLI tools [here](https://os.mbed.com/docs/mbed-os/v5.15/tools/manual-installation.html)
 
 Copy the compiled executable `BUILD/NUCLEO_L4R5ZI/GCC_ARM/keyword_spotting.bin` onto the mbed board.  On Mac OS, this is `cp BUILD/NUCLEO_L4R5ZI/GCC_ARM/keyword_spotting.bin /Volumes/NODE_L4R5ZI`.  On Linux or Windows, you will use a different command.
 
