@@ -19,9 +19,9 @@ the benchmarks using [TensorFlow Lite for Microcontrollers](https://www.tensorfl
 
 We use the [EEMBC benchmark runner](https://github.com/eembc/benchmark-runner-ml) to connect to the system under test and run the benchmarks.
 
-We follow the [MLPerf Inference Rules](https://github.com/mlcommons/inference_policies/blob/master/inference_rules.adoc) unless there is a specific exception related to MLPerf Tiny. All MLPerf Tiny benchmarks are single stream only and we do not support the retraining subdivision.
+We follow the [MLPerf Tiny Rules](https://github.com/mlcommons/tiny/blob/master/v0.5/MLPerfTiny_Rules.adoc) unless there is a specific exception related to MLPerf Tiny. All MLPerf Tiny benchmarks are single stream only and we do not support the retraining subdivision.
 
-We additionally follow the MLPerf [submission and run rules](https://github.com/mlcommons/policies/blob/master/submission_rules.adoc).
+We additionally follow the MLPerf [submission and run rules](https://github.com/mlcommons/policies/blob/master/submission_rules.adoc).f
 
 If you have any questions or issues with the benchmark please [create a new issue](https://github.com/mlcommons/tiny/issues).
 
