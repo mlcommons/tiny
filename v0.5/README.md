@@ -1,4 +1,4 @@
-The MLPerf Tiny benchmark suite version 0.5 consists four benchmarks:
+Version 0.5 of the MLPerf Tiny benchmark suite consists four benchmarks:
 |       Use Case       |                   Description                   |          Dataset          |       Model      | Quality Target<br>(Closed&#160;Division)
 |:--------------------:|:-----------------------------------------------:|:-------------------------:|:----------------:|:-------------------:|
 |   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands      |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/v0.5/training/keyword_spotting/keras_model.py)      | 90% (Top 1)
