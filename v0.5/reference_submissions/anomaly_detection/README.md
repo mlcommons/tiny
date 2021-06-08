@@ -1,4 +1,4 @@
-Anomaly detection reference submission for MLCommons TinyML benchmark
+Anomaly detection reference submission for MLCommons MLPerf Tiny benchmark
 
 Quick Start
 ===========

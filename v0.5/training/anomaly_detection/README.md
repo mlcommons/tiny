@@ -1,6 +1,6 @@
-# TinyMLPerf anomaly detection reference model
+# MLPerf Tiny anomaly detection reference model
 
-This is the TinyMLPerf anomaly reference model, based on the baseline system for the
+This is the MLPerf Tiny anomaly reference model, based on the baseline system for the
 DCASE 2020 Challenge Task 2 "Unsupervised Detection of Anomalous Sounds for Machine Condition Monitoring". 
 
 The description of the original challenge is available at:
@@ -17,7 +17,7 @@ versions, and it's quantized versions.
 ## Quick start
 
 Pre-trained models with validation logs are readily available in
-the `trained_models` folder. Some of these serve as reference for the TinyMLPerf benchmark
+the `trained_models` folder. Some of these serve as reference for the MLPerf Tiny benchmark
 for closed submissions. Please refer to the README in the `trained_models` folder for more detail.
 
 To go through the whole training and validation process, instead, run the following commands:
@@ -42,7 +42,7 @@ xxd -i model/model_ToyCar_quant_fullint_micro_intio.tflite > model.ccx
 ## Description
 The baseline system consists of four main scripts:
 - `00_train.py`
-  - This script trains models for each Machine Type by using the directory **dev_data/<Machine_Type>/train/** or **eval_data/<Machine_Type>/train/**. Note that in TinyMLPerf we use the ToyCar Machine Type only.
+  - This script trains models for each Machine Type by using the directory **dev_data/<Machine_Type>/train/** or **eval_data/<Machine_Type>/train/**. Note that in MLPerf Tiny we use the ToyCar Machine Type only.
 - `01_test.py`
   - This script makes csv files for each Machine ID including the anomaly scores for each wav file in the directory **dev_data/<Machine_Type>/test/** or **eval_data/<Machine_Type>/test/**.
   - The csv files will be stored in the directory **result/**.
@@ -68,7 +68,7 @@ Datasets were provided in three stages during the DCASE competition.
 - "Evaluation dataset", i.e. the evaluation for test
   - After launch, download `eval_data_test_<Machine_Type>.zip` from https://zenodo.org/record/3841772 (not available until June. 1).
 
-TinyMLPerf uses the ToyCar machine type only. It uses the Development and Additional training datasets for generating the reference model.
+MLPerf Tiny uses the ToyCar machine type only. It uses the Development and Additional training datasets for generating the reference model.
 
 ### 3. Unzip dataset
 Unzip the downloaded files and make the directory structure as follows:
@@ -127,7 +127,7 @@ Unzip the downloaded files and make the directory structure as follows:
 
 ### 4. Change parameters
 You can change the parameters for feature extraction and model definition by editing `baseline.yaml`.
-The version checked in to the repository was used while generating the TinyMLPerf reference model.
+The version checked in to the repository was used while generating the MLPerf Tiny reference model.
 
 ### 5. Run training script (for development dataset)
 Run the training script `00_train.py`. 
@@ -225,7 +225,7 @@ Average		0.664557	0.506004
 ```
 
 ## Dependency
-The original source code was developed on Ubuntu 16.04 LTS and 18.04 LTS. The TinyMLPerf extension was developed on **OS X**.
+The original source code was developed on Ubuntu 16.04 LTS and 18.04 LTS. The MLPerf Tiny extension was developed on **OS X**.
 In addition, we checked performing on **Ubuntu 16.04 LTS**, **18.04 LTS**, **Cent OS 7**, and **Windows 10**.
 
 ### Software packages
