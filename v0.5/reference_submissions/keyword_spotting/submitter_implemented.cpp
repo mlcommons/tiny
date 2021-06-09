@@ -50,7 +50,7 @@ UnbufferedSerial pc(USBTX, USBRX);
 DigitalOut timestampPin(D7);
 
 constexpr int kTensorArenaSize = 200 * 1024;
-uint8_t tensor_arena[kTensorArenaSize];
+alignas(16) uint8_t tensor_arena[kTensorArenaSize];
 
 tflite::MicroModelRunner<int8_t, int8_t, 6> *runner;
 
