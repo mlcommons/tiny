@@ -1,6 +1,6 @@
 # Trained models and TFLite converted versions
 
-This folder contains pre-trained models for TinyMLPerf using the ToyCar dataset, including also 
+This folder contains pre-trained models for MLPerf Tiny using the ToyCar dataset, including also 
 TFLite converted versions, Post-Training Quantization (PTQ) versions and validation logs.
 
 The golden models for the anomaly detection `ad01` benchmarks are included in the current folder.

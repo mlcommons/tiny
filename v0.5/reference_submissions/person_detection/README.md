@@ -1,4 +1,4 @@
-Person detection reference submission for MLCommons TinyML benchmark
+Person detection reference submission for MLCommons MLPerf Tiny benchmark
 
 Quick Start
 ===========

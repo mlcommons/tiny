@@ -1,4 +1,4 @@
-Image Classification reference submission for MLCommons TinyML benchmark
+Image Classification reference submission for MLCommons MLPerf Tiny benchmark
 
 Quick Start
 ===========

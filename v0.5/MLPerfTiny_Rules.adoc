@@ -3,9 +3,9 @@
 
 :sectnums:
 
-= TinyMLPerf Inference Rules
+= MLPerf Tiny Inference Rules
 
-Version 0.1
+Version 0.5
 Updated April 30th, 2021.
 
 This version has been updated, but is not yet final.
@@ -26,7 +26,7 @@ Benchmark Owners:
 
 == Overview
 
-This document describes how to implement one or more benchmarks in the TinyMLPerf
+This document describes how to implement one or more benchmarks in the MLPerf Tiny
 Inference Suite and how to use those implementations to measure the performance
 of an ML system performing inference.
 
@@ -115,12 +115,12 @@ Results that cannot be replicated are not valid results.
 
 === Audit Process
 
-In depth audits will not be conducted in this version (V0.1) of TinyMLPerf
+In depth audits will not be conducted in this version (v0.5) of MLPerf Tiny
 
 
 == Scenarios
 
-TinyMLPerf only supports the Single Stream scenario in this version (V0.1).
+MLPerf Tiny only supports the Single Stream scenario in this version (v0.5).
 
 == Benchmarks
 
@@ -181,8 +181,8 @@ The suite includes the following benchmarks:
 
 == Benchmark Runner
 
-=== EEMBC ULPMark™-ML and MLCommons TinyMLperf Runner
-The benchmark suite is run using the EEMBC ULPMark™-ML and MLCommons TinyMLperf Runner, which detects the DUT, sends inputs, and reads outputs over UART.
+=== EEMBC ULPMark™-ML and MLCommons MLPerf Tiny Runner
+The benchmark suite is run using the EEMBC ULPMark™-ML and MLCommons MLPerf Tiny Runner, which detects the DUT, sends inputs, and reads outputs over UART.
 
 The alpha version of the runner is available here: https://github.com/eembc/alpha-runner
 
@@ -208,7 +208,7 @@ The Open division allows using an arbitrary training dataset, training script, o
 The qualified name “MLPerf Open” must be used when
 referring to an Open Division suite result, e.g. “a MLPerf Open result of 7.2.”
 
-Pre- and Post-processing are not timed in V0.1 of the benchmark and are therefore 
+Pre- and Post-processing are not timed in v0.5 of the benchmark and are therefore
 can not be changed.
 
 == Data Sets
