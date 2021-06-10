@@ -45,7 +45,7 @@ methods from th_libc.h and all testharness methods from th_lib.h are here.
 
 // Use this to switch between DUT-direct (perf) & DUT-inderrect (energy) modes
 #ifndef EE_CFG_ENERGY_MODE
-#define EE_CFG_ENERGY_MODE 1
+#define EE_CFG_ENERGY_MODE 0
 #endif
 
 // This is a visual cue to the user when reviewing logs or plugging an
