@@ -181,10 +181,10 @@ The suite includes the following benchmarks:
 
 == Benchmark Runner
 
-=== EEMBC ULPMark™-ML and MLCommons MLPerf Tiny Runner
-The benchmark suite is run using the EEMBC ULPMark™-ML and MLCommons MLPerf Tiny Runner, which detects the DUT, sends inputs, and reads outputs over UART.
+=== EnergyRunner™ benchmark framework
+The benchmark suite is run using the EnergyRunner™ benchmark framework, which detects the DUT, sends inputs, and reads outputs over UART.
 
-The alpha version of the runner is available here: https://github.com/eembc/alpha-runner
+The runner is available here: https://github.com/eembc/energyrunner
 
 Note: The same code must be run for both the accuracy and performance Runner modes.
 
