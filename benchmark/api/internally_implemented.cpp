@@ -322,3 +322,12 @@ size_t ee_get_buffer(uint8_t* buffer, size_t max_len) {
   }
   return len;
 }
+
+/**
+ * @brief get data buffer pointer
+ * 
+ * @return a pointer to gp_buff;
+ */
+uint8_t* ee_get_buffer_pointer() {
+  return gp_buff;
+}
