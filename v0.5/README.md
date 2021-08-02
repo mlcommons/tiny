@@ -1,11 +1,12 @@
 Version 0.5 of the MLPerf Tiny benchmark suite consists four benchmarks:
 |       Use Case       |                   Description                   |          Dataset          |       Model      | Quality Target<br>(Closed&#160;Division)
 |:--------------------:|:-----------------------------------------------:|:-------------------------:|:----------------:|:-------------------:|
-|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands      |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/v0.5/training/keyword_spotting/keras_model.py)      | 90% (Top 1)
-|   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset |     [MobileNet](https://github.com/mlcommons/tiny/blob/master/v0.5/training/visual_wake_words/vww_model.py)    | 80% (Top 1)
-| Image Classification |            Small image classification           |          Cifar10          |      [ResNet](https://github.com/mlcommons/tiny/blob/master/v0.5/training/image_classification/keras_model.py)      | 85% (Top 1)
-|   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS         | [Deep AutoEncoder](https://github.com/mlcommons/tiny/blob/master/v0.5/training/anomaly_detection/keras_model.py) | 0.85 (AUC)
+|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands [[1]](#1)                |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/v0.5/training/keyword_spotting/keras_model.py)   | 90% (Top 1)
+|   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset [[2]](#2)           |     [MobileNet](https://github.com/mlcommons/tiny/blob/master/v0.5/training/visual_wake_words/vww_model.py)    | 80% (Top 1)
+| Image Classification |            Small image classification           |          Cifar10 [[3]](#3)                    |      [ResNet](https://github.com/mlcommons/tiny/blob/master/v0.5/training/image_classification/keras_model.py)      | 85% (Top 1)
+|   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS [[4]](#4)[[5]](#5)[[6]](#6) | [Deep AutoEncoder](https://github.com/mlcommons/tiny/blob/master/v0.5/training/anomaly_detection/keras_model.py) | 0.85 (AUC)
 
+## Divisions
 
 There are two division:
 * The closed division of the benchmark requires the use of a pre-trained model but allows submitters to use post training quantization and optimizations.
@@ -57,7 +58,21 @@ In the open division the accuracy is measured and reported but does not have to 
 
 **A:** Longterm there are no explicit restrictions on what devices can be used for submission. The use cases and models have been selected to target IoT class devices like microcontrollers, DSPs and uNPUs therefore the benchmark is most relavent for these devices. In V0.5 of the benchmark, the LoadGen/runner assumes a Serial connection to transfer the inputs.
 
+## References
+<a id="1">[1]</a>
+Warden, Pete. "Speech commands: A dataset for limited-vocabulary speech recognition." arXiv preprint arXiv:1804.03209 (2018).
 
+<a id="2">[2]</a>
+Chowdhery, Aakanksha, Pete Warden, Jonathon Shlens, Andrew Howard, and Rocky Rhodes. "Visual wake words dataset." arXiv preprint arXiv:1906.05721 (2019).
 
+<a id="3">[3]</a>
+Krizhevsky, Alex, and Geoffrey Hinton. "Learning multiple layers of features from tiny images." (2009).
 
+<a id="4">[4]</a>
+Yuma Koizumi, Shoichiro Saito, Noboru Harada, Hisashi Uematsu, and Keisuke Imoto, "ToyADMOS: A Dataset of Miniature-Machine Operating Sounds for Anomalous Sound Detection," in Proc of Workshop on Applications of Signal Processing to Audio and Acoustics (WASPAA), 2019.
 
+<a id="5">[5]</a>
+Harsh Purohit, Ryo Tanabe, Kenji Ichige, Takashi Endo, Yuki Nikaido, Kaori Suefusa, and Yohei Kawaguchi, “MIMII Dataset: Sound Dataset for Malfunctioning Industrial Machine Investigation and Inspection,” in Proc. 4th Workshop on Detection and Classification of Acoustic Scenes and Events (DCASE), 2019.
+
+<a id="6">[6]</a>
+Yuma Koizumi, Yohei Kawaguchi, Keisuke Imoto, Toshiki Nakamura, Yuki Nikaido, Ryo Tanabe, Harsh Purohit, Kaori Suefusa, Takashi Endo, Masahiro Yasuda, and Noboru Harada, "Description and Discussion on DCASE2020 Challenge Task2: Unsupervised Anomalous Sound Detection for Machine Condition Monitoring," in arXiv e-prints: 2006.05822, 2020.
