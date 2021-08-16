@@ -1,6 +1,6 @@
 # Generates y_labels (ground truth class labels)
 
-This script must be run AFTER the raw images have been processed and saved as .bin
+# This script must be run AFTER the raw images have been processed and saved as .bin
 
 # To save as .bin, use a script like:
 # https://github.com/SiliconLabs/platform_ml_models/blob/master/eembc/Person_detection/buildPersonDetectionDatabase.py
