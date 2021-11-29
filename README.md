@@ -21,7 +21,7 @@ Please see the [MLPerf Tiny Benchmark](https://arxiv.org/pdf/2106.07597.pdf) pap
 @article{banbury2021mlperf,
   title={MLPerf Tiny Benchmark},
   author={Banbury, Colby and Reddi, Vijay Janapa and Torelli, Peter and Holleman, Jeremy and Jeffries, Nat and Kiraly, Csaba and Montino, Pietro and Kanter, David and Ahmed, Sebastian and Pau, Danilo and others},
-  journal={arXiv preprint arXiv:2106.07597},
+  journal={Proceedings of the Neural Information Processing Systems Track on Datasets and Benchmarks},
   year={2021}
 }
 ```
