@@ -13,7 +13,15 @@ offerings.
 The reference benchmarks are provided using TensorFlow Lite for Microcontrollers (TFLM).
 Submitters can directly use the TFLM, although submitters are encouraged to use the software stack that works best on their hardware.
 
-For more information, check out v0.5 of the benchmark.
+For the current version (v0.7) of the benchmark under development, please see the `benchmark` folder. The expected (not yet finalized) deadline for submission is February 25, 2022.
+
+Previous versions are frozen using git tags as follows:
+
+| Version | Code                                        | Release Date | Results                                     |
+|---------|---------------------------------------------|--------------|---------------------------------------------|
+| v0.5    | https://github.com/mlcommons/tiny/tree/v0.5 | Jun 16, 2021 | https://mlcommons.org/en/inference-tiny-05/ |
+|         |                                             |              |                                             |
+
 
 Please see the [MLPerf Tiny Benchmark](https://arxiv.org/pdf/2106.07597.pdf) paper for a detailed description of the motivation and guiding principles behind the benchmark suite. If you use any part of this benchmark (e.g., reference implementations, submissions, etc.) in academic work, please cite the following:
 
