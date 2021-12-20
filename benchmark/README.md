@@ -1,10 +1,10 @@
-Version 0.5 of the MLPerf Tiny benchmark suite consists four benchmarks:
+The current version of the MLPerf Tiny benchmark suite consists four benchmarks:
 |       Use Case       |                   Description                   |          Dataset          |       Model      | Quality Target<br>(Closed&#160;Division)
 |:--------------------:|:-----------------------------------------------:|:-------------------------:|:----------------:|:-------------------:|
-|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands [[1]](#1)                |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/v0.5/training/keyword_spotting/keras_model.py)   | 90% (Top 1)
-|   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset [[2]](#2)           |     [MobileNet](https://github.com/mlcommons/tiny/blob/master/v0.5/training/visual_wake_words/vww_model.py)    | 80% (Top 1)
-| Image Classification |            Small image classification           |          Cifar10 [[3]](#3)                    |      [ResNet](https://github.com/mlcommons/tiny/blob/master/v0.5/training/image_classification/keras_model.py)      | 85% (Top 1)
-|   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS [[4]](#4)[[5]](#5)[[6]](#6) | [Deep AutoEncoder](https://github.com/mlcommons/tiny/blob/master/v0.5/training/anomaly_detection/keras_model.py) | 0.85 (AUC)
+|   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands [[1]](#1)                |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/benchmark/training/keyword_spotting/keras_model.py)   | 90% (Top 1)
+|   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset [[2]](#2)           |     [MobileNet](https://github.com/mlcommons/tiny/blob/master/benchmark/training/visual_wake_words/vww_model.py)    | 80% (Top 1)
+| Image Classification |            Small image classification           |          Cifar10 [[3]](#3)                    |      [ResNet](https://github.com/mlcommons/tiny/blob/master/benchmark/training/image_classification/keras_model.py)      | 85% (Top 1)
+|   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS [[4]](#4)[[5]](#5)[[6]](#6) | [Deep AutoEncoder](https://github.com/mlcommons/tiny/blob/master/benchmark/training/anomaly_detection/keras_model.py) | 0.85 (AUC)
 
 ## Divisions
 
@@ -13,14 +13,14 @@ There are two division:
 * The open division allows arbitrary selection of training scheme, pre-processing, and model architecture. The open division allows for novel techniques, and a more diverse set of results at the cost of direct comparability.
 
 The structure of the repository is as follows:
-* The pre-trained models are found in [training](https://github.com/mlcommons/tiny/tree/master/v0.5/training) along with the dataset, training and quantization scripts.
-* The benchmark API is defined in [API](https://github.com/mlcommons/tiny/tree/master/v0.5/api) which includes the required submitter implemented functions.
-* All four benchmarks have a [reference submission](https://github.com/mlcommons/tiny/tree/master/v0.5/reference_submissions) which implement 
+* The pre-trained models are found in [training](https://github.com/mlcommons/tiny/tree/master/benchmark/training) along with the dataset, training and quantization scripts.
+* The benchmark API is defined in [API](https://github.com/mlcommons/tiny/tree/master/benchmark/api) which includes the required submitter implemented functions.
+* All four benchmarks have a [reference submission](https://github.com/mlcommons/tiny/tree/master/benchmark/reference_submissions) which implement 
 the benchmarks using [TensorFlow Lite for Microcontrollers](https://www.tensorflow.org/lite/microcontrollers) and Mbed on the [reference platform](https://www.st.com/en/microcontrollers-microprocessors/stm32l4r5zi.html).
 
 We use the [EEMBCs EnergyRunner™ benchmark framework](https://github.com/eembc/ulpmark-ml) to connect to the system under test and run the benchmarks.
 
-We follow the [MLPerf Tiny Rules](https://github.com/mlcommons/tiny/blob/master/v0.5/MLPerfTiny_Rules.adoc) unless there is a specific exception related to MLPerf Tiny. All MLPerf Tiny benchmarks are single stream only and we do not support the retraining subdivision.
+We follow the [MLPerf Tiny Rules](https://github.com/mlcommons/tiny/blob/master/benchmark/MLPerfTiny_Rules.adoc) unless there is a specific exception related to MLPerf Tiny. All MLPerf Tiny benchmarks are single stream only and we do not support the retraining subdivision.
 
 We additionally follow the MLPerf [submission and run rules](https://github.com/mlcommons/policies/blob/master/submission_rules.adoc).
 
@@ -56,7 +56,7 @@ In the open division the accuracy is measured and reported but does not have to 
 
 **Q:** Can I submit with X device?
 
-**A:** Longterm there are no explicit restrictions on what devices can be used for submission. The use cases and models have been selected to target IoT class devices like microcontrollers, DSPs and uNPUs therefore the benchmark is most relavent for these devices. In V0.5 of the benchmark, the LoadGen/runner assumes a Serial connection to transfer the inputs.
+**A:** Longterm there are no explicit restrictions on what devices can be used for submission. The use cases and models have been selected to target IoT class devices like microcontrollers, DSPs and uNPUs therefore the benchmark is most relavent for these devices. In v0.5 and v0.7 of the benchmark, the LoadGen/runner assumes a Serial connection to transfer the inputs.
 
 ## References
 <a id="1">[1]</a>
