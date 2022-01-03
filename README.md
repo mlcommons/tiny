@@ -13,7 +13,7 @@ offerings.
 The reference benchmarks are provided using TensorFlow Lite for Microcontrollers (TFLM).
 Submitters can directly use the TFLM, although submitters are encouraged to use the software stack that works best on their hardware.
 
-For the current version (v0.7) of the benchmark under development, please see the `benchmark` folder. The expected (not yet finalized) deadline for submission is February 25, 2022.
+For the current version (v0.7) of the benchmark under development, please see the [benchmark folder](https://github.com/mlcommons/tiny/tree/master/benchmark). The expected (not yet finalized) deadline for submission is February 25, 2022.
 
 Previous versions are frozen using git tags as follows:
 

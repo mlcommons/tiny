@@ -20,26 +20,26 @@ the benchmarks using [TensorFlow Lite for Microcontrollers](https://www.tensorfl
 
 We use the [EEMBCs EnergyRunner™ benchmark framework](https://github.com/eembc/ulpmark-ml) to connect to the system under test and run the benchmarks.
 
-We follow the [MLPerf Tiny Rules](https://github.com/mlcommons/tiny/blob/master/benchmark/MLPerfTiny_Rules.adoc) unless there is a specific exception related to MLPerf Tiny. All MLPerf Tiny benchmarks are single stream only and we do not support the retraining subdivision.
+We follow the [MLPerf Tiny Rules](https://github.com/mlcommons/tiny/blob/master/benchmark/MLPerfTiny_Rules.adoc). All MLPerf Tiny benchmarks are single stream only and we do not support the retraining subdivision.
 
 We additionally follow the MLPerf [submission and run rules](https://github.com/mlcommons/policies/blob/master/submission_rules.adoc).
 
-If you have any questions or issues with the benchmark please [create a new issue](https://github.com/mlcommons/tiny/issues).
+If you have any questions or issues with the benchmark please check the below FAQ first, and if still unanswered [create a new issue](https://github.com/mlcommons/tiny/issues).
 
 ## FAQ
 **Q:** How do I submit?
 
-**A:** MLPerf Tiny has set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/GaB9Gc2MftothYpw7). The next submission deadline is April 30th 2021.
+**A:** MLPerf Tiny has set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/GaB9Gc2MftothYpw7). The next submission deadline is February 25th 2022.
 ## 
 
 **Q:** Is power measurement included in MLPerf Tiny?
 
-**A:** We are working with [EEMBC](https://www.eembc.org/) to include power benchmarking in the MLPerf Tiny benchmark suite. Power benchmarking will use [EEMBCs EnergyRunner™ benchmark framework](https://github.com/eembc/ulpmark-ml) but will require very minimal modifcations from the standard MLPerf Tiny latency benchmark
+**A:** We are working with [EEMBC](https://www.eembc.org/) to include power benchmarking in the MLPerf Tiny benchmark suite. Power benchmarking will use [EEMBCs EnergyRunner™ benchmark framework](https://github.com/eembc/energyrunner) but will require very minimal modifcations from the standard MLPerf Tiny latency benchmark.
 ## 
 
 **Q:** Is power measurement required to submit to MLPerf Tiny?
 
-**A:** No. Power measurement is not required to submit latency results to MLPerf Tiny.
+**A:** No. Power measurement is encouraged but not required to submit latency results to MLPerf Tiny.
 ## 
 
 **Q:** Will accuracy be measured?
