@@ -12,14 +12,12 @@ This version has been updated, but is not yet final.
 
 Chairs: 
 
-* Colby Banbury* (cbanbury@g.harvard.edu)
-* Vijay Janapa Reddi
-
-*point of contact
+* Csaba Kiraly (csaba@mlcommons.org)
+* Jeremy Holleman (jeremy@mlcommons.org)
 
 Benchmark Owners:
 
-* Visual Wake Words - Nat Jeffries
+* Visual Wake Words - Jingjun(Alvin) Chu
 * Anomaly Detection - Csaba Kiraly
 * Keyword Spotting - Jeremy Holleman
 * Image Classification - Pietro Montino
