@@ -26,6 +26,6 @@ if __name__ == '__main__':
 
     _idxs = np.concatenate(balanced_idxs)
     rng.shuffle(_idxs)    
-    print(_idxs)
-    print(my_labels[_idxs])
+    print("Perf IDs: ", _idxs)
+    print("Perf labels: ", my_labels[_idxs])
     np.save('perf_samples_idxs.npy', _idxs)
