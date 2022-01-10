@@ -12,12 +12,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pickle
 import tensorflow as tf
-import keras
 from sklearn.metrics import roc_auc_score
 
 import train
 import eval_functions_eembc
 import keras_model
+
+PERF_SAMPLE = True
 
 model_name = keras_model.get_model_name()
 
@@ -27,6 +28,12 @@ if __name__ == "__main__":
 
     train_data, train_filenames, train_labels, test_data, test_filenames, test_labels, label_names = \
         train.load_cifar_10_data(cifar_10_dir)
+
+    if PERF_SAMPLE:
+        _idxs = np.load('perf_samples_idxs.npy')
+        test_data = test_data[_idxs]
+        test_labels = test_labels[_idxs]
+        test_filenames = test_filenames[_idxs]
 
     print("Test data: ", test_data.shape)
     print("Test filenames: ", test_filenames.shape)
@@ -44,11 +51,7 @@ if __name__ == "__main__":
     print("Accuracy keras: ", test_metrics['accuracy'])
     print("---------------------")
 
-    predictions = []
-    for test_sample in test_data:
-        prediction = model.predict(np.expand_dims(test_sample, axis=0))
-        predictions.append(prediction.reshape(10,))
-    predictions = np.array(predictions)
+    predictions = model.predict(test_data)
 
     print("EEMBC calculate_accuracy method")
     accuracy_eembc = eval_functions_eembc.calculate_accuracy(predictions, label_classes)
