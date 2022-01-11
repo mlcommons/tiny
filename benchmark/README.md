@@ -29,7 +29,7 @@ If you have any questions or issues with the benchmark please check the below FA
 ## FAQ
 **Q:** How do I submit?
 
-**A:** MLPerf Tiny has set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/GaB9Gc2MftothYpw7). The next submission deadline is February 25th 2022.
+**A:** MLPerf Tiny has set submission dates that align with MLPerf inference. To submit you must [join the working group](https://groups.google.com/u/4/a/mlcommons.org/g/tiny) and [register](https://forms.gle/apopJLhUcYDtmAyw5). The next submission deadline is February 25th 2022.
 ## 
 
 **Q:** Is power measurement included in MLPerf Tiny?
