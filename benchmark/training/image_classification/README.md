@@ -13,7 +13,7 @@ Dataset: Cifar10
 Run the following commands to go through the whole training and validation process
 
 ``` Bash
-# Prepare Python venv (Python 3.6+ and pip>20 required)
+# Prepare Python venv (Python 3.7+ and pip>20 required)
 ./prepare_training_env.sh
 
 # Download training, train model, test the model
