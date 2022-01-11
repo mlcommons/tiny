@@ -8,13 +8,12 @@ model_converter.py desc: converts floating point model to fully int8
 '''
 
 import tensorflow as tf
-import keras
 import numpy as np
 import train
 from test import model_name
 
 tfmodel_path = 'trained_models/' + model_name
-tfmodel = keras.models.load_model(tfmodel_path)
+tfmodel = tf.keras.models.load_model(tfmodel_path)
 cifar_10_dir = 'cifar-10-batches-py'
 model_name = model_name[:-3]
 
