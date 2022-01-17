@@ -18,6 +18,8 @@ import train
 import eval_functions_eembc
 import keras_model
 
+# if True uses the official MLPerf Tiny subset of CIFAR10 for validation
+# if False uses the full CIFAR10 validation set
 PERF_SAMPLE = True
 
 model_name = keras_model.get_model_name()
