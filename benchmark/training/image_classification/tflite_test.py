@@ -19,7 +19,10 @@ import keras_model
 
 np.set_printoptions(threshold=sys.maxsize)
 
+# if True uses the official MLPerf Tiny subset of CIFAR10 for validation
+# if False uses the full CIFAR10 validation set
 PERF_SAMPLE = True
+# if True uses quantized model
 QUANT_MODEL = True
 
 if QUANT_MODEL:
