@@ -17,7 +17,7 @@ Chairs:
 
 Benchmark Owners:
 
-* Visual Wake Words - Jingjun(Alvin) Chu
+* Visual Wake Words - Guoyang Chen
 * Anomaly Detection - Csaba Kiraly
 * Keyword Spotting - Jeremy Holleman
 * Image Classification - Pietro Montino
