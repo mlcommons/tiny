@@ -94,7 +94,7 @@ The only forms of acceptable non-determinism are:
 
 All random numbers must be based on fixed random seeds and a deterministic random
 number generator. The deterministic random number generator is the Mersenne Twister
-19937 generator ([std::mt19937](http://www.cplusplus.com/reference/random/mt19937/)).
+19937 generator ([std::mt19937](http://www.cplusplus.com/reference/random/mt19937/).
 The random seeds will be announced two weeks before the benchmark submission deadline.
 
 === Benchmark detection is not allowed
