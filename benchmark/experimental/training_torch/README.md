@@ -1,0 +1,2 @@
+# Training in PyTorch
+This subdirectory contains code to train (some of) the benchmark models in PyTorch.  As of October 9, 2023, it has not been verified to have the same results and computations as the reference model.  In order to use this code towards a closed-division submission, you should load the weights from the reference model and verify that the computations and results are the same as the reference model.
