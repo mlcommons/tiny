@@ -79,13 +79,13 @@ def parse_command():
   parser.add_argument(
       '--feature_type',
       type=str,
-      default="mfcc",
+      default="lfbe",
       choices=["mfcc", "lfbe", "td_samples"],
       help='Type of input features. Valid values: "mfcc" (default), "lfbe", "td_samples"',)
   parser.add_argument(
       '--dct_coefficient_count',
       type=int,
-      default=10,
+      default=40,
       help='How many MFCC or log filterbank energy features')
   parser.add_argument(
       '--epochs',
