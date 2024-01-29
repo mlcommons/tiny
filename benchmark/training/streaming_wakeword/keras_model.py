@@ -69,9 +69,7 @@ def conv_block(inputs,
                  padding='same',
                  dropout=0.0,
                  activation='relu',
-                 scale=True,
-                 use_one_step=True,
-                 build_streaming=True):
+                 scale=True):
   """Convolutional block.  Can be optionally residual
 
   It is based on paper
@@ -91,7 +89,6 @@ def conv_block(inputs,
     dropout: dropout value
     activation: type of activation function (string)
     scale: apply scaling in batchnormalization layer
-    use_one_step: this parameter will be used for streaming only
 
   Returns:
     output tensor
@@ -105,7 +102,6 @@ def conv_block(inputs,
   net = inputs
   
   if kernel_size > 0:
-    print("under kernel_size > 0")
     # DepthwiseConv1D
     if padding=='causal':
       print("Adding padding before DWConv2D")
@@ -156,7 +152,7 @@ def get_model(args):
 
 
   if model_name=="ds_tcn":
-    print("DS CNN model invoked")
+    print("DS TCN model for streaming invoked")
 
     ds_filters          = [128, 64, 64, 64, 128]
     ds_repeat           = [1, 1, 1, 1, 1]
@@ -164,11 +160,12 @@ def get_model(args):
     ds_kernel_size      = [5, 5, 11, 13, 15]
     ds_stride           = [1, 1, 1, 1, 1]
     ds_dilation         = [1, 1, 1, 1, 1]
-
+    ds_padding          = ['valid', 'valid', 'valid', 'valid', 'valid']
     ds_filter_separable = [1, 1, 1, 1, 1]
     ds_scale            = 1
     ds_max_pool         = 0
-
+    dropout = 0.2
+    activation = "relu"
     # check that all the lists are the same length
     num_blocks = len(ds_filters)
     for param_list, param_name in [(ds_filters         , "ds_filters"),
@@ -177,32 +174,29 @@ def get_model(args):
                                    (ds_kernel_size     , "ds_kernel_size"),
                                    (ds_stride          , "ds_stride"),
                                    (ds_dilation        , "ds_dilation"),
+                                   (ds_padding         , "ds_padding"),
                                    (ds_filter_separable, "ds_filter_separable")
                                    ]:
       if len(param_list) != num_blocks:
-        raise ValueError(f"All config lists must be the same length ({num_blocks}).  param_name has length {len(param_list)}")
+        print(f"{param_name} = {param_list}")
+        raise ValueError(f"All config lists must be the same length ({num_blocks}).  {param_name} has length {len(param_list)}")
         
-
     input_shape = [model_settings['spectrogram_length'], # length in time
                    model_settings['dct_coefficient_count'] # number of features
                    ]
-    filters = 64
+    # filters = 64
     weight_decay = 1e-4
     regularizer = l2(weight_decay)
 
-    
     # Model layers
     # Input pure conv2d
-    inputs = Input(shape=input_shape)
-
-    net = inputs
+    input_spec = Input(shape=input_shape)
+    net = input_spec
     
     # make it [batch, time, 1, feature]
     net = tf.keras.backend.expand_dims(net, axis=2)
     
-    
     for count in range(len(ds_stride)):  
-      print(f"count={count}, before resnet block, net shape = {net.shape}")
       net = conv_block(net, repeat=ds_repeat[count], 
                          kernel_size=ds_kernel_size[count],
                          filters=ds_filters[count],
@@ -211,31 +205,17 @@ def get_model(args):
                          filter_separable=ds_filter_separable[count], 
                          residual=ds_residual[count], 
                          padding=ds_padding[count], 
-                         scale=flags.ds_scale,
-                         dropout=flags.dropout,
-                         activation=flags.activation, 
-                         use_one_step=(flags.data_stride<=1), 
-                         build_streaming=build_streaming)
-      print(f"after resnet block, net shape = {net.shape}")
+                         scale=ds_scale,
+                         dropout=dropout,
+                         activation=activation)
     net = tf.keras.layers.GlobalAveragePooling2D()(net)
     net = tf.keras.layers.Flatten()(net)
-    net = tf.keras.layers.Dense(flags.label_count)(net) # target + _silence, _noise
-    return tf.keras.Model(input_audio, net)
+    net = tf.keras.layers.Dense(label_count)(net) 
+    model =  tf.keras.Model(input_spec, net)
     
     ########################################
-
-    
-    x = Flatten()(x)
-    outputs = Dense(model_settings['label_count'], activation='softmax')(x)
-
-    # Instantiate model.
-    model = Model(inputs=inputs, outputs=outputs)
-
-
-    
-
+  
   elif model_name=="fc4":
-
     model = tf.keras.models.Sequential([
         tf.keras.layers.Flatten(input_shape=(model_settings['spectrogram_length'],
                                              model_settings['dct_coefficient_count'])),
@@ -251,145 +231,14 @@ def get_model(args):
         tf.keras.layers.Dense(model_settings['label_count'], activation="softmax")
     ])
 
-  elif model_name == 'ds_cnn':
-    print("DS CNN model invoked")
-    input_shape = [model_settings['spectrogram_length'], model_settings['dct_coefficient_count'],1]
-    filters = 64
-    weight_decay = 1e-4
-    regularizer = l2(weight_decay)
-    final_pool_size = (int(input_shape[0]/2), int(input_shape[1]/2))
-    
-    # Model layers
-    # Input pure conv2d
-    inputs = Input(shape=input_shape)
-    x = Conv2D(filters, (10,4), strides=(2,2), padding='same', kernel_regularizer=regularizer)(inputs)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Dropout(rate=0.2)(x)
-
-    # First layer of separable depthwise conv2d
-    # Separable consists of depthwise conv2d followed by conv2d with 1x1 kernels
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Second layer of separable depthwise conv2d
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Third layer of separable depthwise conv2d
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Fourth layer of separable depthwise conv2d
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Reduce size and apply final softmax
-    x = Dropout(rate=0.4)(x)
-
-    x = AveragePooling2D(pool_size=final_pool_size)(x)
-    x = Flatten()(x)
-    outputs = Dense(model_settings['label_count'], activation='softmax')(x)
-
-    # Instantiate model.
-    model = Model(inputs=inputs, outputs=outputs)
-
-  elif model_name == 'td_cnn':
-    print("TD CNN model invoked")
-    input_shape = [model_settings['spectrogram_length'], model_settings['dct_coefficient_count'],1]
-    print(f"Input shape = {input_shape}")
-    filters = 64
-    weight_decay = 1e-4
-    regularizer = l2(weight_decay)
-
-    # Model layers
-    # Input time-domain conv
-    inputs = Input(shape=input_shape)
-    x = Conv2D(filters, (512,1), strides=(384, 1),
-               padding='valid', kernel_regularizer=regularizer)(inputs)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Dropout(rate=0.2)(x)
-    x = Reshape((41,64,1))(x)
-    
-    # True conv 
-    x = Conv2D(filters, (10,4), strides=(2,2), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Dropout(rate=0.2)(x)
-
-    # First layer of separable depthwise conv2d
-    # Separable consists of depthwise conv2d followed by conv2d with 1x1 kernels
-    # First layer of separable depthwise conv2d
-    # Separable consists of depthwise conv2d followed by conv2d with 1x1 kernels
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Second layer of separable depthwise conv2d
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Third layer of separable depthwise conv2d
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Fourth layer of separable depthwise conv2d
-    x = DepthwiseConv2D(depth_multiplier=1, kernel_size=(3,3), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = Conv2D(filters, (1,1), padding='same', kernel_regularizer=regularizer)(x)
-    x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-
-    # Reduce size and apply final softmax
-    x = Dropout(rate=0.4)(x)
-
-    # x = AveragePooling2D(pool_size=(25,5))(x)
-    x = GlobalAveragePooling2D()(x)
-
-    x = Flatten()(x)
-    outputs = Dense(model_settings['label_count'], activation='softmax')(x)
-
-    # Instantiate model.
-    model = Model(inputs=inputs, outputs=outputs)
-
   else:
     raise ValueError("Model name {:} not supported".format(model_name))
-
   if platform.processor() == 'arm':
     print(f"Apple Silicon platform detected. Using legacy adam as standard Keras Adam is slow on this processor.")
     optimizer = keras.optimizers.legacy.Adam(learning_rate=args.learning_rate)
   else:
     optimizer = keras.optimizers.Adam(learning_rate=args.learning_rate)
-  
+ 
   model.compile(
     #optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
     optimizer=optimizer,  # Optimizer

@@ -127,7 +127,7 @@ def parse_command():
   parser.add_argument(
       '--model_architecture',
       type=str,
-      default='ds_cnn',
+      default='ds_tcn',
       help='What model architecture to use')
   parser.add_argument(
       '--run_test_set',
@@ -137,7 +137,7 @@ def parse_command():
   parser.add_argument(
       '--saved_model_path',
       type=str,
-      default='trained_models/kws_model.h5',
+      default='trained_models/str_ww_model.h5',
       help='In quantize.py, path to load pretrained model from; in train.py, destination for trained model')
   parser.add_argument(
       '--model_init_path',

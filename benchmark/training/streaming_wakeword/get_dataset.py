@@ -148,10 +148,12 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       sliced_foreground = tf.clip_by_value(background_add, -1.0, 1.0)
     
     if model_settings['feature_type'] == 'mfcc':
-      stfts = tf.signal.stft(sliced_foreground, frame_length=model_settings['window_size_samples'], 
-                         frame_step=model_settings['window_stride_samples'], fft_length=None,
-                         window_fn=tf.signal.hann_window
-                         )
+      stfts = tf.signal.stft(sliced_foreground,
+                             frame_length=model_settings['window_size_samples'], 
+                             frame_step=model_settings['window_stride_samples'],
+                             fft_length=None,
+                             window_fn=tf.signal.hann_window
+                             )
       spectrograms = tf.abs(stfts)
       num_spectrogram_bins = stfts.shape[-1]
       # default values used by contrib_audio.mfcc as shown here
@@ -220,7 +222,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
           linear_to_mel_weight_matrix.shape[-1:]))
 
       log_mel_spec = 10 * log10(mel_spectrograms)
-      log_mel_spec = tf.expand_dims(log_mel_spec, -1, name="mel_spec")
+      # log_mel_spec = tf.expand_dims(log_mel_spec, -1, name="mel_spec")
     
       log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
       log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
@@ -373,7 +375,8 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     rand_waves = rng.normal(loc=0.0, scale=0.1, size=(num_silent,)+tuple(input_shape))
     silent_index = 1
     silent_labels = silent_index * np.ones(num_silent)
-    silent_wave_ds = tf.data.Dataset.from_tensor_slices({'audio':rand_waves, 'label':silent_labels})
+    silent_wave_ds = tf.data.Dataset.from_tensor_slices({'audio':rand_waves,
+                                                         'label':silent_labels})
     silent_wave_ds = silent_wave_ds.map(lambda dd: {
       'audio':tf.cast(dd['audio'], 'float32')  ,
       'label':tf.cast(dd['label'], 'int32')
