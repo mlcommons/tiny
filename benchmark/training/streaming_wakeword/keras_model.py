@@ -8,6 +8,7 @@ from tensorflow.keras import layers
 
 import matplotlib.pyplot as plt
 import numpy as np
+import platform
 
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Activation, Flatten, BatchNormalization, Dropout, Reshape
@@ -106,17 +107,14 @@ def conv_block(inputs,
   if kernel_size > 0:
     print("under kernel_size > 0")
     # DepthwiseConv1D
-    if build_streaming: # otherwise the Stream() wrapper handles the padding
+    if padding=='causal':
+      print("Adding padding before DWConv2D")
+      net = tf.pad(net, [[0, 0], [kernel_size-1, 0], [0, 0], [0, 0]], 'constant')
       dw_pad = 'valid'
-    else:
-      if padding=='causal':
-        print("Adding padding before DWConv2D")
-        net = tf.pad(net, [[0, 0], [kernel_size-1, 0], [0, 0], [0, 0]], 'constant')
-        dw_pad = 'valid'
-      elif padding == 'valid':
-        dw_pad = 'valid'
-      elif padding == 'same':
-        dw_pad = 'same'
+    elif padding == 'valid':
+      dw_pad = 'valid'
+    elif padding == 'same':
+      dw_pad = 'same'
         
     net = tf.keras.layers.DepthwiseConv2D(
         kernel_size=(kernel_size, 1),
@@ -134,6 +132,7 @@ def conv_block(inputs,
   net = keras.layers.BatchNormalization(scale=scale)(net)
 
   if residual:
+    ## have not tested this lately
     # Conv1D 1x1 - streamable by default
     net_res = keras.layers.Conv2D(
         filters=filters, kernel_size=1, use_bias=False, padding='valid')(
@@ -156,7 +155,7 @@ def get_model(args):
   model_settings = prepare_model_settings(label_count, args)
 
 
-  if model_name=="dstcn":
+  if model_name=="ds_tcn":
     print("DS CNN model invoked")
 
     ds_filters          = [128, 64, 64, 64, 128]
@@ -385,12 +384,15 @@ def get_model(args):
   else:
     raise ValueError("Model name {:} not supported".format(model_name))
 
-  if args.use_sam:
-    model = tensorflow.keras.models.experimental.SharpnessAwareMinimization(model)
-
+  if platform.processor() == 'arm':
+    print(f"Apple Silicon platform detected. Using legacy adam as standard Keras Adam is slow on this processor.")
+    optimizer = keras.optimizers.legacy.Adam(learning_rate=args.learning_rate)
+  else:
+    optimizer = keras.optimizers.Adam(learning_rate=args.learning_rate)
+  
   model.compile(
     #optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
-    optimizer=keras.optimizers.Adam(learning_rate=args.learning_rate),  # Optimizer
+    optimizer=optimizer,  # Optimizer
     # Loss function to minimize
     loss=keras.losses.SparseCategoricalCrossentropy(),
     # List of metrics to monitor

@@ -172,12 +172,6 @@ def parse_command():
       help="""\
       For eval_quantized_model, which set to measure.
       """)
-  parser.add_argument(
-    '--use_sam',
-    action='store_true',
-    help="""\
-    If set, use Keras's SharpnessAwareMinimization.  Precludes saving in h5 format.
-    """)
 
   Flags, unparsed = parser.parse_known_args()
   return Flags, unparsed
