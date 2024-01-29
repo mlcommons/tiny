@@ -2,8 +2,8 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import argparse
+import os, argparse
+
 from tensorflow import keras
 import tensorflow
 
@@ -41,12 +41,7 @@ else:
 
 model.summary()
 
-callbacks = util.get_callbacks(args=Flags)
-
-# SAM models can't save in h5 because they are subclassed models,
-# so strip the .h5 suffix and add a _sam.  Then it should save in a saved_model directory
-if Flags.use_sam and Flags.saved_model_path.split('.')[-1] == 'h5':
-  Flags.saved_model_path = Flags.saved_model_path.rsplit('.',1)[0] + '_sam'      
+callbacks = util.get_callbacks(args=Flags)   
   
 train_hist = model.fit(ds_train, validation_data=ds_val, epochs=Flags.epochs, callbacks=callbacks)
 util.plot_training(Flags.plot_dir,train_hist)

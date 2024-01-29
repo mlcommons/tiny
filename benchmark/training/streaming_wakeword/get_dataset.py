@@ -11,13 +11,59 @@ import functools
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os, pickle
+import os, pickle, glob
 
 import str_ww_util as util
 import keras_model as models
 
+rng = np.random.default_rng(2024)
 word_labels = ["Marvin", "Silence", "Unknown"]
+reps_of_known = 5
+num_silent = 10000
 
+def decode_audio(audio_binary):
+  # Decode WAV-encoded audio files to `float32` tensors, normalized
+  # to the [-1.0, 1.0] range. Return `float32` audio and a sample rate.
+  audio, _ = tf.audio.decode_wav(contents=audio_binary)
+  # Since all the data is single channel (mono), drop the `channels`
+  # axis from the array.
+  return tf.squeeze(audio, axis=-1)
+  
+def get_label(file_path):
+  parts = tf.strings.split(
+      input=file_path,
+      sep=os.path.sep)
+  # Note: You'll use indexing here instead of tuple unpacking to enable this
+  # to work in a TensorFlow graph.
+  return parts[-2]
+  
+def get_waveform_and_label(file_path):
+  label = get_label(file_path)
+  audio_binary = tf.io.read_file(file_path)
+  waveform = decode_audio(audio_binary)
+  return {'audio':waveform, 'label':label}
+
+def convert_labels_str2int(datum):
+  """
+  datum is {'audio':<audio>, 'label':<label_as_string>} 
+  returns {'audio':<audio>, 'label':<label_as_int>}
+  according to:
+        keys=tf.constant(["marvin", "_silence", "_unknown"]),
+        values=tf.constant([0, 1, 2]),
+  """
+  # build a lookup table
+  label_map = tf.lookup.StaticHashTable(
+      initializer=tf.lookup.KeyValueTensorInitializer(
+          keys=tf.constant(["marvin", "_silence", "_unknown"]),
+          values=tf.constant([0, 1, 2]),
+      ),
+      default_value=tf.constant(2), # map other labels to _unknown
+      name="class_labels"
+  )
+  return {'audio': datum['audio'], 
+          'label':label_map.lookup(datum['label'])
+         }
+  
 def convert_to_int16(sample_dict):
   audio = sample_dict['audio']
   label = sample_dict['label']
@@ -243,9 +289,54 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
 
   splits = ['train', 'test', 'validation']
-  (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
-                                                data_dir=Flags.data_dir, with_info=True)
+  # (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
+  #                                               data_dir=Flags.data_dir, with_info=True)
 
+  AUTOTUNE = tf.data.AUTOTUNE
+
+  ## Build the data sets from files
+  data_dir = Flags.data_dir
+  filenames = glob.glob(os.path.join(str(data_dir), '*', '*.wav'))
+  # the full speech-commands set lists which files are to be used
+  # as test and validation data; train with everything else
+  
+  fname_val_files = os.path.join(data_dir, 'validation_list.txt')    
+  with open(fname_val_files) as fpi_val:
+    val_files = fpi_val.read().splitlines()
+  # validation_list.txt only lists partial paths, append to data_dir and sr
+  val_files = [os.path.join(data_dir, fn).rstrip() for fn in val_files]
+  
+  # repeat for test files
+  fname_test_files = os.path.join(data_dir, 'testing_list.txt')
+  with open(fname_test_files) as fpi_tst:
+    test_files = fpi_tst.read().splitlines()  
+  test_files = [os.path.join(data_dir, fn).rstrip() for fn in test_files]    
+    
+  if os.sep != '/': 
+    # the files validation_list.txt and testing_list.txt use '/' as path separator
+    # if we're on a windows machine, replace the '/' with the correct separator
+    val_files = [fn.replace('/', os.sep) for fn in val_files]
+    test_files = [fn.replace('/', os.sep) for fn in test_files]
+    
+  # don't train with the _background_noise_ files; exclude when directory name starts with '_'
+  train_files = [f for f in filenames if f.split(os.sep)[-2][0] != '_']
+  # validation and test files are listed explicitly in *_list.txt; train with everything else
+  train_files = list(set(train_files) - set(test_files) - set(val_files))
+  # now convert into a TF tensor so we can use the tf.dataset pipeline
+  train_files = tf.constant(train_files)
+  
+  ds_train = tf.data.Dataset.from_tensor_slices(train_files)
+  ds_train = ds_train.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+  ds_train = ds_train.map(convert_labels_str2int)
+  
+  ds_val = tf.data.Dataset.from_tensor_slices(val_files)
+  ds_val = ds_val.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+  ds_val = ds_val.map(convert_labels_str2int)
+  
+  ds_test = tf.data.Dataset.from_tensor_slices(test_files)
+  ds_test = ds_test.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+  ds_test = ds_test.map(convert_labels_str2int)
+  
   if val_cal_subset:  # only return the subset of val set used for quantization calibration
     with open("quant_cal_idxs.txt") as fpi:
       cal_indices = [int(line) for line in fpi]
@@ -265,14 +356,30 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     # and create a new dataset for just the calibration inputs.
     ds_val = tf.data.Dataset.from_tensor_slices({"audio": val_sub_audio,
                                                  "label": val_sub_labels})
+    ## end of if val_cal_subset
 
-  if Flags.num_train_samples != -1:
-    ds_train = ds_train.take(Flags.num_train_samples)
-  if Flags.num_val_samples != -1:
-    ds_val = ds_val.take(Flags.num_val_samples)
-  if Flags.num_test_samples != -1:
-    ds_test = ds_test.take(Flags.num_test_samples)
+  # create a few copies of only the target words to balance the distribution
+  # noise will be added to them later
+  
+  ds_only_target = ds_train.filter(lambda dat: dat['label'] == 0)
+  for _ in range(reps_of_known):
+     ds_train = ds_train.concatenate(ds_only_target)
     
+  for dat in ds_train.take(1):
+    input_shape = dat['audio'].shape # we'll need this to build the silent dataset
+
+  # create some silent samples, which noise will be added to as well
+  if num_silent > 0:
+    rand_waves = rng.normal(loc=0.0, scale=0.1, size=(num_silent,)+tuple(input_shape))
+    silent_index = 1
+    silent_labels = silent_index * np.ones(num_silent)
+    silent_wave_ds = tf.data.Dataset.from_tensor_slices({'audio':rand_waves, 'label':silent_labels})
+    silent_wave_ds = silent_wave_ds.map(lambda dd: {
+      'audio':tf.cast(dd['audio'], 'float32')  ,
+      'label':tf.cast(dd['label'], 'int32')
+    })
+    ds_train = ds_train.concatenate(silent_wave_ds)
+  
   if get_waves:
     ds_train = ds_train.map(cast_and_pad)
     ds_test  =  ds_test.map(cast_and_pad)
@@ -293,6 +400,14 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     ds_test = ds_test.map(convert_dataset)
     ds_val = ds_val.map(convert_dataset)
 
+
+  if Flags.num_train_samples != -1:
+    ds_train = ds_train.take(Flags.num_train_samples)
+  if Flags.num_val_samples != -1:
+    ds_val = ds_val.take(Flags.num_val_samples)
+  if Flags.num_test_samples != -1:
+    ds_test = ds_test.take(Flags.num_test_samples)
+
   # Now that we've acquired the preprocessed data, either by processing or loading,
   ds_train = ds_train.batch(Flags.batch_size)
   ds_test = ds_test.batch(Flags.batch_size)  
@@ -300,6 +415,34 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   
   return ds_train, ds_test, ds_val
 
+def is_batched(ds):
+    ## This feels wrong/not robust, but I can't find a better way
+    try:
+        ds.unbatch()  # does not actually change ds. For that we would ds=ds.unbatch()
+    except:
+        return False # we'll assume that the error on unbatching is because the ds is not batched.
+    else:
+        return True  # if we were able to unbatch it then it must have been batched (??)
+
+def count_labels(ds, label_index=1):
+  """
+  returns a dictionary with each found unique label as key and
+  the number of samples with that label as value.
+  label_index: key to index the label from each item in the dataset.
+  if each item is a tuple/list, label_index should be an integer
+  if each item is a dict, label_index should be the key.
+  """
+  if is_batched(ds):
+    ds = ds.unbatch()
+  
+  label_counts = {}
+  for dat in ds:
+    new_label = dat[label_index].numpy()
+    if new_label in label_counts:
+      label_counts[new_label] += 1
+    else:
+      label_counts[new_label] = 1
+  return label_counts
 
 if __name__ == '__main__':
   Flags, unparsed = util.parse_command()
@@ -309,3 +452,4 @@ if __name__ == '__main__':
     print("One element from the training set has shape:")
     print(f"Input tensor shape: {dat[0].shape}")
     print(f"Label shape: {dat[1].shape}")
+  print(f"Number of each class in training set:\n {count_labels(ds_train, label_index=1)}")
