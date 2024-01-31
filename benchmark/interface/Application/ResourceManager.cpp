@@ -1,3 +1,4 @@
+#include "Audio/HeadphoneWaveSink.hpp"
 #include "ResourceManager.hpp"
 #include "usart.h"
 
@@ -52,7 +53,7 @@ void ResourceManager::InitSingleton(TX_BYTE_POOL &byte_pool)
 }
 
 ResourceManager::ResourceManager(TX_BYTE_POOL &byte_pool): task_runner(new Tasks::TaskRunner(byte_pool)),
-                                                           wave_sink(new Audio::WaveSink(*task_runner, byte_pool)),
+                                                           wave_sink(new Audio::HeadphoneWaveSink(*task_runner, byte_pool)),
                                                            file_system(new IO::FileSystem(*task_runner)),
                                                            dut(new Test::DeviceUnderTest(*task_runner, new IO::Uart(byte_pool, &huart3)))
 {

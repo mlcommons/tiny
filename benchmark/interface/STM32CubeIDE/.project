@@ -250,6 +250,11 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H5xx_HAL_Driver/Src/stm32h5xx_ll_utils.c</locationURI>
 		</link>
 		<link>
+			<name>Application/User/Audio/HeadphoneWaveSink.cpp</name>
+			<type>1</type>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Audio/HeadphoneWaveSink.cpp</locationURI>
+		</link>
+		<link>
 			<name>Application/User/Audio/WaveSink.cpp</name>
 			<type>1</type>
 			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Audio/WaveSink.cpp</locationURI>
