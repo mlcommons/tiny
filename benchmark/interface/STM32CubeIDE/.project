@@ -252,12 +252,12 @@
 		<link>
 			<name>Application/User/Audio/WaveSink.cpp</name>
 			<type>1</type>
-			<location>/Users/sreckamp/development/git/benchmark-interface/Application/Audio/WaveSink.cpp</location>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Audio/WaveSink.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Audio/WaveSource.cpp</name>
 			<type>1</type>
-			<location>/Users/sreckamp/development/git/benchmark-interface/Application/Audio/WaveSource.cpp</location>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Audio/WaveSource.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/CLI/InterfaceMenu.cpp</name>
@@ -372,17 +372,17 @@
 		<link>
 			<name>Application/User/IO/MemoryReader.cpp</name>
 			<type>1</type>
-			<location>/Users/sreckamp/development/git/benchmark-interface/Application/IO/MemoryReader.cpp</location>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/IO/MemoryReader.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/IO/Uart.cpp</name>
 			<type>1</type>
-			<location>/Users/sreckamp/development/git/benchmark-interface/Application/IO/Uart.cpp</location>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/IO/Uart.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Tasks/TaskRunner.cpp</name>
 			<type>1</type>
-			<location>/Users/sreckamp/development/git/benchmark-interface/Application/Tasks/TaskRunner.cpp</location>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Tasks/TaskRunner.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Test/DeviceUnderTest.cpp</name>
@@ -412,7 +412,7 @@
 		<link>
 			<name>Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_ts.c</name>
 			<type>1</type>
-			<location>/Users/sreckamp/development/git/benchmark-interface/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_ts.c</location>
+			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_ts.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/FileX/Core/fx_directory_attributes_read.c</name>
