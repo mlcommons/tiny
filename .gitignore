@@ -1,5 +1,5 @@
 *.idea*
 *__pycache__*
 venv
-.python_version
-training/image_classification/perf_samples
+.python-version
+main.cpp
