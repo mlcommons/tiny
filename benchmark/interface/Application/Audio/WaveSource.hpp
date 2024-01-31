@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/21/23.
-//
-
 #ifndef AUDIO_WAVESOURCE_HPP
 #define AUDIO_WAVESOURCE_HPP
 
@@ -27,6 +23,7 @@ namespace Audio
     UCHAR Seek(ULONG position);
     ULONG ReadData(void *dest, ULONG length);
     ULONG GetPosition() const { return data_index; };
+    UCHAR GetInfo(TX_QUEUE * const queue);
   private:
     IDataSource &source;
     UCHAR header_read;

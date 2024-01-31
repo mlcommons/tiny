@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/22/23.
-//
-
 #ifndef AUDIO_WAVESINK_HPP
 #define AUDIO_WAVESINK_HPP
 
@@ -18,7 +14,6 @@ namespace Audio
     WaveSink(Tasks::TaskRunner &runner, TX_BYTE_POOL &byte_pool);
     UCHAR Configure(const WaveSource &source);
     UCHAR Play(WaveSource &source);
-    UCHAR GetInfo(TX_QUEUE * const queue, const WaveSource &source);
   private:
     Tasks::TaskRunner &runner;
     UCHAR *play_buffer;

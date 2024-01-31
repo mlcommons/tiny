@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/22/23.
-//
-
 #include "WaveSink.hpp"
 #include "../Tasks/ITask.hpp"
 
@@ -85,30 +81,6 @@ namespace Audio
     InitBufferSemaphore();
 
     tx_byte_allocate(&byte_pool, (void **)&play_buffer, size, TX_NO_WAIT);
-  }
-
-  UCHAR WaveSink::GetInfo(TX_QUEUE * const queue, const WaveSource &source)
-  {
-    std::string *msg = new std::string(source.GetName());
-    msg->append("\n");
-    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
-
-    msg = new std::string(source.GetFormat() == 1 ? "non-PCM\n" : "PCM\n");
-    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
-
-    msg = new std::string(source.GetChannelCount() == 2 ? "stereo\n" : "mono\n");
-    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
-
-    char buf[50];
-    snprintf(buf, sizeof(buf), "%dHz\n", source.GetFrequency());
-    msg = new std::string(buf);
-    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
-
-    snprintf(buf, sizeof(buf), "%d-bit\n", source.GetSampleSize());
-    msg = new std::string(buf);
-    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
-
-    return TX_TRUE;
   }
 
   UCHAR WaveSink::Play(WaveSource &source)

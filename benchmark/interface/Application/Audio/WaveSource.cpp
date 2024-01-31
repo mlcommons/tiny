@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/21/23.
-//
-
 #include "WaveSource.hpp"
 
 namespace Audio
@@ -133,5 +129,32 @@ namespace Audio
     ULONG actual_bytes = source.ReadData(dest, length);
     data_index = source.GetPosition();
     return actual_bytes;
+  }
+
+  UCHAR WaveSource::GetInfo(TX_QUEUE *const queue)
+  {
+    std::string *msg = new std::string(GetName());
+    msg->append("\n");
+    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
+
+    msg = new std::string(GetFormat() == 1 ? "non-PCM\n" : "PCM\n");
+    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
+
+    msg = new std::string(GetChannelCount() == 2 ? "stereo\n" : "mono\n");
+    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
+
+    char buf[50];
+    snprintf(buf, sizeof(buf), "%dHz\n", GetFrequency());
+    msg = new std::string(buf);
+    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
+
+    snprintf(buf, sizeof(buf), "%d-bit\n", GetSampleSize());
+    msg = new std::string(buf);
+    tx_queue_send(queue, &msg, TX_WAIT_FOREVER);
+
+    void *eof = TX_NULL;
+    tx_queue_send(queue, &eof, TX_WAIT_FOREVER);
+
+    return TX_TRUE;
   }
 }
