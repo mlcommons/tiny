@@ -243,7 +243,7 @@ def get_model(args):
     #optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
     optimizer=optimizer,  # Optimizer
     # Loss function to minimize
-    loss=keras.losses.SparseCategoricalCrossentropy(),
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     # List of metrics to monitor
     metrics=[keras.metrics.SparseCategoricalAccuracy()],
   )
