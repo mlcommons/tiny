@@ -42,7 +42,7 @@
 		<link>
 			<name>Application/ResourceManager.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/ResourceManager.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/ResourceManager.cpp</locationURI>
 		</link>
 		<link>
 			<name>Drivers/CMSIS/system_stm32h5xx.c</name>
@@ -257,22 +257,22 @@
 		<link>
 			<name>Application/User/Audio/WaveSink.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Audio/WaveSink.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/Audio/WaveSink.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Audio/WaveSource.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Audio/WaveSource.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/Audio/WaveSource.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/CLI/InterfaceMenu.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/CLI/InterfaceMenu.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/CLI/InterfaceMenu.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/CLI/Menu.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/CLI/Menu.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/CLI/Menu.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Core/adc.c</name>
@@ -372,52 +372,52 @@
 		<link>
 			<name>Application/User/IO/FileSystem.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/IO/FileSystem.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/IO/FileSystem.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/IO/MemoryReader.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/IO/MemoryReader.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/IO/MemoryReader.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/IO/Uart.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/IO/Uart.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/IO/Uart.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Tasks/TaskRunner.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Tasks/TaskRunner.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/Tasks/TaskRunner.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Test/DeviceUnderTest.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Test/DeviceUnderTest.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/Test/DeviceUnderTest.cpp</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/STM32H573I-DK/stm32h573i_discovery.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_audio.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_audio.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_audio.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_bus.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_bus.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_bus.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_lcd.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_lcd.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_lcd.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_ts.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_ts.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/STM32H573I-DK/stm32h573i_discovery_ts.c</locationURI>
 		</link>
 		<link>
 			<name>Middlewares/FileX/Core/fx_directory_attributes_read.c</name>
@@ -2427,32 +2427,32 @@
 		<link>
 			<name>Drivers/BSP/Components/cs42l51/cs42l51.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/Components/cs42l51/cs42l51.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/Components/cs42l51/cs42l51.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/Components/cs42l51/cs42l51_reg.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/Components/cs42l51/cs42l51_reg.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/Components/cs42l51/cs42l51_reg.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/Components/ft6x06/ft6x06.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/Components/ft6x06/ft6x06.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/Components/ft6x06/ft6x06.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/Components/ft6x06/ft6x06_reg.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/Components/ft6x06/ft6x06_reg.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/Components/ft6x06/ft6x06_reg.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/Components/st7789h2/st7789h2.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/Components/st7789h2/st7789h2.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/Components/st7789h2/st7789h2.c</locationURI>
 		</link>
 		<link>
 			<name>Drivers/BSP/Components/st7789h2/st7789h2_reg.c</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Drivers/BSP/Components/st7789h2/st7789h2_reg.c</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Drivers/BSP/Components/st7789h2/st7789h2_reg.c</locationURI>
 		</link>
 	</linkedResources>
 </projectDescription>
