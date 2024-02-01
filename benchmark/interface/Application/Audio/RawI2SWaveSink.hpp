@@ -17,6 +17,8 @@ namespace Audio
     PlayerResult Stop();
     INT WaitForActiveBuffer();
     void SetActiveBuffer(INT buffer_id);
+  private:
+    PlayerState state;
   };
 }
 
