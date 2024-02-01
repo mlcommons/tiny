@@ -252,7 +252,12 @@
 		<link>
 			<name>Application/User/Audio/HeadphoneWaveSink.cpp</name>
 			<type>1</type>
-			<locationURI>$%7BPARENT-1-PROJECT_LOC%7D/Application/Audio/HeadphoneWaveSink.cpp</locationURI>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/Audio/HeadphoneWaveSink.cpp</locationURI>
+		</link>
+		<link>
+			<name>Application/User/Audio/RawI2SWaveSink.cpp</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Application/Audio/RawI2SWaveSink.cpp</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Audio/WaveSink.cpp</name>
