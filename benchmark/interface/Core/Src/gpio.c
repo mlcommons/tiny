@@ -43,11 +43,9 @@
      PI4   ------> SAI2_MCLK_A
      PB6   ------> I2C1_SCL
      PB3(JTDO/TRACESWO)   ------> DEBUG_JTDO-SWO
-     PD6   ------> SAI1_SD_A
      PA14(JTCK/SWCLK)   ------> DEBUG_JTCK-SWCLK
      PI2   ------> SPI2_MISO
      PE6   ------> DEBUG_TRACED3
-     PE4   ------> SAI1_D2
      PI6   ------> SAI2_SD_A
      PB7   ------> I2C1_SDA
      PB4(NJTRST)   ------> DEBUG_JTRST
@@ -61,11 +59,11 @@
      PA13(JTMS/SWDIO)   ------> DEBUG_JTMS-SWDIO
      PA8   ------> S_TIM1_CH1
      PH0-OSC_IN(PH0)   ------> RCC_OSC_IN
-     PD11   ------> SAI1_CK1
      PB15   ------> SPI2_MOSI
-     PC3   ------> SAI1_D3
      PA3   ------> SPI2_NSS
+     PH8   ------> SPI5_MOSI
      PH10   ------> S_TIM5_CH1
+     PH7   ------> SPI5_MISO
      PH11   ------> S_TIM5_CH2
 */
 void MX_GPIO_Init(void)
@@ -173,14 +171,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PD6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SAI1;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
   /*Configure GPIO pins : PHPin PHPin PHPin PHPin
                            PHPin PHPin */
   GPIO_InitStruct.Pin = LCD_RST_Pin|STMOD_11_INT_Pin|STMOD_14_PWM_Pin|STMOD_20_Pin
@@ -189,14 +179,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PE4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF2_SAI1;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PAPin PAPin */
   GPIO_InitStruct.Pin = USB_FS_P_Pin|USB_FS_N_Pin;
@@ -252,14 +234,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(STMOD_18_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PD11 */
-  GPIO_InitStruct.Pin = GPIO_PIN_11;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF2_SAI1;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = ARD_D11_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -269,20 +243,20 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(ARD_D11_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = PDM_SAI1_SD3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF2_SAI1;
-  HAL_GPIO_Init(PDM_SAI1_SD3_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = ARD_D10_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   GPIO_InitStruct.Alternate = GPIO_AF5_SPI2;
   HAL_GPIO_Init(ARD_D10_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PHPin PHPin */
+  GPIO_InitStruct.Pin = STMOD_9_MISOs_Pin|STMOD_12_RST_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Alternate = GPIO_AF5_SPI5;
+  HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PHPin PHPin */
   GPIO_InitStruct.Pin = ARD_D6_Pin|ARD_D5_Pin;

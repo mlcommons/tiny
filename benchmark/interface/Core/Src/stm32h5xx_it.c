@@ -55,6 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern DMA_HandleTypeDef handle_GPDMA1_Channel7;
 extern SAI_HandleTypeDef haudio_out_sai;
 extern SD_HandleTypeDef hsd1;
 extern UART_HandleTypeDef huart1;

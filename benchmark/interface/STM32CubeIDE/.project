@@ -165,16 +165,6 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H5xx_HAL_Driver/Src/stm32h5xx_hal_sd_ex.c</locationURI>
 		</link>
 		<link>
-			<name>Drivers/STM32H5xx_HAL_Driver/stm32h5xx_hal_spi.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H5xx_HAL_Driver/Src/stm32h5xx_hal_spi.c</locationURI>
-		</link>
-		<link>
-			<name>Drivers/STM32H5xx_HAL_Driver/stm32h5xx_hal_spi_ex.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H5xx_HAL_Driver/Src/stm32h5xx_hal_spi_ex.c</locationURI>
-		</link>
-		<link>
 			<name>Drivers/STM32H5xx_HAL_Driver/stm32h5xx_hal_sram.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Drivers/STM32H5xx_HAL_Driver/Src/stm32h5xx_hal_sram.c</locationURI>
@@ -335,14 +325,14 @@
 			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/octospi.c</locationURI>
 		</link>
 		<link>
+			<name>Application/User/Core/sai.c</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/sai.c</locationURI>
+		</link>
+		<link>
 			<name>Application/User/Core/sdmmc.c</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/sdmmc.c</locationURI>
-		</link>
-		<link>
-			<name>Application/User/Core/spi.c</name>
-			<type>1</type>
-			<locationURI>PARENT-1-PROJECT_LOC/Core/Src/spi.c</locationURI>
 		</link>
 		<link>
 			<name>Application/User/Core/stm32h5xx_hal_msp.c</name>

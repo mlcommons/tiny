@@ -190,8 +190,6 @@ void Error_Handler(void);
 #define LCD_D1_GPIO_Port GPIOD
 #define ARD_D4_Pin GPIO_PIN_4
 #define ARD_D4_GPIO_Port GPIOG
-#define STMOD_3_Pin GPIO_PIN_7
-#define STMOD_3_GPIO_Port GPIOF
 #define LCD_D15_Pin GPIO_PIN_10
 #define LCD_D15_GPIO_Port GPIOD
 #define LCD_D0_Pin GPIO_PIN_14

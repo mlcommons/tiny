@@ -1,7 +1,6 @@
 #include "RawI2SWaveSink.hpp"
 
-#include "main.h"
-#include "stm32h5xx_hal_gpio.h"
+//#include "stm32h5xx_hal_gpio.h"
 #include "stm32h573i_discovery_audio.h"
 #include "tx_semaphore.h"
 
@@ -46,8 +45,6 @@ namespace Audio
   RawI2SWaveSink::RawI2SWaveSink(Tasks::TaskRunner &runner, TX_BYTE_POOL &byte_pool)
         : WaveSink(runner, byte_pool)
   {
-    HAL_GPIO_WritePin(MEMS_LED_GPIO_Port, MEMS_LED_Pin, GPIO_PIN_SET);
-    HAL_GPIO_WritePin(DETECTN_GPIO_Port, DETECTN_Pin, GPIO_PIN_SET);
     if(buffer_semaphore.tx_semaphore_id != TX_SEMAPHORE_ID)
     {
       const char *name = "Raw I2S buffer playback semaphore";
