@@ -5,6 +5,12 @@
 #include "WaveSource.hpp"
 #include "../Tasks/TaskRunner.hpp"
 
+extern "C"
+{
+void BSP_AUDIO_OUT_TransferComplete_CallBack(uint32_t);
+void BSP_AUDIO_OUT_HalfTransfer_CallBack(uint32_t);
+};
+
 namespace Audio
 {
   typedef enum
@@ -34,9 +40,11 @@ namespace Audio
     virtual PlayerState Initialize() = 0;
     virtual PlayerResult Play(UCHAR *buffer, ULONG size) = 0;
     virtual PlayerResult Stop() = 0;
-    virtual INT WaitForActiveBuffer() = 0;
-    virtual void SetActiveBuffer(INT buffer_id) = 0;
   private:
+    friend void ::BSP_AUDIO_OUT_TransferComplete_CallBack(uint32_t);
+    friend void ::BSP_AUDIO_OUT_HalfTransfer_CallBack(uint32_t);
+    static INT active_buffer;
+    static TX_SEMAPHORE buffer_semaphore;
     Tasks::TaskRunner &runner;
     UCHAR *play_buffer;
     ULONG size;

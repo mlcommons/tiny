@@ -32,15 +32,16 @@ extern "C" {
 
 /* USER CODE END Includes */
 
-extern DMA_HandleTypeDef handle_GPDMA1_Channel7;
-
 extern DMA_HandleTypeDef handle_GPDMA1_Channel2;
+
+extern DMA_HandleTypeDef handle_GPDMA2_Channel2;
 
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
 
 void MX_GPDMA1_Init(void);
+void MX_GPDMA2_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 

@@ -55,8 +55,8 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef handle_GPDMA1_Channel7;
 extern SAI_HandleTypeDef haudio_out_sai;
+extern DMA_HandleTypeDef handle_GPDMA2_Channel2;
 extern SD_HandleTypeDef hsd1;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart3;
@@ -246,6 +246,20 @@ void SDMMC1_IRQHandler(void)
   /* USER CODE BEGIN SDMMC1_IRQn 1 */
 
   /* USER CODE END SDMMC1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles GPDMA2 Channel 2 global interrupt.
+  */
+void GPDMA2_Channel2_IRQHandler(void)
+{
+  /* USER CODE BEGIN GPDMA2_Channel2_IRQn 0 */
+
+  /* USER CODE END GPDMA2_Channel2_IRQn 0 */
+  HAL_DMA_IRQHandler(&handle_GPDMA2_Channel2);
+  /* USER CODE BEGIN GPDMA2_Channel2_IRQn 1 */
+
+  /* USER CODE END GPDMA2_Channel2_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

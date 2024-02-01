@@ -1,51 +1,12 @@
 #include "HeadphoneWaveSink.hpp"
 
 #include "stm32h573i_discovery_audio.h"
-#include "tx_semaphore.h"
-
-static INT active_buffer = -1;
-static TX_SEMAPHORE buffer_semaphore;
-
-/**
-  * @brief Tx Transfer completed callbacks.
-  * @param  hsai : pointer to a SAI_HandleTypeDef structure that contains
-  *                the configuration information for SAI module.
-  * @retval None
-  */
-void BSP_AUDIO_OUT_TransferComplete_CallBack(uint32_t instance)
-{
-  if(instance == 0)
-  {
-    active_buffer = 1;
-    tx_semaphore_ceiling_put(&buffer_semaphore, 1);
-  }
-}
-
-/**
-  * @brief Tx Transfer Half completed callbacks
-  * @param  hsai : pointer to a SAI_HandleTypeDef structure that contains
-  *                the configuration information for SAI module.
-  * @retval None
-  */
-void BSP_AUDIO_OUT_HalfTransfer_CallBack(uint32_t instance)
-{
-  if(instance == 0)
-  {
-    active_buffer = 0;
-    tx_semaphore_ceiling_put(&buffer_semaphore, 1);
-  }
-}
 
 namespace Audio
 {
   HeadphoneWaveSink::HeadphoneWaveSink(Tasks::TaskRunner &runner, TX_BYTE_POOL &byte_pool)
         : WaveSink(runner, byte_pool)
   {
-    if(buffer_semaphore.tx_semaphore_id != TX_SEMAPHORE_ID)
-    {
-      const char *name = "Headphone buffer playback semaphore";
-      tx_semaphore_create(&buffer_semaphore, (char *)name, 0);
-    }
   }
 
   PlayerState HeadphoneWaveSink::GetState()
@@ -85,16 +46,5 @@ namespace Audio
   PlayerResult HeadphoneWaveSink::Stop()
   {
     return BSP_AUDIO_OUT_Stop(0) == BSP_ERROR_NONE ? SUCCESS : ERROR;
-  }
-
-  INT HeadphoneWaveSink::WaitForActiveBuffer()
-  {
-    while(active_buffer == -1) tx_semaphore_get(&buffer_semaphore, 50);
-    return active_buffer;
-  }
-
-  void HeadphoneWaveSink::SetActiveBuffer(INT buffer_id)
-  {
-    active_buffer = buffer_id;
   }
 }

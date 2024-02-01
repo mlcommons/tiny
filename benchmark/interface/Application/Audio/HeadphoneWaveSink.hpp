@@ -15,8 +15,6 @@ namespace Audio
     PlayerState Initialize();
     PlayerResult Play(UCHAR *buffer, ULONG size);
     PlayerResult Stop();
-    INT WaitForActiveBuffer();
-    void SetActiveBuffer(INT buffer_id);
   };
 }
 

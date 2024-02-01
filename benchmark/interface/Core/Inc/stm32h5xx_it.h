@@ -58,6 +58,7 @@ void TIM6_IRQHandler(void);
 void USART1_IRQHandler(void);
 void USART3_IRQHandler(void);
 void SDMMC1_IRQHandler(void);
+void GPDMA2_Channel2_IRQHandler(void);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */
