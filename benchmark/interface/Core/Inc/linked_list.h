@@ -31,7 +31,8 @@
 
 /* Exported types ------------------------------------------------------------*/
 /* Exported constants --------------------------------------------------------*/
-HAL_StatusTypeDef MX_SAIQueue_Config(void);
+HAL_StatusTypeDef MX_HeadphoneSAIQueue_Config(void);
+HAL_StatusTypeDef MX_RawSAIQueue_Config(void);
 
 #ifdef __cplusplus
 }
