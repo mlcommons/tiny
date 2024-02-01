@@ -25,6 +25,7 @@ namespace Audio
     __HAL_LINKDMA(&hsai_BlockB1, hdmatx, handle_GPDMA2_Channel2);
     MX_RawSAIQueue_Config();
     HAL_DMAEx_List_SetCircularMode(&RawSAIQueue);
+    HAL_DMAEx_List_LinkQ(&handle_GPDMA2_Channel2, &RawSAIQueue);
 
     state = STOPPED;
     return GetState();
