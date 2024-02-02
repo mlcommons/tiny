@@ -209,7 +209,8 @@ def get_model(args):
                          dropout=dropout,
                          activation=activation)
     net = tf.keras.layers.GlobalAveragePooling2D()(net)
-    net = tf.keras.layers.Flatten()(net)
+    if len(net.shape) > 2: # more than (batch, units)
+      net = tf.keras.layers.Flatten()(net)
     net = tf.keras.layers.Dense(label_count)(net) 
     model =  tf.keras.Model(input_spec, net)
     
