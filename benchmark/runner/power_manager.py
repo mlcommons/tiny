@@ -172,7 +172,7 @@ class PowerManager(SerialDevice):
   def _read_output(self):
     while True:
       line = self._message_queue.get()
-      print("RX: {line}")
+      print(f"RX: {line}")
       if line == PowerManager.PROMPT:
         return
       line = line.replace(PowerManager.PROMPT, "").strip()
