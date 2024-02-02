@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import tensorflow as tf
-import tensorflow_datasets as tfds
+# import tensorflow_datasets as tfds
 from tensorflow.lite.experimental.microfrontend.python.ops import audio_microfrontend_op as frontend_op
 from tensorflow import keras
 from tensorflow.keras import layers
