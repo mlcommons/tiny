@@ -41,7 +41,6 @@ def test_dut(device):
 def test_io_manager(device):
   with device as io:
       print(io.get_name())
-      test_dut(DUT(io))
       for l in io.get_help():
           print(l)
 
@@ -49,7 +48,6 @@ def test_io_manager(device):
 def test_io_manager_enhanced(device):
     with device as io:
         print(io.get_name())
-        test_dut(DUT(io))
         print(io.get_waves())
         print(io.play_wave())
         print(io.play_wave("spaceship.wav"))
@@ -79,6 +77,25 @@ def scan_devices(devices=None):
                         found =True
                         break
             if found: break
+
+
+def identify_dut(tools):
+  interface = tools.get("interface", {}).get("instance")
+  power = tools.get("power", {}).get("instance")
+  if not tools.get("dut") and interface and power:
+    dut = DUT(interface)
+    tools["dut"] = {
+        "instance": dut
+    }
+    # power.on()
+  else:
+    dut = tools.get("dut", {}).get("instance")
+  if dut:
+    with dut:
+      dut.get_name()
+      dut.get_model()
+      dut.get_profile()
+
 
 
 def instantiate(device):
@@ -113,6 +130,7 @@ def run_test(device_list, dut, test_script):
     with open(device_list) as dev_file:
         devices = yaml.load(dev_file, Loader=yaml.CLoader)
     tools = build_tools(devices)
+    identify_dut(tools)
     for i in (t.get("instance") for t in tools.values() if t and t.get("instance")):
         if isinstance(i, PowerManager):
             test_power(i)

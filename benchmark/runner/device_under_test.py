@@ -15,13 +15,11 @@ class DUT:
     self._name = None
 
   def __enter__(self):
-    if isinstance(self._port, SerialDevice):
-      self._port.__enter__()
+    self._port.__enter__()
     return self
 
   def __exit__(self, *args):
-    if isinstance(self._port, SerialDevice):
-      self._port.__exit__(*args)
+    self._port.__exit__(*args)
 
   def _get_name(self):
     for l in self._port.send_command("name"):

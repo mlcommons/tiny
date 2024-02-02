@@ -5,13 +5,19 @@ from serial_device import SerialDevice
 class IOManager(InterfaceDevice):
   def __init__(self, port_device, baud_rate=115200):
     self.port = SerialDevice(port_device, baud_rate, "m-ready", '%')
+    self.entry_count = 0
 
   def __enter__(self):
-    self.port.__enter__()
+    if not self.entry_count:
+      self.port.__enter__()
+      self.get_name()
+    self.entry_count += 1
     return self
 
   def __exit__(self, *args):
-    self.port.__exit__(*args)
+    self.entry_count -= 1
+    if not self.entry_count:
+      self.port.__exit__(*args)
 
   def get_name(self):
     return self.port.send_command("name")
