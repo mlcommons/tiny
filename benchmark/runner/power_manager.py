@@ -34,6 +34,7 @@ class PowerManager(SerialDevice):
       line = self._port.read_line(timeout=250)
       if line is None:
         continue
+      # print(f"RX: {line}")
       if line.startswith("TimeStamp"):
         print(line, file=sys.stderr)
         self._data_queue.put(line)
@@ -47,6 +48,7 @@ class PowerManager(SerialDevice):
         self._message_queue.put(line)
 
   def _start_read_thread(self):
+    self._running = True
     self._read_thread = Thread(target=self._read_loop)
     self._read_thread.start()
 
@@ -68,6 +70,7 @@ class PowerManager(SerialDevice):
     self.configure_trigger(0, 0, 'd7', 'fal')
     self.configure_output('energy', 'ascii_dec', 1000)
     self.set_voltage(3000)
+    self.power_on()
 
   def _tear_down(self):
     self._send_command("hrc")
@@ -110,8 +113,11 @@ class PowerManager(SerialDevice):
     self._send_command(f"freq {samples_per_second}",
                        err_message=f"Error setting samples_per_second to {samples_per_second}")
 
+  def power_on(self, show_status=False):
+    self._send_command(f"pwr on {'' if show_status else 'no'}status", err_message=f"Error turning on power")
+
   def power_off(self):
-    self._send_command("targrst 0", err_message=f"Error turning off power")
+    self._send_command("pwr off", err_message=f"Error turning off power")
 
   def set_voltage(self, millivolts):
     self._send_command(f"volt {millivolts}m", err_message=f"Error setting voltage to {millivolts}mV")
@@ -154,6 +160,7 @@ class PowerManager(SerialDevice):
     out_lines = []
     while True:
       line = self._message_queue.get()
+      # print(f"RES: {line}")
       temp = line.replace(PowerManager.PROMPT, "").strip()
       if temp and command in temp and (temp.startswith('ack') or temp.startswith('error')):
         out_lines.extend(r for r in temp.replace(command, "").split(" ", 2) if r)
@@ -172,7 +179,7 @@ class PowerManager(SerialDevice):
   def _read_output(self):
     while True:
       line = self._message_queue.get()
-      print(f"RX: {line}")
+      # print(f"OUT: {line}")
       if line == PowerManager.PROMPT:
         return
       line = line.replace(PowerManager.PROMPT, "").strip()

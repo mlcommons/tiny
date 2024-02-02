@@ -6,6 +6,7 @@ from io_manager_enhanced import IOManagerEnhanced
 from power_manager import PowerManager
 from io_manager import IOManager
 
+from contextlib import nullcontext
 from serial.tools import list_ports
 import yaml
 
@@ -28,8 +29,10 @@ def run_dut_test():
   dut passthrough: profile
   """
 
-def test_dut(device):
-    with device as dut:
+def test_dut(dut_def):
+  if dut_def and "instance" in dut_def:
+    with dut_def.get("power") if "power" in dut_def else nullcontext:
+      with dut_def["instance"] as dut:
         print(dut.get_name())
         print(dut.get_model())
         print(dut.get_profile())
@@ -79,23 +82,26 @@ def scan_devices(devices=None):
             if found: break
 
 
+def init_dut(dut_def):
+  if dut_def and "instance" in dut_def:
+    with dut_def.get("power") if "power" in dut_def else nullcontext:
+      with dut_def["instance"] as dut:
+        dut.get_name()
+        dut.get_model()
+        dut.get_profile()
+
 def identify_dut(tools):
   interface = tools.get("interface", {}).get("instance")
   power = tools.get("power", {}).get("instance")
   if not tools.get("dut") and interface and power:
     dut = DUT(interface)
     tools["dut"] = {
-        "instance": dut
+        "instance": dut,
+        "power": power
     }
-    # power.on()
   else:
     dut = tools.get("dut", {}).get("instance")
-  if dut:
-    with dut:
-      dut.get_name()
-      dut.get_model()
-      dut.get_profile()
-
+  init_dut(tools.get("dut"))
 
 
 def instantiate(device):
@@ -131,7 +137,7 @@ def run_test(device_list, dut, test_script):
         devices = yaml.load(dev_file, Loader=yaml.CLoader)
     tools = build_tools(devices)
     identify_dut(tools)
-    for i in (t.get("instance") for t in tools.values() if t and t.get("instance")):
+    for _def, i in ((t, t.get("instance")) for t in tools.values() if t and t.get("instance")):
         if isinstance(i, PowerManager):
             test_power(i)
         elif isinstance(i, IOManagerEnhanced):
@@ -139,7 +145,7 @@ def run_test(device_list, dut, test_script):
         elif isinstance(i, IOManager):
             test_io_manager(i)
         elif isinstance(i, DUT):
-            test_dut(i)
+            test_dut(_def)
 
 
 if __name__ == '__main__':
