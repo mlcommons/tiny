@@ -1,25 +1,32 @@
 import re
+import sys
+import time
 
 from interface_device import InterfaceDevice
 from serial_device import SerialDevice
 
 
 class DUT:
-  def __init__(self, port_device, baud_rate=115200):
+  def __init__(self, port_device, baud_rate=115200, power_manager=None):
     interface = port_device
     if not isinstance(port_device, InterfaceDevice):
       interface = SerialDevice(port_device, baud_rate, "m-ready", '%')
     self._port = interface
+    self._power_manager = power_manager
     self._profile = None
     self._model = None
     self._name = None
 
   def __enter__(self):
+    if self._power_manager:
+      self._power_manager.__enter__()
     self._port.__enter__()
     return self
 
   def __exit__(self, *args):
     self._port.__exit__(*args)
+    if self._power_manager:
+      self._power_manager.__exit__()
 
   def _get_name(self):
     for l in self._port.send_command("name"):
@@ -55,12 +62,24 @@ class DUT:
     size = len(data)
     pass
 
+  def load(self, data):
+    self._port.send_command(f"db load {len(data)}")
+    i = 0
+    while i < len(data):
+      time.sleep(0.5)
+      # print(".", end='', file=sys.stderr)
+      cmd = f"db {''.join(f'{d:02x}' for d in data[i:i+32])}"
+      result = self._port.send_command(cmd)
+      print(f"{result} ({i})")
+      i += 32
+    # print("", file=sys.stderr)
+
   def infer(self, number, warmups):
     command = f"infer {number}"
     if warmups:
       command += f" {warmups}"
     self._port.send_command(command)
-    self._port.send_command("results")
+    return self._port.send_command("results")
 
   def get_help(self):
     return self._port.send_command("help")

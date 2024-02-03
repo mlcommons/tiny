@@ -1,20 +1,20 @@
-  - name: stm32h573i-dk
-    usb_description: STLINK
-    type: interface
-    preference: 2
-    usb:
-        0x0483: 0x374E
-  - name: arduino
-    port: auto
-    type: interface
-    preference: 1
-    usb:
-        0x2341:
-          - 0x0043
-          - 0x0001
-        0x2a03:
-          - 0x0043
-          - 0x0243
-  - name: lpm01a
-    usb_description: PowerShield
-    type: power
+- name: stm32h573i-dk
+  usb_description: STLINK
+  type: interface
+  preference: 2
+  usb:
+    0x0483: 0x374E
+- name: arduino
+  port: auto
+  type: interface
+  preference: 1
+  usb:
+    0x2341:
+      - 0x0043
+      - 0x0001
+    0x2a03:
+      - 0x0043
+      - 0x0243
+- name: lpm01a
+  usb_description: PowerShield
+  type: power

@@ -9,6 +9,7 @@ class PowerManager(SerialDevice):
 
   def __init__(self, port_device, baud_rate=921600):
     self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n")
+    self._voltage = "3000m"
     self._board_id = None
     self._version = None
     self._lcd = [None, None]
@@ -58,21 +59,26 @@ class PowerManager(SerialDevice):
 
   def _setup(self):
     # verify board
+    self._claim_remote_control()
     print(f"LPM01A Power Monitor Board", file=sys.stderr)
     print(f"BoardID: {self.get_board_id()}", file=sys.stderr)
     print(f"Version: {self.get_version()}", file=sys.stderr)
     print(f"Status: {self.get_status()}", file=sys.stderr)
-    # connect
-    self._send_command("htc")
     self.set_lcd("     mlperf     ", "     monitor    ")
     self.power_off()
     # Acquire infinitely
     self.configure_trigger(0, 0, 'd7', 'fal')
     self.configure_output('energy', 'ascii_dec', 1000)
-    self.set_voltage(3000)
+    self.set_voltage(self._voltage)
     self.power_on()
 
   def _tear_down(self):
+    self._release_remote_control()
+
+  def _claim_remote_control(self):
+    self._send_command("htc")
+
+  def _release_remote_control(self):
     self._send_command("hrc")
 
   def get_board_id(self):
@@ -114,13 +120,17 @@ class PowerManager(SerialDevice):
                        err_message=f"Error setting samples_per_second to {samples_per_second}")
 
   def power_on(self, show_status=False):
+    self.set_lcd(None, f"{self._voltage : >14}V ")
     self._send_command(f"pwr on {'' if show_status else 'no'}status", err_message=f"Error turning on power")
 
   def power_off(self):
     self._send_command("pwr off", err_message=f"Error turning off power")
 
-  def set_voltage(self, millivolts):
-    self._send_command(f"volt {millivolts}m", err_message=f"Error setting voltage to {millivolts}mV")
+  def configure_voltage(self, voltage):
+    self._voltage = voltage
+
+  def set_voltage(self, voltage):
+    self._send_command(f"volt {voltage}", err_message=f"Error setting voltage to {voltage}V")
 
   def acquire(self, samples=0):
     self._in_prograss = True
