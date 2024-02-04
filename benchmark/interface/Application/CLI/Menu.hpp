@@ -9,7 +9,7 @@ namespace CLI
 {
   typedef struct {
     std::string command;
-    void (*action)(const char *);
+    void (*action)(const std::string &);
   } menu_command_t;
 
   class Menu
@@ -19,11 +19,12 @@ namespace CLI
   protected:
     Menu(TX_BYTE_POOL &byte_pool, IO::Uart &uart, const menu_command_t *commands);
     void HandleCommand(const std::string &buffer);
-    void Default(const char *args);
+    void Default(const std::string &args);
+    void SendString(const std::string &string);
     void SendString(const char *string);
     void SendEndLine();
     void SendEnd();
-    void SendResponse(const char *prefix=(const char *)TX_NULL);
+    void SendResponse(const std::string *prefix=(const std::string *)TX_NULL);
     TX_QUEUE queue;
   private:
     IO::Uart &uart;

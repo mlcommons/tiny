@@ -49,6 +49,11 @@ namespace CLI
     Default("");
   }
 
+  void Menu::SendString(const std::string &string)
+  {
+    uart.SendString(string.c_str());
+  }
+
   void Menu::SendString(const char *string)
   {
     uart.SendString(string);
@@ -65,12 +70,12 @@ namespace CLI
     SendEndLine();
   }
 
-  void Menu::Default(const char *args)
+  void Menu::Default(const std::string &args)
   {
     SendEnd();
   }
 
-  void Menu::SendResponse(const char *prefix)
+  void Menu::SendResponse(const std::string *prefix)
   {
     std::string *line;
 
@@ -80,8 +85,8 @@ namespace CLI
       if(result == TX_SUCCESS)
       {
         if(prefix != TX_NULL)
-          SendString(prefix);
-        SendString(line->c_str());
+          SendString(*prefix);
+        SendString(*line);
         SendEndLine();
         delete line;
       }

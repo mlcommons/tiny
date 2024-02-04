@@ -24,27 +24,27 @@ namespace CLI
                                                         {"play", PlayWrapper},
                                                         {"", DefaultWrapper} };
 
-  void InterfaceMenu::ListWrapper(const char *args)
+  void InterfaceMenu::ListWrapper(const std::string &args)
   {
     instance->List(args);
   }
 
-  void InterfaceMenu::NameWrapper(const char *args)
+  void InterfaceMenu::NameWrapper(const std::string &args)
   {
     instance->Name(args);
   }
 
-  void InterfaceMenu::PlayWrapper(const char *args)
+  void InterfaceMenu::PlayWrapper(const std::string &args)
   {
     instance->Play(args);
   }
 
-  void InterfaceMenu::DefaultWrapper(const char *args)
+  void InterfaceMenu::DefaultWrapper(const std::string &args)
   {
     instance->Default(args);
   }
 
-  void InterfaceMenu::PassthroughWrapper(const char *args)
+  void InterfaceMenu::PassthroughWrapper(const std::string &args)
   {
     instance->Passthrough(args);
   }
@@ -73,32 +73,33 @@ namespace CLI
 
   }
 
-  void InterfaceMenu::List(const char *args)
+  void InterfaceMenu::List(const std::string &args)
   {
     file_system.ListDirectory(args, &queue);
     SendResponse();
     SendEnd();
   }
 
-  void InterfaceMenu::Name(const char *args)
+  void InterfaceMenu::Name(const std::string &args)
   {
     SendString("tinyML Enhanced Interface Board");
     SendEndLine();
     SendEnd();
   }
 
-  void InterfaceMenu::Passthrough(const char *args)
+  void InterfaceMenu::Passthrough(const std::string &args)
   {
+    static const std::string prefix("[dut]: ");
     SendString("m-dut-passthrough(");
     SendString(args);
     SendString(")");
     SendEndLine();
     SendEnd();
     dut.SendCommand(args, &queue);
-    SendResponse("[dut]: ");
+    SendResponse(&prefix);
   }
 
-  void InterfaceMenu::Play(const char *args)
+  void InterfaceMenu::Play(const std::string &args)
   {
     IDataSource *source = file_system.OpenFile(args);
     Audio::WaveSource wav(*source);

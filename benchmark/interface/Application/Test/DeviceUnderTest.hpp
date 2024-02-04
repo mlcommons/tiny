@@ -13,12 +13,12 @@ namespace Test
   {
   public:
     DeviceUnderTest(Tasks::TaskRunner &runner, IO::Uart *uart);
-    void SendCommand(const char *command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
+    void SendCommand(const std::string &command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
   private:
     friend class SendCommandTask;
     Tasks::TaskRunner &runner;
     IO::Uart &uart;
-    void AsyncSendCommand(const char *command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
+    void AsyncSendCommand(const std::string &command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
   };
 }
 

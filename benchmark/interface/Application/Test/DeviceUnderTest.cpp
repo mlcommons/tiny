@@ -16,7 +16,7 @@ namespace Test
   class SendCommandTask : public IDUTTask
   {
   public:
-    SendCommandTask(DeviceUnderTest &dut, const CHAR *command, TX_QUEUE *queue) :
+    SendCommandTask(DeviceUnderTest &dut, const std::string &command, TX_QUEUE *queue) :
                         IDUTTask(dut), command(command), queue(queue)
     { }
 
@@ -26,7 +26,7 @@ namespace Test
     }
 
   private:
-    const CHAR *command;
+    const std::string command;
     TX_QUEUE *queue;
   };
 
@@ -35,13 +35,13 @@ namespace Test
   {
   }
 
-  void DeviceUnderTest::SendCommand(const char *command, TX_QUEUE *queue)
+  void DeviceUnderTest::SendCommand(const std::string &command, TX_QUEUE *queue)
   {
     SendCommandTask *task = new SendCommandTask(*this, command, queue);
     runner.Submit(task);
   }
 
-  void DeviceUnderTest::AsyncSendCommand(const char *command, TX_QUEUE *queue)
+  void DeviceUnderTest::AsyncSendCommand(const std::string &command, TX_QUEUE *queue)
   {
     const std::string *line = (std::string *)TX_NULL;
     uart.SendString(command);

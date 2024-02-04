@@ -20,14 +20,14 @@ namespace IO
   public:
     FileSystem(Tasks::TaskRunner &runner);
     void SetMedia(FX_MEDIA *media);
-    void ListDirectory(const char *directory, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL, bool show_directory = TX_FALSE,
+    void ListDirectory(const std::string &directory, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL, bool show_directory = TX_FALSE,
                        bool show_hidden = TX_FALSE);
-    IDataSource *OpenFile(const char *file_name);
+    IDataSource *OpenFile(const std::string &file_name);
   private:
     Tasks::TaskRunner &runner;
     FX_MEDIA *media;
     void AsyncListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden);
-    IDataSource *AsyncOpenFile(std::string file_name);
+    IDataSource *AsyncOpenFile(const std::string &file_name);
     friend class ListDirectoryTask;
     friend class OpenFileTask;
   };

@@ -19,7 +19,7 @@ namespace IO
   {
   public:
     ListDirectoryTask(FileSystem &fs,
-                      const CHAR *dir_name,
+                      const std::string &dir_name,
                       TX_QUEUE *queue,
                       CHAR show_directory,
                       CHAR show_hidden) :
@@ -44,7 +44,7 @@ namespace IO
   {
   public:
     OpenFileTask(FileSystem &fs,
-                 const CHAR *file_name) :
+                 const std::string &file_name) :
                       IFileTask(fs, TX_FALSE), file_name(file_name)
     { }
 
@@ -72,13 +72,13 @@ namespace IO
     this->media = media;
   }
 
-  void FileSystem::ListDirectory(const char *directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
+  void FileSystem::ListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
   {
     ListDirectoryTask *task = new ListDirectoryTask(*this, directory, queue, show_directory, show_hidden);
     runner.Submit(task);
   }
 
-  IDataSource *FileSystem::OpenFile(const char *file_name)
+  IDataSource *FileSystem::OpenFile(const std::string &file_name)
   {
     OpenFileTask *task = new OpenFileTask(*this, file_name);
     runner.Submit(task);
@@ -122,7 +122,7 @@ namespace IO
     }
   }
 
-  IDataSource *FileSystem::AsyncOpenFile(std::string file_name)
+  IDataSource *FileSystem::AsyncOpenFile(const std::string &file_name)
   {
     return file_name.length() > 0
               ? (IDataSource *) new IO::FxFile(media, file_name)
