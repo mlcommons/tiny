@@ -1,7 +1,7 @@
 #include "usart.h"
 #include "Uart.hpp"
 
-#define RX_QUEUE_SIZE   50 * sizeof(ULONG)
+#define RX_QUEUE_SIZE   100 * sizeof(ULONG)
 
 #define UART_COUNT  4
 
