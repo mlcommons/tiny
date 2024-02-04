@@ -1,0 +1,24 @@
+ad01:
+  name: anomoly_detection
+  model: ad01
+  script:
+    - download
+    - a
+ic01:
+  name: image_classification
+  model: ic01
+  script:
+    - download
+    - a
+kws01:
+  name: keyword_spotting
+  model: kws01
+  script:
+    - download
+    - a
+vww01:
+  name: person_detection
+  model: vww01
+  script:
+    - download
+    - a
