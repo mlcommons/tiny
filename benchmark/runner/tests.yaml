@@ -9,9 +9,8 @@ ic01:
   model: ic01
   truth_file: y_labels.csv
   script:
-    - loop 1:
-      - download
-      - infer 10 1
+    - download
+    - infer 10 1
 kws01:
   name: keyword_spotting
   model: kws01

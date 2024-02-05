@@ -15,30 +15,18 @@ class DUT:
     self._profile = None
     self._model = None
     self._name = None
-    # self._initialized = True
     self._max_bytes = 26 if power_manager else 31
 
   def __enter__(self):
     if self.power_manager:
       self.power_manager.__enter__()
     self._port.__enter__()
-    # if not self._initialized:
-    #   self._wait_for_initialization()
-    #   self._initialized = True
     return self
 
   def __exit__(self, *args):
     self._port.__exit__(*args)
     if self.power_manager:
       self.power_manager.__exit__(*args)
-      # self._initialized = False
-
-  def _wait_for_initialization(self):
-    print("dut initializing", file=sys.stderr)
-    result = None
-    while result != "m-init-done":
-      result = self._port._read_line()
-      print(result, file=sys.stderr)
 
   def _get_name(self):
     for l in self._port.send_command("name"):
