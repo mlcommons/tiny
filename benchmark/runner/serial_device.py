@@ -1,49 +1,75 @@
+import sys
+from queue import Empty, Queue
+from threading import Thread
+
 import serial
-import time
 
 
 class SerialDevice:
   def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n"):
-    self.port = serial.Serial(port_device, baud_rate, timeout=0.1)
-    self.delimiter = delimiter
-    self.end_of_response = end_of_response
+    self._port = serial.Serial(port_device, baud_rate, timeout=0.1)
+    self._delimiter = delimiter
+    self._end_of_response = end_of_response
+    self._message_queue = Queue()
+    self._read_thread = None
+    self._running = False
+    self._echo = False
 
   def __enter__(self):
-    self.port.__enter__()
+    self._port.__enter__()
+    self._start_read_thread()
     return self
 
   def __exit__(self, *args):
-    self.port.__exit__(*args)
+    self._stop_read_thread()
+    self._port.__exit__(*args)
 
-  def write(self, text, echo=False):
-    self.port.write(text.encode())
-    if echo: print(text, end='')
-
-  def write_line(self, text, echo=False):
-    self.write(text, echo)
-    self.write(self.delimiter, echo=False)
-    if echo: print()
-
-  def read_line(self, timeout=0):
-    result = ""
-    txt = None
-    start_time = round(time.time() * 1000)
-    while txt != "\n" and (not timeout or round(time.time() * 1000) - start_time < timeout):
-        txt = self.port.read(1).decode()
-        if txt and txt != "\n":
-            result = result + txt
+  def _read_loop(self):
+    msg = ""
+    while self._running:
+      char = self._port.read(1).decode()
+      if char and char not in '\n\r\0':
+        msg = msg + char
+      elif char == '\n':
+        if self._echo: print(f"RX:{msg}")
+        self._message_queue.put(msg)
+        msg = ""
     else:
-      if txt != "\n":
-        return None
-    return result.replace('\r', '').replace('\0', '')
+      if msg:
+        print(f"Lost bytes: {msg}")
 
-  def send_command(self, command, end=None, echo=False):
-    self.write_line(command, echo)
+  def _start_read_thread(self):
+    self._running = True
+    self._read_thread = Thread(target=self._read_loop)
+    self._read_thread.start()
+
+  def _stop_read_thread(self):
+    self._running = False
+    self._read_thread.join()
+
+  def write(self, text):
+    self._port.write(text.encode())
+
+  def write_line(self, text):
+    self.write(text)
+    self.write(self._delimiter)
+
+  def read_line(self, timeout=None):
+    result = None
+    try:
+      result = self._message_queue.get(timeout=timeout)
+    except Empty:
+      pass
+    return result
+
+  def send_command(self, command, end=None, echo=True):
+    if echo or self._echo: print(command + (self._delimiter if '\n' not in self._delimiter else ''))
+    self.write_line(command)
     lines = []
 
     while True:
       resp = self.read_line()
-      end_of_resp = (end if end is not None else self.end_of_response) in resp
+      end_of_resp = (end if end is not None else self._end_of_response) in resp
       if resp:
         lines.append(resp)
       if end_of_resp:

@@ -1,6 +1,5 @@
 import re
 import sys
-import time
 
 from interface_device import InterfaceDevice
 from serial_device import SerialDevice
@@ -12,21 +11,22 @@ class DUT:
     if not isinstance(port_device, InterfaceDevice):
       interface = SerialDevice(port_device, baud_rate, "m-ready", '%')
     self._port = interface
-    self._power_manager = power_manager
+    self.power_manager = power_manager
     self._profile = None
     self._model = None
     self._name = None
+    self._max_bytes = 26 if power_manager else 31
 
   def __enter__(self):
-    if self._power_manager:
-      self._power_manager.__enter__()
+    if self.power_manager:
+      self.power_manager.__enter__()
     self._port.__enter__()
     return self
 
   def __exit__(self, *args):
     self._port.__exit__(*args)
-    if self._power_manager:
-      self._power_manager.__exit__()
+    if self.power_manager:
+      self.power_manager.__exit__(*args)
 
   def _get_name(self):
     for l in self._port.send_command("name"):
@@ -66,20 +66,21 @@ class DUT:
     self._port.send_command(f"db load {len(data)}")
     i = 0
     while i < len(data):
-      time.sleep(0.5)
-      # print(".", end='', file=sys.stderr)
-      cmd = f"db {''.join(f'{d:02x}' for d in data[i:i+32])}"
+      cmd = f"db {''.join(f'{d:02x}' for d in data[i:i+self._max_bytes])}"
       result = self._port.send_command(cmd)
-      print(f"{result} ({i})")
-      i += 32
-    # print("", file=sys.stderr)
+      i += self._max_bytes
+    return result
 
   def infer(self, number, warmups):
     command = f"infer {number}"
     if warmups:
       command += f" {warmups}"
-    self._port.send_command(command)
-    return self._port.send_command("results")
+    if self.power_manager:
+      print(self.power_manager.start())
+    result = self._port.send_command(command)
+    if self.power_manager:
+      print(self.power_manager.stop())
+    return result
 
   def get_help(self):
     return self._port.send_command("help")
