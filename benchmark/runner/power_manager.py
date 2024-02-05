@@ -17,7 +17,7 @@ class PowerManager(SerialDevice):
     self._data_queue = Queue()
     self._message_queue = Queue()
     self._read_thread = None
-    self._running = True
+    self._running = False
 
   def __enter__(self):
     self._port.__enter__()
@@ -32,15 +32,12 @@ class PowerManager(SerialDevice):
 
   def _read_loop(self):
     while self._running:
-      line = self._port.read_line(timeout=250)
-      if line is None:
+      line = self._port.read_line(timeout=0.250)
+      if not line:
         continue
-      # print(f"RX: {line}")
       if line.startswith("TimeStamp"):
-        print(line, file=sys.stderr)
         self._data_queue.put(line)
       elif re.match("\d\d\d\d[+-]\d\d", line):
-        print(line)
         line = line.replace('+', 'e').replace('-', "e-")
         line = line[:1] + "." + line[1:]
         value = float(line)
@@ -67,12 +64,14 @@ class PowerManager(SerialDevice):
     self.set_lcd("     mlperf     ", "     monitor    ")
     self.power_off()
     # Acquire infinitely
-    self.configure_trigger(0, 0, 'd7', 'fal')
-    self.configure_output('energy', 'ascii_dec', 1000)
+    self.configure_trigger('inf', 0, 'd7')
+    self.configure_output('energy', 'ascii_dec', '1k')
     self.set_voltage(self._voltage)
     self.power_on()
+    # self.start()
 
   def _tear_down(self):
+    # self.stop()
     self._release_remote_control()
 
   def _claim_remote_control(self):
@@ -104,14 +103,13 @@ class PowerManager(SerialDevice):
         self._lcd[i] = args[i] if result else self._lcd[i]
     return self._lcd
 
-  def configure_trigger(self, acquisition_time, trigger_delay, trigger_source, trigger_type):
+  def configure_trigger(self, acquisition_time, trigger_delay, trigger_source):
     self._send_command(f"acqtime {acquisition_time}",
                        err_message=f"Error setting acquisition_time to {acquisition_time}")
     self._send_command(f"trigdelay {trigger_delay}",
                        err_message="Error setting trigger_delay to {trigger_delay}")
-    self._send_command(f"eventsrc {trigger_source} {trigger_type}",
-                       err_message=f"Error setting trigger_source to {trigger_source} "
-                                   f"and trigger_type to {trigger_type}")
+    self._send_command(f"trigsrc {trigger_source}",
+                       err_message=f"Error setting trigger_source to {trigger_source}")
 
   def configure_output(self, output_type, output_format, samples_per_second):
     self._send_command(f"output {output_type}", err_message=f"Error setting output_type to {output_type}")
@@ -132,19 +130,24 @@ class PowerManager(SerialDevice):
   def set_voltage(self, voltage):
     self._send_command(f"volt {voltage}", err_message=f"Error setting voltage to {voltage}V")
 
-  def acquire(self, samples=0):
-    self._in_prograss = True
-    print(self._send_command("start"))
-    for value in self._get_data(samples):
-      print(value)
+  def start(self):
+    return self._send_command("start")
+
+  def stop(self):
+    # stop does not ack
+    print("stop")
     self._port.write_line("stop")
-    while True:
+    lines = []
+    line = None
+    while not line or "Acquisition completed" not in line:
       line = self._message_queue.get()
       if line:
-        print(line)
-      if line == "end":
-        break
-    self._in_prograss = False
+        lines.append(line)
+    return lines
+
+  def get_results(self):
+    while not self._data_queue.empty():
+      yield self._data_queue.get()
 
   def get_status(self):
     result, output = self._send_command("status", err_message="Error getting status")
@@ -154,23 +157,10 @@ class PowerManager(SerialDevice):
     result, output = self._send_command("help", True, err_message="Error getting help")
     return output if result else None
 
-  def _get_data(self, count=0):
-    idx = 0
-    while self._in_prograss and (not count or idx < count):
-      line = self._data_queue.get()
-      if isinstance(line, str) and line.startswith("TimeStamp"):
-        print(line, file=sys.stderr)
-      elif isinstance(line, float):
-        yield line
-        if count: idx += 1
-      else:
-        print(f"UNKNOWN: {line}", file=sys.stderr)
-
   def _read_response(self, command):
     out_lines = []
     while True:
       line = self._message_queue.get()
-      # print(f"RES: {line}")
       temp = line.replace(PowerManager.PROMPT, "").strip()
       if temp and command in temp and (temp.startswith('ack') or temp.startswith('error')):
         out_lines.extend(r for r in temp.replace(command, "").split(" ", 2) if r)
@@ -196,7 +186,15 @@ class PowerManager(SerialDevice):
       if line:
         yield line
 
+  def _purge_messages(self):
+    while not self._message_queue.empty():
+      line = self._message_queue.get()
+      if line:
+        print(f"Dropping message: {line}", file=sys.stderr)
+
   def _send_command(self, command, expect_output=False, err_message=None):
+    self._purge_messages()
+    print(f"pwr {command}")
     self._port.write_line(command)
     lines = self._read_response(command)
     result = lines and lines[0] == 'ack'
@@ -229,6 +227,9 @@ class PowerManager(SerialDevice):
   # version      # Get PowerShield FW revision.                                  #
   #              # Response: '<main>.<sub1>.<sub2>'                              #
   #              #                                                               #
+  # range        # Get PowerShield current measurement range.                    #
+  #              # Response: <current min> <current max>                         #
+  #              #                                                               #
   # status       # Get PowerShield status.                                       #
   #              # Response: 'ok' or 'error: <error description>'                #
   #              #                                                               #
@@ -252,7 +253,7 @@ class PowerManager(SerialDevice):
   ################################################################################
   # volt <arg1>  # Set or get power supply voltage level, unit: V.               #
   #              # <arg1>: Set voltage: Numerical value in range [1800m; 3300m]  #
-  #              #                      Default value: 3300mV                    #
+  #              #                      Default value: 3300m                     #
   #              #         Get voltage: String 'get'                             #
   #              #                                                               #
   # freq <arg1>  # Set sampling frequency, unit: Hz.                             #
@@ -263,7 +264,7 @@ class PowerManager(SerialDevice):
   #              #                                                               #
   # acqtime      # Set acquisition time, unit: s.                                #
   # <arg1>       # <arg1>: For limited acquisition duration:                     #
-  #              #           Numerical value in range: [100u; 10]                #
+  #              #           Numerical value in range: [100u; 100]               #
   #              #         For infinite acquisition duration:                    #
   #              #           Numerical value '0' or string 'inf'                 #
   #              #         Caution: Maximum acquisition time depends on other    #
@@ -273,7 +274,7 @@ class PowerManager(SerialDevice):
   # acqmode      # Set acquisition mode: dynamic or static.                      #
   # <arg1>       #   dynamic: current can vary, range [100nA; 10mA]              #
   #              #   static: current must be constant, range [2nA; 200mA]        #
-  #              # <arg1>: String among list: {dyn, stat}                        #
+  #              # <arg1>: String among list: {'dyn', 'stat'}                    #
   #              #         Default value: 'dyn'                                  #
   #              #                                                               #
   # funcmode     # Set optimization of acquisition mode dynamic (applicable      #
@@ -282,7 +283,7 @@ class PowerManager(SerialDevice):
   #              #          max sampling frequency at 100KHz.                    #
   #              #   high:  high current (30uA-10mA), high sampling frequency    #
   #              #          (50-100KHz), high resolution.                        #
-  #              # <arg1>: String among list: {optim, high}                      #
+  #              # <arg1>: String among list: {'optim', 'high'}                  #
   #              #         Default value: 'optim'                                #
   #              #                                                               #
   # output       # Set output type.                                              #
@@ -290,7 +291,7 @@ class PowerManager(SerialDevice):
   #              #   energy:  integrated energy, reset after each sample sent    #
   #              #            (integration time set by param 'freq',             #
   #              #            limited at 10kHz max (<=> 100us min)).             #
-  #              # <arg1>: String among list: {current, energy}                  #
+  #              # <arg1>: String among list: {'current', 'energy'}              #
   #              #         Default value: 'current'                              #
   #              #                                                               #
   # format <arg1># Set measurement data format.                                  #
@@ -301,7 +302,7 @@ class PowerManager(SerialDevice):
   #              # Data format 2: Binary, hexadecimal basis.                     #
   #              #                Format optimized data stream size.             #
   #              #                Decoding: 52A0 <=> (2A0)16 x 16^-5 = 640.9uA   #
-  #              # <arg1>: String among list: {ascii_dec, bin_hexa}              #
+  #              # <arg1>: String among list: {'ascii_dec', 'bin_hexa'}          #
   #              #         Caution: Data format depends on other                 #
   #              #                  parameters. Refer to table below.            #
   #              #         Default value: 'ascii_dec'                            #
@@ -310,7 +311,7 @@ class PowerManager(SerialDevice):
   # <arg1>       # trigger source SW (immediate trig after SW start),            #
   #              # trigger from external signal rising or falling edge on        #
   #              # Arduino connector D7 (via solder bridge).                     #
-  #              # <arg1>: String among list: {sw, d7}                           #
+  #              # <arg1>: String among list: {'sw', 'd7'}                       #
   #              #         Default value: 'sw'                                   #
   #              #                                                               #
   # trigdelay    # Set trigger delay between target power-up and start           #
@@ -326,10 +327,26 @@ class PowerManager(SerialDevice):
   #              #         or value '0' for threshold disable                    #
   #              #         Default value: 1m                                     #
   #              #                                                               #
-  # pwrend       # Set target power supply to be applied after current           #
-  # <arg1>       # measurement acquisition: power-on or power-off.               #
+  # pwr          # Set target power supply connection.                           #
+  # <arg1>       # Automatic: On first run, power-on when acquisition start.     #
+  #(<arg2>)      #            Then, power state depends on command 'pwrend'.     #
+  #              # Manual: Force power state.                                    #
+  #              #         Note: Can be used during acquisition. To perform      #
+  #              #               successive power off and on, it is preferable   #
+  #              #               to use command 'targrst'.                       #
+  #              # Optionally, connection status can be sent at the beginning    #
+  #              # and end of acquisition data stream.                           #
+  #              # <arg1>: Set pwr: String among list: {'auto', 'on', 'off'}     #
+  #              #                  Default value: 'auto'                        #
+  #              #         Get pwr: String 'get' (response: state 'on' or 'off') #
+  #              # <arg2>: Optional, string among list: {'nostatus', 'status'}   #
+  #              #         Default value: 'nostatus'                             #
+  #              #                                                               #
+  # pwrend       # Set target power supply connection to be applied after        #
+  # <arg1>       # acquisition: power-on or power-off.                           #
   #              # <arg1>: String among list: {on, off}                          #
   #              #         Default value: 'on'                                   #
+  #              #                                                               #
   #              #                                                               #
   ################################################################################
   # Measurement acquisition operation                                            #
@@ -356,9 +373,11 @@ class PowerManager(SerialDevice):
   # Board state operation                                                        #
   ################################################################################
   # autotest     # Perform board autotest and display autotest results.          #
-  # <arg1>       # Note: Autotest is done at PowerShield power-up.               #
-  #              # <arg1>: Optional: string among list: {start, status}          #
+  #(<arg1>)      # Note: Autotest is done at PowerShield power-up.               #
+  #(<arg2>)      # <arg1>: Optional: string among list: {start, status}          #
   #              #                   or no argument equivalent to value: 'start' #
+  #              # <arg2>: Optional: results status all or minimal (ok - not ok) #
+  #              #                   string among list: {stat_all, stat_min}     #
   #              #                                                               #
   # calib        # Perform board self-calibration.                               #
   #              # Note: New calibration should be performed when temperature    #

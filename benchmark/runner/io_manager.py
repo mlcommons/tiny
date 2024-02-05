@@ -32,6 +32,11 @@ class IOManager(InterfaceDevice):
     size = len(data)
     pass
 
+  def read_line(self):
+    resp = self.port.read_line()
+    resp = resp.replace("[dut]: ", "")
+    return resp;
+
   def send_command(self, command, end=None, echo=False):
     resp = self.port.send_command(f"dut {command}")
     if len(resp) != 2 or resp[1] != "m-ready":
@@ -39,8 +44,7 @@ class IOManager(InterfaceDevice):
     resp = None
     lines = []
     while resp != 'm-ready':
-      resp = self.port.read_line()
-      resp = resp.replace("[dut]: ", "")
+      resp = self.read_line()
       lines.append(resp)
     return lines if len(lines) != 1 else lines[0]
 
