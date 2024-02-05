@@ -1,15 +1,20 @@
 import re
 
+
 class _ScriptStep:
-  def run(self, it, dut, dataset):
+  """Base class for script steps
+  """
+  def run(self, io, dut, dataset):
     return None
 
 
 class _ScriptDownloadStep(_ScriptStep):
-  def __init__(self, index = None):
+  """Step to download a file to the DUT
+  """
+  def __init__(self, index=None):
     self._index = None if index is None else int(index)
 
-  def run(self, it, dut, dataset):
+  def run(self, io, dut, dataset):
     file_truth, data = dataset.get_file_by_index(self._index)
     if data:
       dut.load(data)
@@ -17,18 +22,20 @@ class _ScriptDownloadStep(_ScriptStep):
 
 
 class _ScriptLoopStep(_ScriptStep):
+  """Step that implements a loop of nested steps
+  """
   def __init__(self, commands, loop_count=None):
     self._commands = [c for c in commands]
     self._loop_count = None if loop_count is None else int(loop_count)
 
-  def run(self, it, dut, dataset):
+  def run(self, io, dut, dataset):
     i = 0
     result = None if self._loop_count == 1 else []
 
     while self._loop_count is None or i < self._loop_count:
       loop_res = {}
       for cmd in self._commands:
-        r = cmd.run(it, dut, dataset)
+        r = cmd.run(io, dut, dataset)
         if r is not None:
           loop_res.update(**r)
       i += 1
@@ -41,6 +48,8 @@ class _ScriptLoopStep(_ScriptStep):
 
 
 class _ScriptInferStep(_ScriptStep):
+  """Step to execute infer on that dut
+  """
   def __init__(self, iterations=1, warmups=0):
     self._iterations = int(iterations)
     self._warmups = int(warmups)
@@ -48,14 +57,14 @@ class _ScriptInferStep(_ScriptStep):
     self._power_samples = []
     self._power_timestamps = []
 
-  def run(self, it, dut, dataset):
+  def run(self, io, dut, dataset):
     result = dut.infer(self._iterations, self._warmups)
 
-    infer_results = self._gather_infer_results(result)
+    infer_results = _ScriptInferStep._gather_infer_results(result)
 
     result = dict(infer=infer_results)
     if dut.power_manager:
-      timestamps, samples = self._gather_power_results(dut.power_manager)
+      timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
       print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
       result.update(power=dict(samples=samples,
                                timestamps=timestamps
@@ -63,13 +72,24 @@ class _ScriptInferStep(_ScriptStep):
                     )
     return result
 
-  def _gather_infer_results(self, cmd_results):
+  @staticmethod
+  def _gather_infer_results(cmd_results):
+    result = {}
     for res in cmd_results:
       match = re.match(r'^m-results-\[([^]]+)\]$', res)
       if match:
-        return [float(x) for x in match.group(1).split(',')]
+        result["results"] = [float(x) for x in match.group(1).split(',')]
+        continue
+      match = re.match(r'^m-lap-us-([0-9]+)$', res)
+      if match:
+        key = "end_time" if "start_time" in result else "start_time"
+        result[key] = int(match.group(1))
+    if "start_time" in result and "end_time" in result:
+      result["elapsed_time"] = result["end_time"] - result["start_time"]
+    return result
 
-  def _gather_power_results(self, power):
+  @staticmethod
+  def _gather_power_results(power):
     samples = []
     timeStamps = []
     if power:
@@ -83,7 +103,20 @@ class _ScriptInferStep(_ScriptStep):
     return timeStamps, samples
 
 
+class _ScriptStreamStep(_ScriptStep):
+  """Step to stream audio from an enhanced interface board
+  """
+  def __init__(self, file_name=None):
+    self._file_name = file_name
+
+  def run(self, io, dut, dataset):
+    io.play_wave(self._file_name)
+    return dict(audio_file=self._file_name)
+
+
 class Script:
+  """Script that executes a test
+  """
   def __init__(self, script):
     self.name = script.get("name")
     self.model = script.get("model")
