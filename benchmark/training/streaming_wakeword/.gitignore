@@ -1,3 +1,4 @@
 .cache/
 .ipynb_checkpoints/
 streaming_config.json
+plots/

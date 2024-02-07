@@ -150,7 +150,10 @@ def get_model(args):
   label_count=3
   model_settings = prepare_model_settings(label_count, args)
 
-
+  # For testing on long waveforms (measuring false alarms, hit rate), we 
+  # can make the model accept a variable length input
+  variable_length = ('variable_length' in args and args.variable_length)
+  
   if model_name=="ds_tcn":
     print("DS TCN model for streaming invoked")
 
@@ -180,17 +183,24 @@ def get_model(args):
       if len(param_list) != num_blocks:
         print(f"{param_name} = {param_list}")
         raise ValueError(f"All config lists must be the same length ({num_blocks}).  {param_name} has length {len(param_list)}")
-        
-    input_shape = [model_settings['spectrogram_length'], # length in time
+
+    num_frames_training = model_settings['spectrogram_length'] # length in time
+    if variable_length:
+      input_len = None # let length in time be variable
+    else:
+      input_len = num_frames_training
+      
+    input_shape = [input_len, 
                    model_settings['dct_coefficient_count'] # number of features
                    ]
-    # filters = 64
+
     weight_decay = 1e-4
     regularizer = l2(weight_decay)
 
     # Model layers
-    # Input pure conv2d
+    print(f"Input shape = {input_shape}")
     input_spec = Input(shape=input_shape)
+    
     net = input_spec
     
     # make it [batch, time, 1, feature]
@@ -208,9 +218,23 @@ def get_model(args):
                          scale=ds_scale,
                          dropout=dropout,
                          activation=activation)
-    net = tf.keras.layers.GlobalAveragePooling2D()(net)
-    if len(net.shape) > 2: # more than (batch, units)
+      
+    # net = tf.keras.layers.GlobalAveragePooling2D()(net)
+    # if input shape is variable, we have to fix the pool size, so we can't use Global Pooling, 
+    # but this has to change if preprocessing changes
+    pool_len_time = 5 # is there a good way to infer this from the shape when input length is variable (None)
+    net = tf.keras.layers.AveragePooling2D((pool_len_time,1), strides=(1,1))(net)
+
+    # time axis should be reduced to 1 after avg pool, so we don't
+    # want to flatten across time when we have variable length, since that 
+    # is modeling multiple inferences in one run.
+    if variable_length:
+      net = tf.squeeze(net, axis=2)
+    else:
       net = tf.keras.layers.Flatten()(net)
+    # if len(net.shape) > 2 and net.shape[1] is not None: # more than (batch, units)
+    #   net = tf.keras.layers.Flatten()(net)
+    
     net = tf.keras.layers.Dense(label_count)(net) 
     model =  tf.keras.Model(input_spec, net)
     
