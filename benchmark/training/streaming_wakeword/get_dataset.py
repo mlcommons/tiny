@@ -393,9 +393,9 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
 
   # create some silent samples, which noise will be added to as well
   if num_silent > 0:
-    ds_train = add_empty_frames(ds_train, input_shape=None, num_silent=num_silent, 
+    ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=num_silent, 
                                 white_noise_scale=0.1, silent_label=1)
-    ds_val = add_empty_frames(ds_val, input_shape=None, num_silent=num_silent, 
+    ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=num_silent, 
                               white_noise_scale=0.1, silent_label=1)
 
   if get_waves:
