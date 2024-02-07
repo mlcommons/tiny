@@ -9,6 +9,7 @@ from tensorflow.keras import layers
 import matplotlib.pyplot as plt
 import numpy as np
 import platform
+import json
 
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Dense, Activation, Flatten, BatchNormalization, Dropout, Reshape
@@ -153,22 +154,43 @@ def get_model(args):
   # For testing on long waveforms (measuring false alarms, hit rate), we 
   # can make the model accept a variable length input
   variable_length = ('variable_length' in args and args.variable_length)
+
+  if args.model_config_path:
+    with open(args.model_config_path, 'r') as fpi:
+        model_config = json.load(fpi)
+    print(f"Read model config from {args.model_config_path}")  
+  else:
+    model_config = None
+
   
   if model_name=="ds_tcn":
     print("DS TCN model for streaming invoked")
-
-    ds_filters          = [128, 64, 64, 64, 128]
-    ds_repeat           = [1, 1, 1, 1, 1]
-    ds_residual         = [0, 0, 0, 0, 0]
-    ds_kernel_size      = [5, 5, 11, 13, 15]
-    ds_stride           = [1, 1, 1, 1, 1]
-    ds_dilation         = [1, 1, 1, 1, 1]
-    ds_padding          = ['valid', 'valid', 'valid', 'valid', 'valid']
-    ds_filter_separable = [1, 1, 1, 1, 1]
-    ds_scale            = 1
-    ds_max_pool         = 0
-    dropout = 0.2
-    activation = "relu"
+    if model_config is not None:
+      ds_filters          = model_config['ds_filters']
+      ds_repeat           = model_config['ds_repeat']
+      ds_residual         = model_config['ds_residual']
+      ds_kernel_size      = model_config['ds_kernel_size']
+      ds_stride           = model_config['ds_stride']
+      ds_dilation         = model_config['ds_dilation']
+      ds_padding          = model_config['ds_padding']
+      ds_filter_separable = model_config['ds_filter_separable']
+      ds_scale            = model_config['ds_scale']
+      ds_max_pool         = model_config['ds_max_pool']
+      dropout             = model_config['dropout']
+      activation          = model_config['activation']
+    else:
+      ds_filters          = [128, 64, 64, 64, 128]
+      ds_repeat           = [1, 1, 1, 1, 1]
+      ds_residual         = [0, 0, 0, 0, 0]
+      ds_kernel_size      = [5, 5, 11, 13, 15]
+      ds_stride           = [1, 1, 1, 1, 1]
+      ds_dilation         = [1, 1, 1, 1, 1]
+      ds_padding          = ['valid', 'valid', 'valid', 'valid', 'valid']
+      ds_filter_separable = [1, 1, 1, 1, 1]
+      ds_scale            = 1
+      ds_max_pool         = 0
+      dropout = 0.2
+      activation = "relu"
     # check that all the lists are the same length
     num_blocks = len(ds_filters)
     for param_list, param_name in [(ds_filters         , "ds_filters"),
