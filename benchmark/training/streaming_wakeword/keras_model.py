@@ -56,7 +56,7 @@ def prepare_model_settings(label_count, args):
     'label_count': label_count,
     'sample_rate': args.sample_rate,
     'background_frequency': 0.8, # args.background_frequency
-    'background_volume_range_': 0.1
+    'background_volume_range_': args.background_volume,
   }
 
 def conv_block(inputs,

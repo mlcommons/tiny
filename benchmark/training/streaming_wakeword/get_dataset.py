@@ -392,7 +392,7 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
+    ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
     ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
