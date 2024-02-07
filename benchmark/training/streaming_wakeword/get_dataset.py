@@ -278,6 +278,27 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     raise Exception('No background wav files were found in ' + search_path)
   return background_data
 
+def add_empty_frames(ds, input_shape=None, num_silent=None, white_noise_scale=0.0, silent_label=1): 
+  """
+  ds: Dataset of dictionary elements with 'audio' and 'label'(int) keys.
+  input_shape: shape of 'audio' elements
+  num_silent: number of silenet elements to add 
+  white_noise_scale: std dev of white gaussian noise added to each silent element.
+  silent_label:  integer label paired with the silent elements
+  
+  Returns the original dataset concatenated with num_silent new elements.
+  """
+  rand_waves = rng.normal(loc=0.0, scale=white_noise_scale, size=(num_silent,)+tuple(input_shape))
+  silent_labels = silent_label * np.ones(num_silent)
+  silent_wave_ds = tf.data.Dataset.from_tensor_slices({'audio':rand_waves,
+                                                       'label':silent_labels})
+  silent_wave_ds = silent_wave_ds.map(lambda dd: {
+    'audio':tf.cast(dd['audio'], 'float32')  ,
+    'label':tf.cast(dd['label'], 'int32')
+  })
+  return ds.concatenate(silent_wave_ds)
+
+
 
 def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   
@@ -372,17 +393,11 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
 
   # create some silent samples, which noise will be added to as well
   if num_silent > 0:
-    rand_waves = rng.normal(loc=0.0, scale=0.1, size=(num_silent,)+tuple(input_shape))
-    silent_index = 1
-    silent_labels = silent_index * np.ones(num_silent)
-    silent_wave_ds = tf.data.Dataset.from_tensor_slices({'audio':rand_waves,
-                                                         'label':silent_labels})
-    silent_wave_ds = silent_wave_ds.map(lambda dd: {
-      'audio':tf.cast(dd['audio'], 'float32')  ,
-      'label':tf.cast(dd['label'], 'int32')
-    })
-    ds_train = ds_train.concatenate(silent_wave_ds)
-  
+    ds_train = add_empty_frames(ds_train, input_shape=None, num_silent=num_silent, 
+                                white_noise_scale=0.1, silent_label=1)
+    ds_val = add_empty_frames(ds_val, input_shape=None, num_silent=num_silent, 
+                              white_noise_scale=0.1, silent_label=1)
+
   if get_waves:
     ds_train = ds_train.map(cast_and_pad)
     ds_test  =  ds_test.map(cast_and_pad)
