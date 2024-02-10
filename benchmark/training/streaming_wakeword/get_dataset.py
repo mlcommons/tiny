@@ -395,7 +395,8 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   if num_silent > 0:
     ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=num_silent, 
                                 white_noise_scale=0.1, silent_label=1)
-    ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=num_silent, 
+    # about 1/8 as many validation examples as training, so add 1/8 as many silent
+    ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=int(num_silent/8), 
                               white_noise_scale=0.1, silent_label=1)
 
   if get_waves:
