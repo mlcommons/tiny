@@ -269,8 +269,9 @@ def get_model(args, use_qat=False):
     # want to flatten across time when we have variable length, since that 
     # is modeling multiple inferences in one run.
     if variable_length:
-      net = tf.squeeze(net, axis=2)
-      # net = tf.keras.layers.Reshape((-1, 2, 2))(x)
+      # net = tf.squeeze(net, axis=2) # this is what we want, but squeeze does not work with QAT
+      # keep the (unknown:-1) time duration (shape[0]) and channels (shape[-1]).  Remove the singleton feature dimension
+      net = tf.keras.layers.Reshape((-1, net.shape[-1]))(net) 
     else:
       net = tf.keras.layers.Flatten()(net)
     # if len(net.shape) > 2 and net.shape[1] is not None: # more than (batch, units)
@@ -305,7 +306,6 @@ def get_model(args, use_qat=False):
   else:
     optimizer = keras.optimizers.Adam(learning_rate=args.learning_rate)
 
-
   if use_qat:
     annotated_model = tfmot.quantization.keras.quantize_annotate_model(model)
     with tfmot.quantization.keras.quantize_scope():
@@ -324,7 +324,38 @@ def get_model(args, use_qat=False):
     # Loss function to minimize
     loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     # List of metrics to monitor
-    metrics=[keras.metrics.SparseCategoricalAccuracy()],
+    metrics=[keras.metrics.SparseCategoricalAccuracy(),
+            # keras.metrics.Precision(class_id=0), # prec = true_pos / (true_pos + false_pos)
+            # keras.metrics.Recall(class_id=0),    # recall = true_pos / (true_pos + false_neg)
+            ],
   )
 
   return model
+
+def apply_qat(float_model, Flags, init_lr=None):
+  annotated_model = tfmot.quantization.keras.quantize_annotate_model(float_model)
+  with tfmot.quantization.keras.quantize_scope():
+    qat_model = tfmot.quantization.keras.quantize_apply(
+      annotated_model,
+      scheme=DefaultNBitQuantizeScheme(
+          disable_per_axis=False,
+          num_bits_weight=8,
+          num_bits_activation=8,
+      ),
+    )  
+  if init_lr is None:
+    init_lr = Flags.learning_rate
+  optimizer = keras.optimizers.Adam(learning_rate=init_lr)
+    
+  qat_model.compile(
+    optimizer=optimizer,  # Optimizer
+    # Loss function to minimize
+    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    # List of metrics to monitor
+    metrics=[keras.metrics.SparseCategoricalAccuracy(),
+             keras.metrics.Precision(class_id=0), # prec = true_pos / (true_pos + false_pos)
+             keras.metrics.Recall(class_id=0),    # recall = true_pos / (true_pos + false_neg)
+            ],
+  )
+
+  return qat_model    

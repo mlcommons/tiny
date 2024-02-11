@@ -129,7 +129,20 @@ def parse_command():
       '--epochs',
       type=int,
       default=36,
-      help='How many epochs to train',)
+      help="""\
+      How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
+      then the model will pretrain (without QAT) for pretrain_epochs, then train 
+      with QAT for epochs-pretrain_epochs.
+      """)
+  parser.add_argument(
+      '--pretrain_epochs',
+      type=int,
+      default=20,
+      help="""\
+      How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
+      then the model will pretrain (without QAT) for pretrain_epochs, then train 
+      with QAT for epochs-pretrain_epochs.
+      """)
   parser.add_argument(
       '--num_train_samples',
       type=int,
@@ -194,7 +207,7 @@ def parse_command():
   parser.add_argument(
       '--learning_rate',
       type=float,
-      default=0.00001,
+      default=0.001,
       help='Initial LR',)
   parser.add_argument(
       '--lr_sched_name',
@@ -224,7 +237,7 @@ def parse_command():
   return Flags, unparsed
 
 
-def plot_training(plot_dir,history):
+def plot_training(plot_dir,history, suffix=''):
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
     plt.subplot(2,1,1)
@@ -240,7 +253,7 @@ def plot_training(plot_dir,history):
     plt.xlabel('Epoch')
     plt.grid(True)
     plt.legend(loc="upper left")
-    plt.savefig(plot_dir+'/acc.png')
+    plt.savefig(plot_dir+'/acc{suffix}.png')
 
 def step_function_wrapper(batch_size):
     def step_function(epoch, lr):
