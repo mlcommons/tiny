@@ -199,8 +199,12 @@ def parse_command():
   parser.add_argument(
       '--lr_sched_name',
       type=str,
-      default='step_function',
-      help='lr schedule scheme name to be picked from lr.py')  
+      default='reduce_on_plateau',
+      help="""\
+      lr schedule scheme name to be picked from lr.py.  Currently support either 
+      "reduce_on_plateau" or "step_function"
+      """
+      ) 
   parser.add_argument(
       '--plot_dir',
       type=str,
@@ -257,6 +261,9 @@ def get_callbacks(args):
     callbacks = None
     if(lr_sched_name == "step_function"):
         callbacks = [keras.callbacks.LearningRateScheduler(step_function_wrapper(batch_size),verbose=1)]
+    elif lr_sched_name == "reduce_on_plateau":
+        callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,
+                              patience=5, min_lr=1e-5)]
     return callbacks
 
 
