@@ -6,6 +6,22 @@ from tensorflow.lite.experimental.microfrontend.python.ops import audio_microfro
 from tensorflow import keras
 from tensorflow.keras import layers
 
+from tensorflow.python.platform import gfile
+
+import tensorflow_model_optimization as tfmot
+
+from tensorflow_model_optimization.python.core.quantization.keras.experimental.default_n_bit.default_n_bit_quantize_configs import (
+    NoOpQuantizeConfig,
+)
+from tensorflow_model_optimization.python.core.quantization.keras.experimental.default_n_bit.default_n_bit_quantize_registry import (
+    DefaultNBitConvQuantizeConfig,
+    DefaultNBitQuantizeConfig,
+)
+from tensorflow_model_optimization.python.core.quantization.keras.experimental.default_n_bit.default_n_bit_quantize_scheme import (
+    DefaultNBitQuantizeScheme,
+)
+
+
 import matplotlib.pyplot as plt
 import numpy as np
 import platform
@@ -145,14 +161,15 @@ def conv_block(inputs,
 
 
 
-def get_model(args):
+def get_model(args, use_qat=False):
   model_name = args.model_architecture
 
   label_count=3
   model_settings = prepare_model_settings(label_count, args)
 
   # For testing on long waveforms (measuring false alarms, hit rate), we 
-  # can make the model accept a variable length input
+  # can make the model accept a variable length input.  
+  # If flags does not have the option, default to False
   variable_length = ('variable_length' in args and args.variable_length)
 
   if args.model_config_path:
@@ -213,6 +230,7 @@ def get_model(args):
       input_len = num_frames_training
       
     input_shape = [input_len, 
+                   1,
                    model_settings['dct_coefficient_count'] # number of features
                    ]
 
@@ -226,7 +244,7 @@ def get_model(args):
     net = input_spec
     
     # make it [batch, time, 1, feature]
-    net = tf.keras.backend.expand_dims(net, axis=2)
+    # net = tf.keras.backend.expand_dims(net, axis=2)
     
     for count in range(len(ds_stride)):  
       net = conv_block(net, repeat=ds_repeat[count], 
@@ -252,6 +270,7 @@ def get_model(args):
     # is modeling multiple inferences in one run.
     if variable_length:
       net = tf.squeeze(net, axis=2)
+      # net = tf.keras.layers.Reshape((-1, 2, 2))(x)
     else:
       net = tf.keras.layers.Flatten()(net)
     # if len(net.shape) > 2 and net.shape[1] is not None: # more than (batch, units)
@@ -285,7 +304,20 @@ def get_model(args):
     optimizer = keras.optimizers.legacy.Adam(learning_rate=args.learning_rate)
   else:
     optimizer = keras.optimizers.Adam(learning_rate=args.learning_rate)
- 
+
+
+  if use_qat:
+    annotated_model = tfmot.quantization.keras.quantize_annotate_model(model)
+    with tfmot.quantization.keras.quantize_scope():
+        model = tfmot.quantization.keras.quantize_apply(
+            annotated_model,
+            scheme=DefaultNBitQuantizeScheme(
+                disable_per_axis=False,
+                num_bits_weight=8,
+                num_bits_activation=8,
+            ),
+        )  
+        
   model.compile(
     #optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
     optimizer=optimizer,  # Optimizer

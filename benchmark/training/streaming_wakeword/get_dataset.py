@@ -18,8 +18,6 @@ import keras_model as models
 
 rng = np.random.default_rng(2024)
 word_labels = ["Marvin", "Silence", "Unknown"]
-reps_of_known = 5
-num_silent = 10000
 
 def decode_audio(audio_binary):
   # Decode WAV-encoded audio files to `float32` tensors, normalized
@@ -222,7 +220,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
           linear_to_mel_weight_matrix.shape[-1:]))
 
       log_mel_spec = 10 * log10(mel_spectrograms)
-      # log_mel_spec = tf.expand_dims(log_mel_spec, -1, name="mel_spec")
+      log_mel_spec = tf.expand_dims(log_mel_spec, -2, name="mel_spec")
     
       log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
       log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
@@ -385,18 +383,21 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   # noise will be added to them later
   
   ds_only_target = ds_train.filter(lambda dat: dat['label'] == 0)
-  for _ in range(reps_of_known):
+  for _ in range(Flags.reps_of_target_training):
      ds_train = ds_train.concatenate(ds_only_target)
+
+  for _ in range(Flags.reps_of_target_validation):
+     ds_val = ds_val.concatenate(ds_only_target)
     
   for dat in ds_train.take(1):
     input_shape = dat['audio'].shape # we'll need this to build the silent dataset
 
   # create some silent samples, which noise will be added to as well
-  if num_silent > 0:
-    ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=num_silent, 
+  if Flags.num_silent_training > 0:
+    ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=Flags.num_silent_training, 
                                 white_noise_scale=0.1, silent_label=1)
-    # about 1/8 as many validation examples as training, so add 1/8 as many silent
-    ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=int(num_silent/8), 
+  if Flags.num_silent_validation > 0:
+    ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=int(Flags.num_silent_validation), 
                               white_noise_scale=0.1, silent_label=1)
 
   if get_waves:
@@ -408,10 +409,10 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=True,
+    ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=False,
+    ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
     # change output from a dictionary to a feature,label tuple

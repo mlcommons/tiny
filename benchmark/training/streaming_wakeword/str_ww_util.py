@@ -22,6 +22,43 @@ def parse_command():
       Where to find background noise folder.
       """)
   parser.add_argument(
+      '--use_qat',
+      type=bool,
+      default=True,
+      help="""\
+      Enable quantization-aware training
+      """)
+  parser.add_argument(
+      '--reps_of_target_training',
+      type=int,
+      default=12,
+      help="""\
+      Number of repetitions of the target wakeword added to the training set (before noise is added).
+      """)
+  parser.add_argument(
+      '--reps_of_target_validation',
+      type=int,
+      default=2,
+      help="""\
+      Number of repetitions of the target wakeword added to the validation set (before noise is added).
+      """)    
+  parser.add_argument(
+      '--num_silent_training',
+      type=int,
+      default=10000,
+      help="""\
+      Number of silent frames added to the training set (before noise is added).
+      """)
+  parser.add_argument(
+      '--num_silent_validation',
+      type=int,
+      default=1200,
+      help="""\
+      Number of silent frames added to the validation set (before noise is added).
+      """)    
+
+    
+  parser.add_argument(
       '--background_volume',
       type=float,
       default=0.1,
