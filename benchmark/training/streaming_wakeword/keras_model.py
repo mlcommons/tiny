@@ -158,9 +158,20 @@ def conv_block(inputs,
   net = keras.layers.Dropout(rate=dropout)(net)
   return net
 
-
-
-
+def select_optimizer(Flags, learning_rate):
+  """
+  Flags = Parsed command line arguments.
+  Chooses an optimizer, (potentially) using the command line flags and platform architecture.
+  Currently just returns Adam, but uses the legacy Adam on Apple Silicon, because standard Keras adam 
+      is reported to run slow on Apple processors.
+  """
+  if platform.processor() == 'arm':
+    print(f"Apple Silicon platform detected. Using legacy adam as standard Keras Adam is slow on this processor.")
+    optimizer = keras.optimizers.legacy.Adam(learning_rate=learning_rate)
+  else:
+    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
+  return optimizer
+  
 def get_model(args, use_qat=False):
   model_name = args.model_architecture
 
@@ -300,11 +311,8 @@ def get_model(args, use_qat=False):
 
   else:
     raise ValueError("Model name {:} not supported".format(model_name))
-  if platform.processor() == 'arm':
-    print(f"Apple Silicon platform detected. Using legacy adam as standard Keras Adam is slow on this processor.")
-    optimizer = keras.optimizers.legacy.Adam(learning_rate=args.learning_rate)
-  else:
-    optimizer = keras.optimizers.Adam(learning_rate=args.learning_rate)
+
+  optimizer = select_optimizer(args, args.learning_rate)
 
   if use_qat:
     annotated_model = tfmot.quantization.keras.quantize_annotate_model(model)
@@ -319,18 +327,17 @@ def get_model(args, use_qat=False):
         )  
         
   model.compile(
-    #optimizer=keras.optimizers.RMSprop(learning_rate=args.learning_rate),  # Optimizer
-    optimizer=optimizer,  # Optimizer
-    # Loss function to minimize
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-    # List of metrics to monitor
-    metrics=[keras.metrics.SparseCategoricalAccuracy(),
-            # keras.metrics.Precision(class_id=0), # prec = true_pos / (true_pos + false_pos)
-            # keras.metrics.Recall(class_id=0),    # recall = true_pos / (true_pos + false_neg)
+    optimizer=optimizer,  
+    loss=keras.losses.CategoricalCrossentropy(from_logits=True),
+    metrics=[keras.metrics.CategoricalAccuracy(),
+            keras.metrics.Precision(class_id=0), # prec = true_pos / (true_pos + false_pos)
+            keras.metrics.Recall(class_id=0),    # recall = true_pos / (true_pos + false_neg)
             ],
   )
 
   return model
+
+
 
 def apply_qat(float_model, Flags, init_lr=None):
   annotated_model = tfmot.quantization.keras.quantize_annotate_model(float_model)
@@ -345,14 +352,15 @@ def apply_qat(float_model, Flags, init_lr=None):
     )  
   if init_lr is None:
     init_lr = Flags.learning_rate
-  optimizer = keras.optimizers.Adam(learning_rate=init_lr)
+    
+  optimizer = select_optimizer(Flags, init_lr)
     
   qat_model.compile(
     optimizer=optimizer,  # Optimizer
     # Loss function to minimize
-    loss=keras.losses.SparseCategoricalCrossentropy(from_logits=True),
+    loss=keras.losses.CategoricalCrossentropy(from_logits=True),
     # List of metrics to monitor
-    metrics=[keras.metrics.SparseCategoricalAccuracy(),
+    metrics=[keras.metrics.CategoricalAccuracy(),
              keras.metrics.Precision(class_id=0), # prec = true_pos / (true_pos + false_pos)
              keras.metrics.Recall(class_id=0),    # recall = true_pos / (true_pos + false_neg)
             ],
