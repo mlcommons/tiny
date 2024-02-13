@@ -276,7 +276,7 @@ def get_callbacks(args):
         callbacks = [keras.callbacks.LearningRateScheduler(step_function_wrapper(batch_size),verbose=1)]
     elif lr_sched_name == "reduce_on_plateau":
         callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5,
-                              patience=5, min_lr=1e-5)]
+                                                       patience=3, min_lr=1e-6)]
     return callbacks
 
 
