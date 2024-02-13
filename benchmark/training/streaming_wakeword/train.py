@@ -57,12 +57,13 @@ model.summary()
 callbacks = util.get_callbacks(args=Flags)   
 
 if Flags.use_qat:
-  float_epochs = Flags.pretrain_epochs
+  float_epochs = np.min([Flags.epochs, Flags.pretrain_epochs])
   qat_epochs = Flags.epochs - Flags.pretrain_epochs
 else:
   float_epochs = Flags.epochs
   qat_epochs = 0
-    
+
+train_hist = None # need a place holder for later
 if float_epochs > 0:
   train_hist = model.fit(ds_train, validation_data=ds_val, epochs=float_epochs, callbacks=callbacks)
   util.plot_training(Flags.plot_dir,train_hist)
@@ -79,7 +80,15 @@ if qat_epochs > 0:
   util.plot_training(Flags.plot_dir,train_hist_qat, suffix='_qat')
   model.save(Flags.saved_model_path)
 
-
+# append the QAT metrics log to the float training log 
+if train_hist is None:
+  train_hist = train_hist_qat
+elif qat_epochs > 0: # if we trained with QAT, append the QAT logs to the main train_hist
+  train_hist.epoch += train_hist_qat.epoch
+  for k in train_hist.history:
+    train_hist.history[k] += train_hist_qat.history[k]
+    
+util.plot_training(Flags.plot_dir,train_hist, suffix='_combined')
 
 if Flags.run_test_set:
   test_scores = model.evaluate(ds_test)

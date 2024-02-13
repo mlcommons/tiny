@@ -55,9 +55,7 @@ def parse_command():
       default=1200,
       help="""\
       Number of silent frames added to the validation set (before noise is added).
-      """)    
-
-    
+      """)
   parser.add_argument(
       '--background_volume',
       type=float,
@@ -140,8 +138,9 @@ def parse_command():
       default=20,
       help="""\
       How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
-      then the model will pretrain (without QAT) for pretrain_epochs, then train 
-      with QAT for epochs-pretrain_epochs.
+      then the model will pretrain (without QAT) for pretrain_epochs, then fine-tune 
+      with QAT for epochs-pretrain_epochs.  If pretrain_epochs > epochs, then there
+      will be no QAT fine-tuning.
       """)
   parser.add_argument(
       '--num_train_samples',
@@ -241,10 +240,18 @@ def plot_training(plot_dir,history, suffix=''):
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
     plt.subplot(2,1,1)
-    plt.plot(history.history['sparse_categorical_accuracy'], label='Training Accuracy')
-    plt.plot(history.history['val_sparse_categorical_accuracy'], label='Val Accuracy')
-    plt.title('Accuracy vs Epoch')
-    plt.ylabel('Accuracy')
+    plt.plot(history.history['categorical_accuracy'], label='Training Accuracy')
+    plt.plot(history.history['val_categorical_accuracy'], label='Val Accuracy')
+    if 'precision' in history.history:
+      plt.plot(history.history['precision'], label='Training Precision')
+    if 'recall' in history.history:
+      plt.plot(history.history['recall'], label='Training Recall')
+    if 'precision' in history.history:
+      plt.plot(history.history['val_precision'], label='Val Precision')
+    if 'recall' in history.history:
+      plt.plot(history.history['val_recall'], label='Val Recall')
+    plt.title('Metrics vs Epoch')
+    plt.xlabel('Epoch')
     plt.grid(True)
     plt.subplot(2,1,2)
     plt.plot(history.history['loss'], label='Loss')
@@ -253,7 +260,7 @@ def plot_training(plot_dir,history, suffix=''):
     plt.xlabel('Epoch')
     plt.grid(True)
     plt.legend(loc="upper left")
-    plt.savefig(plot_dir+'/acc{suffix}.png')
+    plt.savefig(f"{plot_dir}/acc{suffix}.png")
 
 def step_function_wrapper(batch_size):
     def step_function(epoch, lr):

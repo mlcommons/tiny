@@ -79,11 +79,11 @@ def cast_and_pad(sample_dict):
 def convert_dataset(item):
   """Puts the mnist dataset in the format Keras expects, (features, labels)."""
   audio = item['audio']
-  label = item['label']
+  label = tf.one_hot(item['label'], depth=3, axis=-1, )
   return audio, label
 
 
-def get_preprocess_audio_func(model_settings,is_training=False,background_data = []):
+def get_preprocess_audio_func(model_settings,is_training=False,background_data = [], wave_frame_input=False):
   def prepare_processing_graph(next_element):
     """Builds a TensorFlow graph to apply the input distortions.
     Creates a graph that loads a WAVE file, decodes it, scales the volume,
@@ -105,26 +105,36 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     background_frequency = model_settings['background_frequency']
     background_volume_range_= model_settings['background_volume_range_']
 
-    wav_decoder = tf.cast(next_element['audio'], tf.float32)
-    if model_settings['feature_type'] != "td_samples":
-      wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
+    if wave_frame_input:
+      wav_decoder = tf.cast(next_element, tf.float32)
     else:
-      wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
-    #Previously, decode_wav was used with desired_samples as the length of array. The
-    # default option of this function was to pad zeros if the desired samples are not found
-    wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
-    # Allow the audio sample's volume to be adjusted.
-    foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
+      wav_decoder = tf.cast(next_element['audio'], tf.float32)
     
-    scaled_foreground = tf.multiply(wav_decoder,
-                                    foreground_volume_placeholder_)
-    # Shift the sample's start position, and pad any gaps with zeros.
-    time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
-    time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
-    scaled_foreground.shape
-    padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
-    sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
-  
+    if model_settings['feature_type'] == "td_samples":
+      wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
+    elif not wave_frame_input: # don't rescale if we're only processing one frame of samples
+      wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
+            
+    print(f"wav_decoder shape = {wav_decoder.shape}")
+    if wave_frame_input:
+      sliced_foreground = wav_decoder
+    else:
+      #Previously, decode_wav was used with desired_samples as the length of array. The
+      # default option of this function was to pad zeros if the desired samples are not found
+      wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
+      
+      # Allow the audio sample's volume to be adjusted.
+      foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
+      
+      scaled_foreground = tf.multiply(wav_decoder,
+                                      foreground_volume_placeholder_)
+      # Shift the sample's start position, and pad any gaps with zeros.
+      time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
+      time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
+      
+      padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
+      sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
+    print(f"sliced_foreground shape = {sliced_foreground.shape}")
     if is_training and background_data != []:
       background_volume_range = tf.constant(background_volume_range_,dtype=tf.float32)
       background_index = np.random.randint(len(background_data))
@@ -145,39 +155,17 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       background_add = tf.add(background_mul, sliced_foreground)
       sliced_foreground = tf.clip_by_value(background_add, -1.0, 1.0)
     
-    if model_settings['feature_type'] == 'mfcc':
-      stfts = tf.signal.stft(sliced_foreground,
-                             frame_length=model_settings['window_size_samples'], 
-                             frame_step=model_settings['window_stride_samples'],
-                             fft_length=None,
-                             window_fn=tf.signal.hann_window
-                             )
-      spectrograms = tf.abs(stfts)
-      num_spectrogram_bins = stfts.shape[-1]
-      # default values used by contrib_audio.mfcc as shown here
-      # https://kite.com/python/docs/tensorflow.contrib.slim.rev_block_lib.contrib_framework_ops.audio_ops.mfcc
-      lower_edge_hertz, upper_edge_hertz, num_mel_bins = 20.0, 4000.0, 40 
-      linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix( num_mel_bins, num_spectrogram_bins,
-                                                                           model_settings['sample_rate'],
-                                                                           lower_edge_hertz, upper_edge_hertz)
-      mel_spectrograms = tf.tensordot(spectrograms, linear_to_mel_weight_matrix, 1)
-      mel_spectrograms.set_shape(spectrograms.shape[:-1].concatenate(linear_to_mel_weight_matrix.shape[-1:]))
-      # Compute a stabilized log to get log-magnitude mel-scale spectrograms.
-      log_mel_spectrograms = tf.math.log(mel_spectrograms + 1e-6)
-      # Compute MFCCs from log_mel_spectrograms and take the first 13.
-      mfccs = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrograms)[..., :model_settings['dct_coefficient_count']]
-      mfccs = tf.reshape(mfccs,[model_settings['spectrogram_length'], model_settings['dct_coefficient_count'], 1])
-      next_element['audio'] = mfccs
-      #next_element['label'] = tf.one_hot(next_element['label'],12)
-
-    elif model_settings['feature_type'] == 'lfbe':
+    if model_settings['feature_type'] == 'lfbe':
       # apply preemphasis
       preemphasis_coef = 1 - 2 ** -5
       power_offset = 52
       num_mel_bins = model_settings['dct_coefficient_count']
       paddings = tf.constant([[0, 0], [1, 0]])
       # for some reason, tf.pad only works with the extra batch dimension, but then we remove it after pad
-      sliced_foreground = tf.expand_dims(sliced_foreground, 0)
+      if not wave_frame_input: # the feature extractor comes in already batched
+        sliced_foreground = tf.expand_dims(sliced_foreground, 0)
+      print(f"sliced_foreground shape = {sliced_foreground.shape}") # 
+      print(f"paddings shape[] = {paddings.shape}")
       sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
       sliced_foreground = tf.squeeze(sliced_foreground) 
@@ -225,7 +213,12 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
       log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
 
-      next_element['audio'] = log_mel_spec
+      if wave_frame_input: 
+        # for building a feature extractor model, we need to return a tensor
+        next_element = log_mel_spec
+      else:
+        # for building a dataset, we're returning a dictionary
+        next_element['audio'] = log_mel_spec
 
     elif model_settings['feature_type'] == 'td_samples':
       ## sliced_foreground should have the right data.  Make sure it's the right format (int16)
