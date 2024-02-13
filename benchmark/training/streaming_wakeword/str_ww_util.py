@@ -253,6 +253,7 @@ def plot_training(plot_dir,history, suffix=''):
       plt.plot(history.history['val_recall'], label='Val Recall')
     plt.title('Metrics vs Epoch')
     plt.xlabel('Epoch')
+    plt.legend(loc="lower left")
     plt.grid(True)
     plt.subplot(2,1,2)
     plt.plot(history.history['loss'], label='Loss')
