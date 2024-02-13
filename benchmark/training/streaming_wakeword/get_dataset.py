@@ -115,7 +115,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     elif not wave_frame_input: # don't rescale if we're only processing one frame of samples
       wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
             
-    print(f"wav_decoder shape = {wav_decoder.shape}")
     if wave_frame_input:
       sliced_foreground = wav_decoder
     else:
@@ -134,7 +133,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       
       padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
       sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
-    print(f"sliced_foreground shape = {sliced_foreground.shape}")
     if is_training and background_data != []:
       background_volume_range = tf.constant(background_volume_range_,dtype=tf.float32)
       background_index = np.random.randint(len(background_data))
@@ -164,8 +162,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       # for some reason, tf.pad only works with the extra batch dimension, but then we remove it after pad
       if not wave_frame_input: # the feature extractor comes in already batched
         sliced_foreground = tf.expand_dims(sliced_foreground, 0)
-      print(f"sliced_foreground shape = {sliced_foreground.shape}") # 
-      print(f"paddings shape[] = {paddings.shape}")
       sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
       sliced_foreground = tf.squeeze(sliced_foreground) 

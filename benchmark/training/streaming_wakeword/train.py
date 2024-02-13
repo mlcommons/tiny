@@ -68,6 +68,10 @@ if float_epochs > 0:
   train_hist = model.fit(ds_train, validation_data=ds_val, epochs=float_epochs, callbacks=callbacks)
   util.plot_training(Flags.plot_dir,train_hist)
   model.save(Flags.saved_model_path.split('.')[0] + '_float.h5')
+  print(f"After pure floating-point training. On training set:")
+  model.evaluate(ds_train)
+  print(f"On validation set:")
+  model.evaluate(ds_val)
 
 
 # get the final learning rate after fine tuning so we can start back at the same LR
@@ -79,6 +83,10 @@ if qat_epochs > 0:
                                  epochs=qat_epochs, callbacks=callbacks)
   util.plot_training(Flags.plot_dir,train_hist_qat, suffix='_qat')
   model.save(Flags.saved_model_path)
+  print(f"After QAT training/fine-tuning. On training set:")
+  model.evaluate(ds_train)
+  print(f"On validation set:")
+  model.evaluate(ds_val)
 
 # append the QAT metrics log to the float training log 
 if train_hist is None:

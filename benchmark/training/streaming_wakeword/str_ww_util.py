@@ -239,6 +239,7 @@ def parse_command():
 def plot_training(plot_dir,history, suffix=''):
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
+    plt.clf()
     plt.subplot(2,1,1)
     plt.plot(history.history['categorical_accuracy'], label='Training Accuracy')
     plt.plot(history.history['val_categorical_accuracy'], label='Val Accuracy')
