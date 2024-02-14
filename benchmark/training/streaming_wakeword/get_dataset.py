@@ -84,6 +84,13 @@ def convert_dataset(item):
 
 
 def get_preprocess_audio_func(model_settings,is_training=False,background_data = [], wave_frame_input=False):
+  """
+  model_settings,                  :  Dictionary of model parameters
+  is_training=False,               :  If true, add background noise to the input waveforms training.
+  background_data = [],            :  List of background noise waveforms (as TF arrays)
+  wave_frame_input (default False) :  If True, build a dedicated model to extract features.  This is mostly
+                                      intended to be exported to a TFLite model that can run on the DUT
+  """
   def prepare_processing_graph(next_element):
     """Builds a TensorFlow graph to apply the input distortions.
     Creates a graph that loads a WAVE file, decodes it, scales the volume,
@@ -164,7 +171,8 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
         sliced_foreground = tf.expand_dims(sliced_foreground, 0)
       sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
-      sliced_foreground = tf.squeeze(sliced_foreground) 
+      sliced_foreground = tf.squeeze(sliced_foreground)
+      print("sliced_foreground {sliced_foreground.shape}")
       # compute fft
       stfts = tf.signal.stft(sliced_foreground,  frame_length=model_settings['window_size_samples'], 
                              frame_step=model_settings['window_stride_samples'], fft_length=None,

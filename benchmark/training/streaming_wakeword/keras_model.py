@@ -330,8 +330,8 @@ def get_model(args, use_qat=False):
     optimizer=optimizer,  
     loss=keras.losses.CategoricalCrossentropy(from_logits=True),
     metrics=[keras.metrics.CategoricalAccuracy(),
-            keras.metrics.Precision(class_id=0), # prec = true_pos / (true_pos + false_pos)
-            keras.metrics.Recall(class_id=0),    # recall = true_pos / (true_pos + false_neg)
+            keras.metrics.Precision(class_id=0, name='precision'), # prec = true_pos / (true_pos + false_pos)
+            keras.metrics.Recall(class_id=0, name='recall'),    # recall = true_pos / (true_pos + false_neg)
             ],
   )
 
@@ -361,8 +361,8 @@ def apply_qat(float_model, Flags, init_lr=None):
     loss=keras.losses.CategoricalCrossentropy(from_logits=True),
     # List of metrics to monitor
     metrics=[keras.metrics.CategoricalAccuracy(),
-             keras.metrics.Precision(class_id=0), # prec = true_pos / (true_pos + false_pos)
-             keras.metrics.Recall(class_id=0),    # recall = true_pos / (true_pos + false_neg)
+             keras.metrics.Precision(class_id=0, name='precision'), # prec = true_pos / (true_pos + false_pos)
+             keras.metrics.Recall(class_id=0, name='recall'),    # recall = true_pos / (true_pos + false_neg)
             ],
   )
 

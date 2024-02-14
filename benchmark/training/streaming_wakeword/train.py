@@ -75,6 +75,7 @@ if float_epochs > 0:
 
 
 # get the final learning rate after fine tuning so we can start back at the same LR
+# This may not work with eg a cosine schedule on pre-training
 post_train_lr = model.optimizer._decayed_lr(np.float32)
 
 if qat_epochs > 0:
@@ -94,7 +95,11 @@ if train_hist is None:
 elif qat_epochs > 0: # if we trained with QAT, append the QAT logs to the main train_hist
   train_hist.epoch += train_hist_qat.epoch
   for k in train_hist.history:
-    train_hist.history[k] += train_hist_qat.history[k]
+    if k in train_hist_qat.history:
+      train_hist.history[k] += train_hist_qat.history[k]
+    else:
+      print(f"{k} present in train_hist but not train_hist_qat")
+      print(f"train_hist_qat = {train_hist_qat.history}\n====")
     
 util.plot_training(Flags.plot_dir,train_hist, suffix='_combined')
 
