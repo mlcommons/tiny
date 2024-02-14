@@ -35,7 +35,7 @@ namespace Audio
     virtual ~WaveSink() { }
     PlayerResult Play(WaveSource &source);
   protected:
-    virtual void Configure(const WaveSource &source) = 0;
+    virtual PlayerResult Configure(const WaveSource &source) = 0;
     virtual PlayerState GetState() = 0;
     virtual PlayerState Initialize() = 0;
     virtual PlayerResult Play(UCHAR *buffer, ULONG size) = 0;

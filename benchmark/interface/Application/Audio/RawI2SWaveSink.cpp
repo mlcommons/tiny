@@ -31,11 +31,43 @@ namespace Audio
     return GetState();
   }
 
-  void RawI2SWaveSink::Configure(const WaveSource &source)
+  static LONG ConvertChannels(INT channelCount)
   {
-//    BSP_AUDIO_OUT_SetBitsPerSample(0, source.GetSampleSize());
-//    BSP_AUDIO_OUT_SetChannelsNbr(0, source.GetChannelCount());
-//    BSP_AUDIO_OUT_SetSampleRate(0, source.GetFrequency());
+    switch(channelCount)
+    {
+      case 1:
+        return SAI_MONOMODE;
+      case 2:
+        return SAI_STEREOMODE;
+      default:
+        return -1;
+    }
+  }
+
+  static LONG ConvertSampleSize(INT bitCount)
+  {
+    switch(bitCount)
+    {
+      case 16:
+        return SAI_PROTOCOL_DATASIZE_16BIT;
+      case 24:
+        return SAI_PROTOCOL_DATASIZE_24BIT;
+      case 32:
+        return SAI_PROTOCOL_DATASIZE_32BIT;
+      default:
+        return -1;
+    }
+  }
+
+  PlayerResult RawI2SWaveSink::Configure(const WaveSource &source)
+  {
+    hsai_BlockB1.Init.AudioFrequency = source.GetFrequency();
+    hsai_BlockB1.Init.MonoStereoMode = ConvertChannels(source.GetChannelCount());
+    if (HAL_SAI_InitProtocol(&hsai_BlockB1, SAI_I2S_STANDARD,
+                             ConvertSampleSize(source.GetSampleSize()),
+                             source.GetChannelCount()) != HAL_OK)
+      return ERROR;
+    return SUCCESS;
   }
 
   PlayerResult RawI2SWaveSink::Play(UCHAR *buffer, ULONG size)
