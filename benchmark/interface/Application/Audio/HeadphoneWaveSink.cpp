@@ -31,11 +31,12 @@ namespace Audio
     return GetState();
   }
 
-  void HeadphoneWaveSink::Configure(const WaveSource &source)
+  PlayerResult HeadphoneWaveSink::Configure(const WaveSource &source)
   {
     BSP_AUDIO_OUT_SetBitsPerSample(0, source.GetSampleSize());
     BSP_AUDIO_OUT_SetChannelsNbr(0, source.GetChannelCount());
     BSP_AUDIO_OUT_SetSampleRate(0, source.GetFrequency());
+    return SUCCESS;
   }
 
   PlayerResult HeadphoneWaveSink::Play(UCHAR *buffer, ULONG size)
