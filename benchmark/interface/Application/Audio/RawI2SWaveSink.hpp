@@ -10,7 +10,7 @@ namespace Audio
   public:
     RawI2SWaveSink(Tasks::TaskRunner &runner, TX_BYTE_POOL &byte_pool);
   protected:
-    void Configure(const WaveSource &source);
+    PlayerResult Configure(const WaveSource &source);
     PlayerState GetState();
     PlayerState Initialize();
     PlayerResult Play(UCHAR *buffer, ULONG size);
