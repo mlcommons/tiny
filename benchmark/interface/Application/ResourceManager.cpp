@@ -1,4 +1,4 @@
-//#include "Audio/HeadphoneWaveSink.hpp"
+#include "Audio/HeadphoneWaveSink.hpp"
 #include "Audio/RawI2SWaveSink.hpp"
 #include "ResourceManager.hpp"
 #include "usart.h"

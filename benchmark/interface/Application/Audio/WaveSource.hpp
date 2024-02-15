@@ -22,7 +22,7 @@ namespace Audio
     UCHAR Close();
     UCHAR Seek(ULONG position);
     ULONG ReadData(void *dest, ULONG length);
-    ULONG GetPosition() const { return data_index; };
+    ULONG GetPosition() const { return source.GetPosition() - data_offset; };
     UCHAR GetInfo(TX_QUEUE * const queue);
   private:
     IDataSource &source;
@@ -37,7 +37,6 @@ namespace Audio
     USHORT bits_per_sample;
     UINT data_size;
     UINT data_offset;
-    UINT data_index;
   };
 }
 
