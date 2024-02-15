@@ -74,7 +74,21 @@ namespace Audio
   {
     if(state == STOPPED)
     {
-      HAL_SAI_Transmit_DMA(&hsai_BlockB1, buffer, size);
+      ULONG nbrSamples;
+      switch(hsai_BlockB1.Init.DataSize)
+      {
+        case SAI_DATASIZE_16:
+          nbrSamples = size / 2;
+          break;
+        case SAI_DATASIZE_24:
+        case SAI_DATASIZE_32:
+          nbrSamples = size / 4;
+          break;
+        default:
+          nbrSamples = size;
+          break;
+      }
+      HAL_SAI_Transmit_DMA(&hsai_BlockB1, buffer, nbrSamples);
       state = PLAYING;
       return SUCCESS;
     }

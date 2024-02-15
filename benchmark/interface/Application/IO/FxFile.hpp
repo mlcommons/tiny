@@ -39,7 +39,7 @@ namespace IO
       return result == FX_SUCCESS ? actual_size : 0;
     }
 
-    ULONG GetPosition() const { return file.fx_file_current_logical_offset; }
+    ULONG GetPosition() const { return file.fx_file_current_file_offset; }
 
     operator const CHAR *() const { return name.c_str(); }
 
