@@ -172,7 +172,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
       sliced_foreground = tf.squeeze(sliced_foreground)
-      print("sliced_foreground {sliced_foreground.shape}")
+      # print(f"sliced_foreground {sliced_foreground.shape}")
       # compute fft
       stfts = tf.signal.stft(sliced_foreground,  frame_length=model_settings['window_size_samples'], 
                              frame_step=model_settings['window_stride_samples'], fft_length=None,
@@ -305,10 +305,6 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   bg_path=Flags.bg_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
   background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
-
-  splits = ['train', 'test', 'validation']
-  # (ds_train, ds_test, ds_val), ds_info = tfds.load('speech_commands', split=splits, 
-  #                                               data_dir=Flags.data_dir, with_info=True)
 
   AUTOTUNE = tf.data.AUTOTUNE
 
