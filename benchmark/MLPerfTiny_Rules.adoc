@@ -350,6 +350,97 @@ The following techniques are disallowed:
 * Techniques that only improve performance when there are identical
   samples in a query.
 
+== Reproducibility and Availability
+
+A reproducible submission should unequivocally identify the hardware, the
+software, and any other important part of the test setup to a level that allows
+the reproduction of the test run and verification of the run results.
+
+Systems can be submitted in three categories of "availability", according to
+which different requirements hold:
+
+=== Available Systems
+for the most stringent "available" category both the hardware and the software
+should be available to 3rd parties, freely or commercially. When evaluating
+whether a submission should be in the available category, the submission (source
+code, binaries, documentation), the hardware, and the software stack needed to
+compile the source code and/or load binaries should all be considered.
+
+All source code, binaries, and documentation which are part of the submission
+will be made public on the date of results publication, and thus are considered
+available. (TBC question of license: "the implementation should be submitted
+under a license that permits a commercial entity to freely use the
+implementation for benchmarking.")
+
+Available cloud systems must (1) have available pricing (either publicly
+advertised or available by request), (2) have been rented by at least one third
+party, (3) have public evidence of availability (web page saying product is
+available, statement by company, etc), and (4) be “reasonably available” for
+rent by additional third parties by the submission date.
+
+An on-premise system is Available if all of its components that substantially
+determine ML performance are Available either individually or in aggregate
+(development boards that meet the substantially determine clause are allowed).
+An Available component or system must (1) have available pricing (either
+publicly advertised or available by request), (2) have been shipped to at least
+one third party, (3) have public evidence of availability (web page saying
+product is available, statement by company, etc), and (4) be “reasonably
+available” for purchase by additional third parties by the submission date. In
+addition, submissions for on-premise systems must describe the system and its
+components in sufficient detail to enable third parties to build a similar
+system.
+
+In both cases, “reasonably available” means:
+
+Supply and lead times are appropriate for system scale, i.e. on-demand and in
+quantity for the smallest systems and a few months and with limited supply for
+the largest systems.
+
+Access to rent or purchase may be subject to conditions that are common to
+generally available products (such as financial qualifications, size of
+customer, support burden, export restrictions, etc.) but is not otherwise
+restricted (i.e. no “early access” approval requirements).
+
+However, it is allowed for the qualifying pre-submission rentals/purchases to
+have been made with restrictions such as “early access” approval.
+
+Available systems must use an Available software stack. A software stack
+consists of the set of software components that substantially determine ML
+performance but are not in the uploaded source code. For instance, for training
+this includes at a minimum any required ML framework (e.g. TensorFlow, pyTorch)
+and ML accelerator library (e.g. cuDNN, MKL). An Available software stack
+consists of only Available software components.
+
+An Available software component must be well supported for general use. For open
+source software, the software may be based on any commit in an "official" repo
+plus optionally any PRs to support a particular architecture. For binaries, the
+binary must be made available as release, or as a "beta" release with the
+requirement that optimizations will be included in a future "official" release.
+The beta must be made available to customers as a clear part of the release
+sequence. The software must be available at the time of submission.
+
+For any questions not defined above, please refer to the subsequent FAQ section
+and to the
+https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#731-available-systems[General
+MLPerf Submission Rules]. Ultimately, it is the role of the Review Committee to
+decide in questions of availabilty as part of the review process.
+
+==== Available by the submission date vs. by the publication date
+
+The above availability requirement has a due date by
+the submission date. In some cases we've seen that
+publication date might work better. Opinions?
+
+=== Preview Systems
+
+Please refer to the
+https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#732-preview-systems[General MLPerf Submission Rules].
+
+=== Research, Development, or Internal Systems
+
+Please refer to the
+https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#research-development-or-internal-systems[General MLPerf Submission Rules].
+
 == FAQ
 
 Q: Do I have to use the reference implementation framework?
