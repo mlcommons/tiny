@@ -75,6 +75,12 @@ as fairly as possible. Ethics and reputation matter.
 The same system and framework must be used for a suite result or set of
 benchmark results reported in a single context.
 
+=== Several submissions allowed from the same organization
+
+If an organization submits results using different systems and/or frameworks,
+these should be clearly separated in the submission and in the reporting of
+results.
+
 === Replicability is mandatory
 
 Results that cannot be replicated are not valid results. The submission should
