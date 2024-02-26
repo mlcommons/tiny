@@ -90,10 +90,11 @@ variance in hardware manufacturing and environmental conditions).
 
 === Benchmark implementations must be shared
 
-Source code used for the benchmark implementations must be open-sourced under a
-license that permits a commercial entity to freely use the implementation for
-benchmarking. The code must be available as long as the results are actively
-used.
+As part of the submission, benchmark implementation should be documented to a level
+of detail that allows reproduction of the results by a third party. These submissions
+will be shared publicly together with the publication of results under a permissive
+license. For more details on what is accepted as a reproducible submission, see the
+dedicated section later on.
 
 === Non-determinism is restricted
 
