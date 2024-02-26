@@ -259,7 +259,9 @@ much much smaller than the non-zero weights it produces.
 Calibration is allowed and must only use the calibration data set provided by
 the benchmark owner. Submitters may choose to use only a subset of the calibration data set.
 
-Additionally, MLPerf may provide an INT8 reference for all models.
+Additionally, MLPerf may provide an INT8 reference for all models. This INT8 version is purely
+informational, and serves only to demonstrate post-training quantization in the reference
+implementation.
 
 OPEN: Weights and biases must be initialized to the same values for each run,
 any quantization scheme is allowed that achieves the desired quality.
