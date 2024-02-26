@@ -28,7 +28,7 @@ This document describes how to implement one or more benchmarks in the MLPerf Ti
 Inference Suite and how to use those implementations to measure the performance
 of an ML system performing inference.
 
-There are seperate rules for the submission, review, and publication process for all MLPerf benchmarks https://github.com/mlperf/policies/blob/master/submission_rules.adoc[here].
+There are separate rules for the submission, review, and publication process for all MLPerf benchmarks https://github.com/mlperf/policies/blob/master/submission_rules.adoc[here].
 
 The MLPerf name and logo are trademarks. In order to refer to a result using the
 MLPerf name, the result must conform to the letter and spirit of the rules
@@ -52,7 +52,7 @@ drivers that significantly influences the running time of a benchmark.
 A _reference implementation_ is a specific implementation of a benchmark
 provided by the MLPerf organization.  The reference implementation is the
 canonical implementation of a benchmark. All valid submissions to the closed division
-of a benchmarkmust be *equivalent* to the reference implementation.
+of a benchmark must be *equivalent* to the reference implementation.
 
 A _run_ is a complete execution of a benchmark implementation on a system under
 the control of the load generator that consists of completing a set of inference
