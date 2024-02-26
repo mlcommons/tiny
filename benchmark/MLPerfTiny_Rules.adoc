@@ -5,8 +5,8 @@
 
 = MLPerf Tiny Inference Rules
 
-Version 0.5
-Updated April 30th, 2021.
+Version 1.2
+Updated February 25th, 2024.
 
 This version has been updated, but is not yet final.
 
@@ -113,12 +113,12 @@ Results that cannot be replicated are not valid results.
 
 === Audit Process
 
-In depth audits will not be conducted in this version (v0.5) of MLPerf Tiny
+In depth audits will not be conducted in this version (v1.2) of MLPerf Tiny
 
 
 == Scenarios
 
-MLPerf Tiny only supports the Single Stream scenario in this version (v0.5).
+MLPerf Tiny only supports the Single Stream scenario in this version (v1.2).
 
 == Benchmarks
 
@@ -206,7 +206,7 @@ The Open division allows using an arbitrary training dataset, training script, o
 The qualified name “MLPerf Open” must be used when
 referring to an Open Division suite result, e.g. “a MLPerf Open result of 7.2.”
 
-Pre- and Post-processing are not timed in v0.5 of the benchmark and are therefore
+Pre- and Post-processing are not timed in v1.2 of the benchmark and are therefore
 can not be changed.
 
 == Data Sets
