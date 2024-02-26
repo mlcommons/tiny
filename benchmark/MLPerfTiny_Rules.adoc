@@ -75,6 +75,13 @@ as fairly as possible. Ethics and reputation matter.
 The same system and framework must be used for a suite result or set of
 benchmark results reported in a single context.
 
+=== Replicability is mandatory
+
+Results that cannot be replicated are not valid results. The submission should
+contain enough information to unequivocally replicate the run, and these should
+lead to the same run results (up to a reasonable margin due to non-determinism and
+variance in hardware manufacturing and environmental conditions).
+
 === Benchmark implementations must be shared
 
 Source code used for the benchmark implementations must be open-sourced under a
@@ -106,10 +113,6 @@ benchmarks.
 
 The implementation should not encode any information about the content of the
 input dataset in any form.
-
-=== Replicability is mandatory
-
-Results that cannot be replicated are not valid results.
 
 === Audit Process
 
