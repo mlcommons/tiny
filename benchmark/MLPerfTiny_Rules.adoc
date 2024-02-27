@@ -404,7 +404,7 @@ For any questions not defined above, please refer to the subsequent FAQ section
 and to the
 https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#731-available-systems[General
 MLPerf Submission Rules]. Ultimately, it is the role of the Review Committee to
-decide in questions of availabilty as part of the review process.
+decide in questions of availability as part of the review process.
 
 === Preview Systems
 
