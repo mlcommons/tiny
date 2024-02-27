@@ -406,12 +406,6 @@ https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#731-avai
 MLPerf Submission Rules]. Ultimately, it is the role of the Review Committee to
 decide in questions of availabilty as part of the review process.
 
-==== Available by the submission date vs. by the publication date
-
-The above availability requirement has a due date by
-the submission date. In some cases we've seen that
-publication date might work better. Opinions?
-
 === Preview Systems
 
 Please refer to the
