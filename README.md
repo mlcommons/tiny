@@ -15,16 +15,17 @@ Submitters can directly use the TFLM, although submitters are encouraged to use 
 
 For the current version of the benchmark under development, please see the [benchmark folder](https://github.com/mlcommons/tiny/tree/master/benchmark).
 
-The **deadline** of the next submission round v1.1 is expected to be May 19, 2023, with publication in June (dates not yet finalized).
+The **deadline** of the next submission round v1.2 is expected to be March 15, 2024, with publication in April (dates not yet finalized).
 
-Previous versions are frozen using git tags as follows:
+Results of previous versions are available on the [MLCommons web page](https://mlcommons.org/benchmarks/inference-tiny/) (change between version using the table headers). The code of previous versions and detailed submissions are available as in the table below:
 
-| Version | Code                                        | Release Date | Results                                     |
-|---------|---------------------------------------------|--------------|---------------------------------------------|
-| v0.5    | https://github.com/mlcommons/tiny/tree/v0.5 | Jun 16, 2021 | https://mlcommons.org/en/inference-tiny-05/ |
-| v0.7    | https://github.com/mlcommons/tiny/tree/v0.7 |April  6, 2022| https://mlcommons.org/en/inference-tiny-07/ |
-| v1.0    | https://github.com/mlcommons/tiny/tree/v1.0 | Nov 9, 2022  | https://mlcommons.org/en/inference-tiny-10/ |
-|         |                                             |              |                                             |
+| Version | Code Repository                             | Release Date | Results Repository                             |
+|---------|---------------------------------------------|--------------|------------------------------------------------|
+| v0.5    | https://github.com/mlcommons/tiny/tree/v0.5 | Jun 16, 2021 | https://github.com/mlcommons/tiny_results_v0.5 |
+| v0.7    | https://github.com/mlcommons/tiny/tree/v0.7 |April  6, 2022| https://github.com/mlcommons/tiny_results_v0.7 |
+| v1.0    | https://github.com/mlcommons/tiny/tree/v1.0 | Nov 9, 2022  | https://github.com/mlcommons/tiny_results_v1.0 |
+| v1.1    | https://github.com/mlcommons/tiny/tree/v1.1 | Jun 27, 2023 | https://github.com/mlcommons/tiny_results_v1.1 |
+|         |                                             |              |                                                |
 
 
 Please see the [MLPerf Tiny Benchmark](https://arxiv.org/pdf/2106.07597.pdf) paper for a detailed description of the motivation and guiding principles behind the benchmark suite. If you use any part of this benchmark (e.g., reference implementations, submissions, etc.) in academic work, please cite the following:
