@@ -1,0 +1,22 @@
+- name: stm32h573i-dk
+  type: interface
+  preference: 2
+  usb:
+    0x0483: 0x374E
+- name: arduino
+  type: interface
+  preference: 1
+  usb:
+    0x2341:
+      - 0x0043
+      - 0x0001
+    0x2a03:
+      - 0x0043
+      - 0x0243
+- name: lpm01a
+  usb_description: PowerShield
+  type: power
+- name: l4r5zi
+  type: dut
+  usb:
+    0x0483: 0x374B
