@@ -24,6 +24,7 @@ def parse_command():
   parser.add_argument(
       '--use_qat',
       type=bool,
+      action=argparse.BooleanOptionalAction,
       default=True,
       help="""\
       Enable quantization-aware training
@@ -182,6 +183,7 @@ def parse_command():
   parser.add_argument(
       '--run_test_set',
       type=bool,
+      action=argparse.BooleanOptionalAction,
       default=True,
       help='In train.py, run model.eval() on test set if True')
   parser.add_argument(
