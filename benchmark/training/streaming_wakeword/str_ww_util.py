@@ -10,7 +10,7 @@ def parse_command():
   parser.add_argument(
       '--data_dir',
       type=str,
-      default=os.path.join(os.getenv('HOME'), 'data'),
+      default=os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02'),
       help="""\
       Where to download the speech training data to. Or where it is already saved.
       """)
