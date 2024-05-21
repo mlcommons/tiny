@@ -23,12 +23,19 @@ def parse_command():
       """)
   parser.add_argument(
       '--use_qat',
-      type=bool,
-      action=argparse.BooleanOptionalAction,
-      default=True,
+      dest='use_qat',
+      action='store_true',
       help="""\
       Enable quantization-aware training
       """)
+  parser.add_argument(
+      '--no_use_qat',
+      dest='use_qat',
+      action='store_false',
+      help="""\
+      no_use_qat will disable quantization-aware training
+      """)
+  parser.set_defaults(use_qat=True)
   parser.add_argument(
       '--reps_of_target_training',
       type=int,
@@ -182,10 +189,15 @@ def parse_command():
       help='What model architecture to use')
   parser.add_argument(
       '--run_test_set',
-      type=bool,
-      action=argparse.BooleanOptionalAction,
-      default=True,
+      dest='run_test_set',
+      action="store_true",
       help='In train.py, run model.eval() on test set if True')
+  parser.add_argument(
+      '--no_run_test_set',
+      dest='run_test_set',
+      action="store_false",
+      help='In train.py, do not run model.eval() on test set')
+  parser.set_defaults(run_test_set=True)
   parser.add_argument(
       '--saved_model_path',
       type=str,
