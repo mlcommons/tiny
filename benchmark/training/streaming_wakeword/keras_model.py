@@ -337,8 +337,6 @@ def get_model(args, use_qat=False):
 
   return model
 
-
-
 def apply_qat(float_model, Flags, init_lr=None):
   annotated_model = tfmot.quantization.keras.quantize_annotate_model(float_model)
   with tfmot.quantization.keras.quantize_scope():
