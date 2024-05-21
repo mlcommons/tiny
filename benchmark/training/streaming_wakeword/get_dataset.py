@@ -421,6 +421,11 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   if Flags.num_test_samples != -1:
     ds_test = ds_test.take(Flags.num_test_samples)
 
+  # Cache at this point, so we don't have to repeat all the spectrogram calculations each epoch
+  ds_train = ds_train.cache()
+  ds_val = ds_val.cache()
+  ds_test = ds_test.cache()
+  
   # Now that we've acquired the preprocessed data, either by processing or loading,
   ds_train = ds_train.batch(Flags.batch_size)
   ds_test = ds_test.batch(Flags.batch_size)  
