@@ -463,7 +463,7 @@ def count_labels(ds, label_index=1):
   return label_counts
 
 if __name__ == '__main__':
-  Flags, unparsed = util.parse_command()
+  Flags = util.parse_command()
   ds_train, ds_test, ds_val = get_training_data(Flags)
 
   for dat in ds_train.take(1):
