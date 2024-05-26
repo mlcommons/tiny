@@ -27,10 +27,13 @@ import str_ww_util as util
 
 num_classes = 3 # should probably draw this directly from the dataset.
 
-Flags, unparsed = util.parse_command()
+Flags = util.parse_command()
+print(f"Flags={Flags}\n")
+
 
 print('We will download data to {:}'.format(Flags.data_dir))
 print('We will train for {:} epochs'.format(Flags.epochs))
+print(20*'-')
 
 ds_train, ds_test, ds_val = str_ww_data.get_training_data(Flags)
 print("Done getting data")
@@ -63,6 +66,8 @@ else:
   float_epochs = Flags.epochs
   qat_epochs = 0
 
+print(f"QAT enabled={Flags.use_qat}. About to train with {float_epochs} pretraining/float epochs followed by {qat_epochs} QAT epochs.")
+
 train_hist = None # need a place holder for later
 if float_epochs > 0:
   train_hist = model.fit(ds_train, validation_data=ds_val, epochs=float_epochs, callbacks=callbacks)
@@ -75,8 +80,9 @@ if float_epochs > 0:
 
 
 # get the final learning rate after fine tuning so we can start back at the same LR
-# This may not work with eg a cosine schedule on pre-training
-post_train_lr = model.optimizer._decayed_lr(np.float32)
+# This may not work/make sense with eg a cosine schedule on pre-training
+post_train_lr = model.optimizer.lr.numpy()
+print(f"After initial float training, LR = {post_train_lr}")
 
 if qat_epochs > 0:
   model_qat = models.apply_qat(model, Flags, init_lr=post_train_lr)

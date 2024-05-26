@@ -246,8 +246,8 @@ def parse_command():
       For eval_quantized_model, which set to measure.
       """)
 
-  Flags, unparsed = parser.parse_known_args()
-  return Flags, unparsed
+  Flags = parser.parse_args()
+  return Flags
 
 
 def plot_training(plot_dir,history, suffix=''):
