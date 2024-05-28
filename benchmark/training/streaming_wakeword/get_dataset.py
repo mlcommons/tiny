@@ -111,7 +111,10 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     desired_samples = model_settings['desired_samples']
     background_frequency = model_settings['background_frequency']
     background_volume_range_= model_settings['background_volume_range_']
+    foreground_volume_min_ = model_settings['foreground_volume_min']
+    foreground_volume_max_ = model_settings['foreground_volume_max']
 
+    
     if wave_frame_input:
       wav_decoder = tf.cast(next_element, tf.float32)
     else:
@@ -121,7 +124,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
     elif not wave_frame_input: # don't rescale if we're only processing one frame of samples
       wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
-            
+    
     if wave_frame_input:
       sliced_foreground = wav_decoder
     else:
@@ -130,7 +133,12 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
       
       # Allow the audio sample's volume to be adjusted.
-      foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
+      # foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
+
+      # foreground_volume_min_ = tf.constant(foreground_volume_min_, dtype=tf.float32)
+      # foreground_volume_max_ = tf.constant(foreground_volume_max_, dtype=tf.float32)
+
+      foreground_volume_placeholder_ = np.random.uniform(foreground_volume_min_, foreground_volume_max_)
       
       scaled_foreground = tf.multiply(wav_decoder,
                                       foreground_volume_placeholder_)
@@ -172,7 +180,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
       sliced_foreground = tf.squeeze(sliced_foreground)
-      # print(f"sliced_foreground {sliced_foreground.shape}")
+      print(f"sliced_foreground {sliced_foreground.shape}")
       # compute fft
       stfts = tf.signal.stft(sliced_foreground,  frame_length=model_settings['window_size_samples'], 
                              frame_step=model_settings['window_stride_samples'], fft_length=None,
