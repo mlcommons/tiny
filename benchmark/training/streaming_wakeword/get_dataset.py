@@ -405,6 +405,7 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
     ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    # is_training=True => add background noise to the validation set
     ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=True,
                                                       background_data=background_data),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
