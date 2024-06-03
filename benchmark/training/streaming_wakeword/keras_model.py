@@ -61,6 +61,7 @@ def prepare_model_settings(label_count, args):
     else:
       spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
       fingerprint_size = args.dct_coefficient_count * spectrogram_length
+  
   return {
     'desired_samples': desired_samples,
     'window_size_samples': window_size_samples,
@@ -73,6 +74,9 @@ def prepare_model_settings(label_count, args):
     'sample_rate': args.sample_rate,
     'background_frequency': 0.8, # args.background_frequency
     'background_volume_range_': args.background_volume,
+    'foreground_volume_min': args.foreground_volume_min,
+    'foreground_volume_max': args.foreground_volume_max,
+
   }
 
 def conv_block(inputs,

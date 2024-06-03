@@ -17,7 +17,7 @@ def parse_command():
   parser.add_argument(
       '--bg_path',
       type=str,
-      default=os.path.join(os.getenv('PWD')),
+      default=os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02'),
       help="""\
       Where to find background noise folder.
       """)
@@ -64,6 +64,22 @@ def parse_command():
       help="""\
       Number of silent frames added to the validation set (before noise is added).
       """)
+  parser.add_argument(
+      '--foreground_volume_min',
+      type=float,
+      default=0.05,
+      help="""\
+      Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      """)
+  parser.add_argument(
+      '--foreground_volume_max',
+      type=float,
+      default=1.0,
+      help="""\
+      Maximum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      """)  
   parser.add_argument(
       '--background_volume',
       type=float,
@@ -247,6 +263,11 @@ def parse_command():
       """)
 
   Flags = parser.parse_args()
+
+  if Flags.foreground_volume_min > Flags.foreground_volume_max:
+    raise ValueError(f"foreground_volume_min ({Flags.foreground_volume_min}) must be no",
+                     f"larger than foreground_volume_max ({Flags.foreground_volume_max})")
+
   return Flags
 
 
