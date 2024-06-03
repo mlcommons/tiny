@@ -24,7 +24,6 @@ import keras_model as models
 import get_dataset as str_ww_data
 import str_ww_util as util
 
-
 num_classes = 3 # should probably draw this directly from the dataset.
 
 Flags = util.parse_command()
@@ -108,6 +107,7 @@ elif qat_epochs > 0: # if we trained with QAT, append the QAT logs to the main t
       print(f"train_hist_qat = {train_hist_qat.history}\n====")
     
 util.plot_training(Flags.plot_dir,train_hist, suffix='_combined')
+np.savez(os.path.join(Flags.plot_dir, "train_hist.npz"), train_hist)
 
 if Flags.run_test_set:
   test_scores = model.evaluate(ds_test)
