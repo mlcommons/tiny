@@ -129,13 +129,13 @@ def parse_command():
   parser.add_argument(
       '--window_size_ms',
       type=float,
-      default=30.0,
+      default=64.0,
       help='How long each spectrogram timeslice is',)
   parser.add_argument(
       '--window_stride_ms',
       type=float,
-      default=20.0,
-      help='How long each spectrogram timeslice is',)
+      default=32.0,
+      help='How much time between each spectrogram timeslice.',)
   parser.add_argument(
       '--feature_type',
       type=str,
@@ -145,7 +145,7 @@ def parse_command():
   parser.add_argument(
       '--dct_coefficient_count',
       type=int,
-      default=40,
+      default=32,
       help='How many MFCC or log filterbank energy features')
   parser.add_argument(
       '--epochs',

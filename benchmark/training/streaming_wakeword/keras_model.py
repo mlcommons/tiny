@@ -210,7 +210,7 @@ def get_model(args, use_qat=False):
       dropout             = model_config['dropout']
       activation          = model_config['activation']
     else:
-      ds_filters          = [128, 64, 64, 64, 128]
+      ds_filters          = [128, 64, 64, 64, 32]
       ds_repeat           = [1, 1, 1, 1, 1]
       ds_residual         = [0, 0, 0, 0, 0]
       ds_kernel_size      = [5, 5, 11, 13, 15]
