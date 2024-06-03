@@ -114,12 +114,14 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     foreground_volume_min_ = model_settings['foreground_volume_min']
     foreground_volume_max_ = model_settings['foreground_volume_max']
 
-    
     if wave_frame_input:
       wav_decoder = tf.cast(next_element, tf.float32)
     else:
       wav_decoder = tf.cast(next_element['audio'], tf.float32)
     
+
+    if not wave_frame_input: # don't rescale if we're only processing one frame of samples
+      wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
     if model_settings['feature_type'] == "td_samples":
       wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
     elif not wave_frame_input: # don't rescale if we're only processing one frame of samples
@@ -128,17 +130,14 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     if wave_frame_input:
       sliced_foreground = wav_decoder
     else:
-      #Previously, decode_wav was used with desired_samples as the length of array. The
+      # Previously, decode_wav was used with desired_samples as the length of array. The
       # default option of this function was to pad zeros if the desired samples are not found
       wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
       
       # Allow the audio sample's volume to be adjusted.
       # foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
-
-      # foreground_volume_min_ = tf.constant(foreground_volume_min_, dtype=tf.float32)
-      # foreground_volume_max_ = tf.constant(foreground_volume_max_, dtype=tf.float32)
-
-      foreground_volume_placeholder_ = np.random.uniform(foreground_volume_min_, foreground_volume_max_)
+      # square the value to emphasize the low-amplitude values
+      foreground_volume_placeholder_ = (np.random.uniform(foreground_volume_min_, foreground_volume_max_))**2
       
       scaled_foreground = tf.multiply(wav_decoder,
                                       foreground_volume_placeholder_)

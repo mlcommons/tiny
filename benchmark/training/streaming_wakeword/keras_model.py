@@ -76,7 +76,6 @@ def prepare_model_settings(label_count, args):
     'background_volume_range_': args.background_volume,
     'foreground_volume_min': args.foreground_volume_min,
     'foreground_volume_max': args.foreground_volume_max,
-
   }
 
 def conv_block(inputs,
