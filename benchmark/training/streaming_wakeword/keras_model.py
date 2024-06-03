@@ -198,6 +198,7 @@ def get_model(args, use_qat=False):
   if model_name=="ds_tcn":
     print("DS TCN model for streaming invoked")
     if model_config is not None:
+      print(f"Using model config from {args.model_config_path}")
       ds_filters          = model_config['ds_filters']
       ds_repeat           = model_config['ds_repeat']
       ds_residual         = model_config['ds_residual']
@@ -211,14 +212,15 @@ def get_model(args, use_qat=False):
       dropout             = model_config['dropout']
       activation          = model_config['activation']
     else:
-      ds_filters          = [128, 64, 64, 64, 32]
-      ds_repeat           = [1, 1, 1, 1, 1]
-      ds_residual         = [0, 0, 0, 0, 0]
-      ds_kernel_size      = [5, 5, 11, 13, 15]
-      ds_stride           = [1, 1, 1, 1, 1]
-      ds_dilation         = [1, 1, 1, 1, 1]
-      ds_padding          = ['valid', 'valid', 'valid', 'valid', 'valid']
-      ds_filter_separable = [1, 1, 1, 1, 1]
+      print(f"Using default model config (hard-coded in keras_model.py)")
+      ds_filters          = [128, 64, 64, 32]
+      ds_repeat           = [1, 1, 1, 1]
+      ds_residual         = [0, 0, 0, 0]
+      ds_kernel_size      = [3, 5, 10, 15]
+      ds_stride           = [1, 1, 1, 1]
+      ds_dilation         = [1, 1, 1, 1]
+      ds_padding          = ['valid', 'valid', 'valid', 'valid']
+      ds_filter_separable = [1, 1, 1, 1]
       ds_scale            = 1
       ds_max_pool         = 0
       dropout = 0.2
@@ -277,8 +279,10 @@ def get_model(args, use_qat=False):
     # net = tf.keras.layers.GlobalAveragePooling2D()(net)
     # if input shape is variable, we have to fix the pool size, so we can't use Global Pooling, 
     # but this has to change if preprocessing changes
-    pool_len_time = 5 # is there a good way to infer this from the shape when input length is variable (None)
-    net = tf.keras.layers.AveragePooling2D((pool_len_time,1), strides=(1,1))(net)
+
+    ## added length to DSC filters so there is nothing left to average in the time dimension
+    # pool_len_time = 5 # is there a good way to infer this from the shape when input length is variable (None)
+    # net = tf.keras.layers.AveragePooling2D((pool_len_time,1), strides=(1,1))(net)
 
     # time axis should be reduced to 1 after avg pool, so we don't
     # want to flatten across time when we have variable length, since that 
