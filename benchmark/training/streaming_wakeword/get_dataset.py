@@ -121,12 +121,12 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     
 
     if not wave_frame_input: # don't rescale if we're only processing one frame of samples
+      print(f"setting to zero mean and unit max")
+      wav_decoder = wav_decoder - tf.reduce_mean(wav_decoder) # 
       wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
     if model_settings['feature_type'] == "td_samples":
       wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
-    elif not wave_frame_input: # don't rescale if we're only processing one frame of samples
-      wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
-    
+
     if wave_frame_input:
       sliced_foreground = wav_decoder
     else:
@@ -137,7 +137,8 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       # Allow the audio sample's volume to be adjusted.
       # foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
       # square the value to emphasize the low-amplitude values
-      foreground_volume_placeholder_ = (np.random.uniform(foreground_volume_min_, foreground_volume_max_))**2
+      # foreground_volume_placeholder_ = (np.random.uniform(foreground_volume_min_, foreground_volume_max_))**2
+      foreground_volume_placeholder_ = tf.random.uniform([1],minval=foreground_volume_min_,maxval=foreground_volume_max_)[0]
       
       scaled_foreground = tf.multiply(wav_decoder,
                                       foreground_volume_placeholder_)
@@ -386,8 +387,9 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   for _ in range(Flags.reps_of_target_training):
      ds_train = ds_train.concatenate(ds_only_target)
 
-  for _ in range(Flags.reps_of_target_validation):
-     ds_val = ds_val.concatenate(ds_only_target)
+  if not val_cal_subset:
+    for _ in range(Flags.reps_of_target_validation):
+      ds_val = ds_val.concatenate(ds_only_target)
     
   for dat in ds_train.take(1):
     input_shape = dat['audio'].shape # we'll need this to build the silent dataset
@@ -396,7 +398,7 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   if Flags.num_silent_training > 0:
     ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=Flags.num_silent_training, 
                                 white_noise_scale=0.1, silent_label=1)
-  if Flags.num_silent_validation > 0:
+  if Flags.num_silent_validation > 0 and not val_cal_subset:
     ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=int(Flags.num_silent_validation), 
                               white_noise_scale=0.1, silent_label=1)
 
