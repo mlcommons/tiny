@@ -145,7 +145,7 @@ def parse_command():
   parser.add_argument(
       '--dct_coefficient_count',
       type=int,
-      default=32,
+      default=40,
       help='How many MFCC or log filterbank energy features')
   parser.add_argument(
       '--epochs',
