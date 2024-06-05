@@ -91,6 +91,9 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
   wave_frame_input (default False) :  If True, build a dedicated model to extract features.  This is mostly
                                       intended to be exported to a TFLite model that can run on the DUT
   """
+  
+  # building a TF graph here, but do not use tf.function, because the 
+  # if statements should be evaluated at graph construction time, not evaluation time
   def prepare_processing_graph(next_element):
     """Builds a TensorFlow graph to apply the input distortions.
     Creates a graph that loads a WAVE file, decodes it, scales the volume,
@@ -121,12 +124,12 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     
 
     if not wave_frame_input: # don't rescale if we're only processing one frame of samples
+      print(f"setting to zero mean and unit max")
+      wav_decoder = wav_decoder - tf.reduce_mean(wav_decoder) # 
       wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
     if model_settings['feature_type'] == "td_samples":
       wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
-    elif not wave_frame_input: # don't rescale if we're only processing one frame of samples
-      wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
-    
+
     if wave_frame_input:
       sliced_foreground = wav_decoder
     else:
@@ -137,7 +140,8 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       # Allow the audio sample's volume to be adjusted.
       # foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
       # square the value to emphasize the low-amplitude values
-      foreground_volume_placeholder_ = (np.random.uniform(foreground_volume_min_, foreground_volume_max_))**2
+      # foreground_volume_placeholder_ = (np.random.uniform(foreground_volume_min_, foreground_volume_max_))**2
+      foreground_volume_placeholder_ = tf.random.uniform([1],minval=foreground_volume_min_,maxval=foreground_volume_max_)[0]
       
       scaled_foreground = tf.multiply(wav_decoder,
                                       foreground_volume_placeholder_)
@@ -149,24 +153,28 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
     if is_training and background_data != []:
       background_volume_range = tf.constant(background_volume_range_,dtype=tf.float32)
-      background_index = np.random.randint(len(background_data))
-      background_samples = background_data[background_index]
-      background_offset = np.random.randint(0, len(background_samples) - desired_samples)
+      background_index = tf.random.uniform([1],minval=0,maxval=len(background_data), dtype=tf.int32)[0]
+      # background_samples = background_data[background_index]
+      background_samples = tf.gather(background_data, background_index) # graph-compatible equivalent to background_data[background_index]
+      background_offset = tf.random.uniform([1],minval=0,maxval=len(background_samples) - desired_samples, dtype=tf.int32)[0]
       background_clipped = background_samples[background_offset:(background_offset + desired_samples)]
       background_clipped = tf.squeeze(background_clipped)
-      background_reshaped = tf.pad(background_clipped,[[0,desired_samples-tf.shape(wav_decoder)[-1]]])
+      background_reshaped =  tf.pad(background_clipped,[[0,desired_samples-tf.shape(wav_decoder)[-1]]])
       background_reshaped = tf.cast(background_reshaped, tf.float32)
-      if np.random.uniform(0, 1) < background_frequency:
-        background_volume = np.random.uniform(0, background_volume_range_)
-      else:
-        background_volume = 0
-      background_volume_placeholder_ = tf.constant(background_volume,dtype=tf.float32)
+      
+      bg_rand_draw = tf.random.uniform([1],minval=0.0,maxval=1.0)[0]
+      background_volume_placeholder_ = tf.cond(
+        bg_rand_draw < background_frequency, 
+        lambda: tf.random.uniform([1],minval=0.5,maxval=background_volume_range_, dtype=tf.float32)[0],
+        lambda: tf.constant(0.0, dtype=tf.float32)
+      )
+
       background_data_placeholder_ = background_reshaped
       background_mul = tf.multiply(background_data_placeholder_,
                            background_volume_placeholder_)
       background_add = tf.add(background_mul, sliced_foreground)
       sliced_foreground = tf.clip_by_value(background_add, -1.0, 1.0)
-    
+
     if model_settings['feature_type'] == 'lfbe':
       # apply preemphasis
       preemphasis_coef = 1 - 2 ** -5
@@ -226,10 +234,11 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
 
       if wave_frame_input: 
         # for building a feature extractor model, we need to return a tensor
-        next_element = log_mel_spec
+        output_element = log_mel_spec
       else:
         # for building a dataset, we're returning a dictionary
-        next_element['audio'] = log_mel_spec
+        # next_element['audio'] = log_mel_spec
+        output_element = {'label':next_element['label'], 'audio':log_mel_spec}
 
     elif model_settings['feature_type'] == 'td_samples':
       ## sliced_foreground should have the right data.  Make sure it's the right format (int16)
@@ -238,9 +247,10 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       wav_padded = tf.pad(sliced_foreground, paddings)
       wav_padded = tf.expand_dims(wav_padded, -1)
       wav_padded = tf.expand_dims(wav_padded, -1)
-      next_element['audio'] = wav_padded
+      # next_element['audio'] = wav_padded
+      output_element = {'label':next_element['label'], 'audio':wav_padded}
       
-    return next_element
+    return output_element # next_element
   
   return prepare_processing_graph
 
@@ -271,11 +281,21 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
   #for wav_path in gfile.Glob(search_path):
   #    wav_data = sess.run(wav_decoder, feed_dict={wav_filename_placeholder: wav_path}).audio.flatten()
   #    self.background_data.append(wav_data)
+
+  # In order to work with tf.gather later, the background audio all need to be of the same length
+  # so we'll find the shortest length here, and clip the others to it.
+  min_len = np.inf
   for wav_path in gfile.Glob(search_path):
     #audio = tfio.audio.AudioIOTensor(wav_path)
     raw_audio = tf.io.read_file(wav_path)
     audio = tf.audio.decode_wav(raw_audio)
     background_data.append(audio[0])
+    min_len = np.minimum(min_len, len(audio[0])).astype(int)
+    
+  for i,bd in enumerate(background_data):
+    print(f"{i}: {type(bd)}, shape = {bd.shape}")
+    background_data[i] = bd[:min_len]
+
   if not background_data:
     raise Exception('No background wav files were found in ' + search_path)
   return background_data
@@ -386,8 +406,9 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   for _ in range(Flags.reps_of_target_training):
      ds_train = ds_train.concatenate(ds_only_target)
 
-  for _ in range(Flags.reps_of_target_validation):
-     ds_val = ds_val.concatenate(ds_only_target)
+  if not val_cal_subset:
+    for _ in range(Flags.reps_of_target_validation):
+      ds_val = ds_val.concatenate(ds_only_target)
     
   for dat in ds_train.take(1):
     input_shape = dat['audio'].shape # we'll need this to build the silent dataset
@@ -396,7 +417,7 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   if Flags.num_silent_training > 0:
     ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=Flags.num_silent_training, 
                                 white_noise_scale=0.1, silent_label=1)
-  if Flags.num_silent_validation > 0:
+  if Flags.num_silent_validation > 0 and not val_cal_subset:
     ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=int(Flags.num_silent_validation), 
                               white_noise_scale=0.1, silent_label=1)
 
