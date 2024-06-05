@@ -212,7 +212,7 @@ def get_model(args, use_qat=False):
       activation          = model_config['activation']
     else:
       print(f"Using default model config (hard-coded in keras_model.py)")
-      ds_filters          = [128, 64, 64, 32]
+      ds_filters          = [128, 128, 128, 32]
       ds_repeat           = [1, 1, 1, 1]
       ds_residual         = [0, 0, 0, 0]
       ds_kernel_size      = [3, 5, 10, 15]
