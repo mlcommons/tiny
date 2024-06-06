@@ -39,13 +39,8 @@ print("Done getting data")
 
 # this is taken from the dataset web page.
 # there should be a better way than hard-coding this
-train_shuffle_buffer_size = 85511
-val_shuffle_buffer_size = 10102
-test_shuffle_buffer_size = 4890
-
+train_shuffle_buffer_size = 115500 # 85511
 ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-ds_val = ds_val.shuffle(val_shuffle_buffer_size)
-ds_test = ds_test.shuffle(test_shuffle_buffer_size)
 
 if Flags.model_init_path is None:
   print("Starting with untrained model")
