@@ -37,11 +37,6 @@ print(20*'-')
 ds_train, ds_test, ds_val = str_ww_data.get_data(Flags)
 print("Done getting data")
 
-# this is taken from the dataset web page.
-# there should be a better way than hard-coding this
-train_shuffle_buffer_size = 115500 # 85511
-ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-
 if Flags.model_init_path is None:
   print("Starting with untrained model")
   model = models.get_model(args=Flags, use_qat=False)
