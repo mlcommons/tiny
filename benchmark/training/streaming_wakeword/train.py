@@ -34,7 +34,7 @@ print('We will download data to {:}'.format(Flags.data_dir))
 print('We will train for {:} epochs'.format(Flags.epochs))
 print(20*'-')
 
-ds_train, ds_test, ds_val = str_ww_data.get_training_data(Flags)
+ds_train, ds_test, ds_val = str_ww_data.get_data(Flags)
 print("Done getting data")
 
 # this is taken from the dataset web page.
