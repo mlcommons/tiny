@@ -387,23 +387,24 @@ def get_data(Flags, get_waves=False, val_cal_subset=False):
   # create a few copies of only the target words to balance the distribution
   # noise will be added to them later
   
-  ds_only_target = ds_train.filter(lambda dat: dat['label'] == 0)
+  ds_trn_only_target = ds_train.filter(lambda dat: dat['label'] == 0)
   for _ in range(Flags.reps_of_target_training):
-     ds_train = ds_train.concatenate(ds_only_target)
+     ds_train = ds_train.concatenate(ds_trn_only_target)
 
   if not val_cal_subset:
+    ds_val_only_target = ds_val.filter(lambda dat: dat['label'] == 0)
     for _ in range(Flags.reps_of_target_validation):
-      ds_val = ds_val.concatenate(ds_only_target)
+      ds_val = ds_val.concatenate(ds_val_only_target)
     
   for dat in ds_train.take(1):
-    input_shape = dat['audio'].shape # we'll need this to build the silent dataset
+    wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
 
   # create some silent samples, which noise will be added to as well
   if Flags.num_silent_training > 0:
-    ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=Flags.num_silent_training, 
+    ds_train = add_empty_frames(ds_train, input_shape=wave_shape, num_silent=Flags.num_silent_training, 
                                 white_noise_scale=0.1, silent_label=1)
   if Flags.num_silent_validation > 0 and not val_cal_subset:
-    ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=int(Flags.num_silent_validation), 
+    ds_val = add_empty_frames(ds_val, input_shape=wave_shape, num_silent=int(Flags.num_silent_validation), 
                               white_noise_scale=0.1, silent_label=1)
 
   if get_waves:
