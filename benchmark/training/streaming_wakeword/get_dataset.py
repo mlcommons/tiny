@@ -11,10 +11,10 @@ import functools
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os, pickle, glob
+import os, pickle, glob, time, copy
 
 import str_ww_util as util
-import keras_model as models
+from keras_model import prepare_model_settings
 
 rng = np.random.default_rng(2024)
 word_labels = ["Marvin", "Silence", "Unknown"]
@@ -122,11 +122,10 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     else:
       wav_decoder = tf.cast(next_element['audio'], tf.float32)
     
-
     if not wave_frame_input: # don't rescale if we're only processing one frame of samples
-      print(f"setting to zero mean and unit max")
-      wav_decoder = wav_decoder - tf.reduce_mean(wav_decoder) # 
+      wav_decoder = wav_decoder - tf.reduce_mean(wav_decoder)
       wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
+
     if model_settings['feature_type'] == "td_samples":
       wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
 
@@ -138,9 +137,6 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
       
       # Allow the audio sample's volume to be adjusted.
-      # foreground_volume_placeholder_ = tf.constant(1,dtype=tf.float32)
-      # square the value to emphasize the low-amplitude values
-      # foreground_volume_placeholder_ = (np.random.uniform(foreground_volume_min_, foreground_volume_max_))**2
       foreground_volume_placeholder_ = tf.random.uniform([1],minval=foreground_volume_min_,maxval=foreground_volume_max_)[0]
       
       scaled_foreground = tf.multiply(wav_decoder,
@@ -154,16 +150,15 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     if is_training and background_data != []:
       background_volume_range = tf.constant(background_volume_range_,dtype=tf.float32)
       background_index = tf.random.uniform([1],minval=0,maxval=len(background_data), dtype=tf.int32)[0]
-      # background_samples = background_data[background_index]
       background_samples = tf.gather(background_data, background_index) # graph-compatible equivalent to background_data[background_index]
       background_offset = tf.random.uniform([1],minval=0,maxval=len(background_samples) - desired_samples, dtype=tf.int32)[0]
       background_clipped = background_samples[background_offset:(background_offset + desired_samples)]
       background_clipped = tf.squeeze(background_clipped)
-      background_reshaped =  tf.pad(background_clipped,[[0,desired_samples-tf.shape(wav_decoder)[-1]]])
+      background_reshaped = tf.pad(background_clipped,[[0,desired_samples-tf.shape(wav_decoder)[-1]]])
       background_reshaped = tf.cast(background_reshaped, tf.float32)
       
       bg_rand_draw = tf.random.uniform([1],minval=0.0,maxval=1.0)[0]
-      background_volume_placeholder_ = tf.cond(
+      background_volume_placeholder_ = tf.cond( # replace if block, so tf graph works
         bg_rand_draw < background_frequency, 
         lambda: tf.random.uniform([1],minval=0.5,maxval=background_volume_range_, dtype=tf.float32)[0],
         lambda: tf.constant(0.0, dtype=tf.float32)
@@ -187,8 +182,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
       sliced_foreground = tf.squeeze(sliced_foreground)
-      print(f"sliced_foreground {sliced_foreground.shape}")
-      # compute fft
+      
       stfts = tf.signal.stft(sliced_foreground,  frame_length=model_settings['window_size_samples'], 
                              frame_step=model_settings['window_stride_samples'], fft_length=None,
                              window_fn=functools.partial(
@@ -234,11 +228,10 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
 
       if wave_frame_input: 
         # for building a feature extractor model, we need to return a tensor
-        output_element = log_mel_spec
+        next_element = log_mel_spec
       else:
         # for building a dataset, we're returning a dictionary
-        # next_element['audio'] = log_mel_spec
-        output_element = {'label':next_element['label'], 'audio':log_mel_spec}
+        next_element['audio'] = log_mel_spec
 
     elif model_settings['feature_type'] == 'td_samples':
       ## sliced_foreground should have the right data.  Make sure it's the right format (int16)
@@ -247,10 +240,11 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       wav_padded = tf.pad(sliced_foreground, paddings)
       wav_padded = tf.expand_dims(wav_padded, -1)
       wav_padded = tf.expand_dims(wav_padded, -1)
-      # next_element['audio'] = wav_padded
-      output_element = {'label':next_element['label'], 'audio':wav_padded}
+      next_element['audio'] = wav_padded
+    else:
+      raise ValueError(f"Invalid value {model_settings['feature_type']}.  Should be one of 'lfbe', 'mfcc', 'td_samples'.")
       
-    return output_element # next_element
+    return next_element
   
   return prepare_processing_graph
 
@@ -273,14 +267,7 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
   background_dir = os.path.join(bg_path, BACKGROUND_NOISE_DIR_NAME)
   if not os.path.exists(background_dir):
     return background_data
-  #with tf.Session(graph=tf.Graph()) as sess:
-  #    wav_filename_placeholder = tf.placeholder(tf.string, [])
-  #    wav_loader = io_ops.read_file(wav_filename_placeholder)
-  #    wav_decoder = contrib_audio.decode_wav(wav_loader, desired_channels=1)
   search_path = os.path.join(bg_path, BACKGROUND_NOISE_DIR_NAME,'*.wav')
-  #for wav_path in gfile.Glob(search_path):
-  #    wav_data = sess.run(wav_decoder, feed_dict={wav_filename_placeholder: wav_path}).audio.flatten()
-  #    self.background_data.append(wav_data)
 
   # In order to work with tf.gather later, the background audio all need to be of the same length
   # so we'll find the shortest length here, and clip the others to it.
@@ -291,9 +278,7 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     audio = tf.audio.decode_wav(raw_audio)
     background_data.append(audio[0])
     min_len = np.minimum(min_len, len(audio[0])).astype(int)
-    
   for i,bd in enumerate(background_data):
-    print(f"{i}: {type(bd)}, shape = {bd.shape}")
     background_data[i] = bd[:min_len]
 
   if not background_data:
@@ -322,12 +307,12 @@ def add_empty_frames(ds, input_shape=None, num_silent=None, white_noise_scale=0.
 
 
 
-def get_training_data(Flags, get_waves=False, val_cal_subset=False):
+def get_data(Flags, get_waves=False, val_cal_subset=False):
   
   label_count=3
   background_frequency = Flags.background_frequency
   background_volume_range_= Flags.background_volume
-  model_settings = models.prepare_model_settings(label_count, Flags)
+  model_settings = prepare_model_settings(label_count, Flags)
 
   bg_path=Flags.bg_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
@@ -402,23 +387,24 @@ def get_training_data(Flags, get_waves=False, val_cal_subset=False):
   # create a few copies of only the target words to balance the distribution
   # noise will be added to them later
   
-  ds_only_target = ds_train.filter(lambda dat: dat['label'] == 0)
+  ds_trn_only_target = ds_train.filter(lambda dat: dat['label'] == 0)
   for _ in range(Flags.reps_of_target_training):
-     ds_train = ds_train.concatenate(ds_only_target)
+     ds_train = ds_train.concatenate(ds_trn_only_target)
 
   if not val_cal_subset:
+    ds_val_only_target = ds_val.filter(lambda dat: dat['label'] == 0)
     for _ in range(Flags.reps_of_target_validation):
-      ds_val = ds_val.concatenate(ds_only_target)
+      ds_val = ds_val.concatenate(ds_val_only_target)
     
   for dat in ds_train.take(1):
-    input_shape = dat['audio'].shape # we'll need this to build the silent dataset
+    wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
 
   # create some silent samples, which noise will be added to as well
   if Flags.num_silent_training > 0:
-    ds_train = add_empty_frames(ds_train, input_shape=input_shape, num_silent=Flags.num_silent_training, 
+    ds_train = add_empty_frames(ds_train, input_shape=wave_shape, num_silent=Flags.num_silent_training, 
                                 white_noise_scale=0.1, silent_label=1)
   if Flags.num_silent_validation > 0 and not val_cal_subset:
-    ds_val = add_empty_frames(ds_val, input_shape=input_shape, num_silent=int(Flags.num_silent_validation), 
+    ds_val = add_empty_frames(ds_val, input_shape=wave_shape, num_silent=int(Flags.num_silent_validation), 
                               white_noise_scale=0.1, silent_label=1)
 
   if get_waves:
@@ -493,7 +479,7 @@ def count_labels(ds, label_index=1):
 
 if __name__ == '__main__':
   Flags = util.parse_command()
-  ds_train, ds_test, ds_val = get_training_data(Flags)
+  ds_train, ds_test, ds_val = get_data(Flags)
 
   for dat in ds_train.take(1):
     print("One element from the training set has shape:")
