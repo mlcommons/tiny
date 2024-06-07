@@ -436,7 +436,7 @@ def get_data(Flags, get_waves=False, val_cal_subset=False):
   if Flags.num_test_samples != -1:
     ds_test = ds_test.take(Flags.num_test_samples)
 
-  ## The order of these next three steps is important: cache, then shuffle, then batch.
+  # The order of these next three steps is important: cache, then shuffle, then batch.
   # Cache at this point, so we don't have to repeat all the spectrogram calculations each epoch
   ds_train = ds_train.cache()
   ds_val = ds_val.cache()
@@ -446,11 +446,7 @@ def get_data(Flags, get_waves=False, val_cal_subset=False):
   # this will take some time, but it reduces the time in the 1st epoch
   train_shuffle_buffer_size = ds_train.reduce(0, lambda x,_: x+1).numpy()  
   ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-  
-  # Now that we've acquired the preprocessed data, either by processing or loading,
-  ds_train = ds_train.batch(Flags.batch_size)
-  ds_test = ds_test.batch(Flags.batch_size)  
-  ds_val = ds_val.batch(Flags.batch_size)
+  # don't need to shuffle val and test sets
   
   return ds_train, ds_test, ds_val
 
