@@ -167,17 +167,17 @@ def parse_command():
       will be no QAT fine-tuning.
       """)
   parser.add_argument(
-      '--num_train_samples',
+      '--num_samples_training',
       type=int,
       default=-1, # 85511,
     help='How many samples from the training set to use',)
   parser.add_argument(
-      '--num_val_samples',
+      '--num_samples_validation',
       type=int,
       default=-1, # 10102,
     help='How many samples from the validation set to use',)
   parser.add_argument(
-      '--num_test_samples',
+      '--num_samples_test',
       type=int,
       default=-1, # 4890,
     help='How many samples from the test set to use',)

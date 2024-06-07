@@ -429,12 +429,12 @@ def get_data(Flags, get_waves=False, val_cal_subset=False):
     ds_val = ds_val.map(convert_dataset)
 
 
-  if Flags.num_train_samples != -1:
-    ds_train = ds_train.take(Flags.num_train_samples)
-  if Flags.num_val_samples != -1:
-    ds_val = ds_val.take(Flags.num_val_samples)
-  if Flags.num_test_samples != -1:
-    ds_test = ds_test.take(Flags.num_test_samples)
+  if Flags.num_samples_training != -1:
+    ds_train = ds_train.take(Flags.num_samples_training)
+  if Flags.num_samples_validation != -1:
+    ds_val = ds_val.take(Flags.num_samples_validation)
+  if Flags.num_samples_test != -1:
+    ds_test = ds_test.take(Flags.num_samples_test)
 
   # The order of these next three steps is important: cache, then shuffle, then batch.
   # Cache at this point, so we don't have to repeat all the spectrogram calculations each epoch

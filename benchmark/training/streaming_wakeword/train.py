@@ -3,6 +3,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os, argparse
+from argparse import Namespace
 
 from tensorflow import keras
 import tensorflow
@@ -28,7 +29,6 @@ num_classes = 3 # should probably draw this directly from the dataset.
 
 Flags = util.parse_command()
 print(f"Flags={Flags}\n")
-
 
 print('We will download data to {:}'.format(Flags.data_dir))
 print('We will train for {:} epochs'.format(Flags.epochs))
