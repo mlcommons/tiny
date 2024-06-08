@@ -15,7 +15,7 @@ def parse_command():
       Where to download the speech training data to. Or where it is already saved.
       """)
   parser.add_argument(
-      '--bg_path',
+      '--background_path',
       type=str,
       default=os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02'),
       help="""\

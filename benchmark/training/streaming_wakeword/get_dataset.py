@@ -61,12 +61,6 @@ def convert_labels_str2int(datum):
   return {'audio': datum['audio'], 
           'label':label_map.lookup(datum['label'])
          }
-  
-def convert_to_int16(sample_dict):
-  audio = sample_dict['audio']
-  label = sample_dict['label']
-  audio16 = tf.cast(audio, 'int16')
-  return audio16, label
 
 def cast_and_pad(sample_dict):
   audio = sample_dict['audio']
@@ -249,7 +243,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
   return prepare_processing_graph
 
 
-def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
+def prepare_background_data(background_path,BACKGROUND_NOISE_DIR_NAME):
   """Searches a folder for background noise audio, and loads it into memory.
   It's expected that the background audio samples will be in a subdirectory
   named '_background_noise_' inside the 'data_dir' folder, as .wavs that match
@@ -264,10 +258,10 @@ def prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME):
     Exception: If files aren't found in the folder.
   """
   background_data = []
-  background_dir = os.path.join(bg_path, BACKGROUND_NOISE_DIR_NAME)
+  background_dir = os.path.join(background_path, BACKGROUND_NOISE_DIR_NAME)
   if not os.path.exists(background_dir):
     return background_data
-  search_path = os.path.join(bg_path, BACKGROUND_NOISE_DIR_NAME,'*.wav')
+  search_path = os.path.join(background_path, BACKGROUND_NOISE_DIR_NAME,'*.wav')
 
   # In order to work with tf.gather later, the background audio all need to be of the same length
   # so we'll find the shortest length here, and clip the others to it.
@@ -305,7 +299,50 @@ def add_empty_frames(ds, input_shape=None, num_silent=None, white_noise_scale=0.
   })
   return ds.concatenate(silent_wave_ds)
 
+def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=False, **kwargs):
+  """
+  Builds a configuration (as a Namespace from argparse) containing all the flags for building
+  a particular split (training, validation, test) of the dataset.
+  general_flags            The Flags gathered from the command line with parse_command()
+  split                    Generally either 'training', 'validation', or 'test'
+  cal_subset=False         If True, return only the examples specified for calibration
+  wave_frame_input=False   If true, return a configuration suitable for building a graph that
+                           can extract features from a long waveform.
+  **kwargs                 Any flags in kwargs are added to the config, overwriting any other value.
+  """
+  # collect the subset of flags necessary for building the datasets
+  # does not include *_training, *_validation, or *_test flags
+  data_keys =  [
+    'data_dir', 'background_path',
+    'foreground_volume_min', 'foreground_volume_max',
+    'background_volume', 'background_frequency', 'time_shift_ms',
+    'silence_percentage', 'unknown_percentage',
+    'sample_rate', 'clip_duration_ms',
+    'window_size_ms', 'window_stride_ms',
+    'feature_type', 'dct_coefficient_count',
+    'batch_size',
+    'num_bin_files', 'bin_file_path'
+    ]
+  # First populate the values that apply to all splits.  These can be overwritten
+  # with either a split-specific flag (batch_size_validation) or with kwargs
+  data_config = {k:general_flags.__dict__[k] for k in data_keys}
 
+  # any Flag ending in '_training' is written to the training config with the _training stripped
+  # same for _validation, _test.  Could also be used for other splits if needed (e.g. _val2 should work)
+  per_split_keys = [k for k in general_flags.__dict__.keys() if k.endswith(f"_{split}")]
+  for k in per_split_keys:
+    data_config[k.rsplit('_', 1)[0]] = general_flags.__dict__[k]
+
+  # this builds a graph for extracting features from long recordings
+  # Generally False except for the demo run on a long waveform
+  data_config['wave_frame_input']=wave_frame_input
+  data_config['cal_subset']=cal_subset
+  # anything specified in kwargs overrides
+  data_config.update(kwargs)
+  # wrap in a Namespace to enable config.Flag style usage
+  data_config = Namespace(data_config)
+
+def get_all_datasets(Flags):
 
 def get_data(Flags, get_waves=False, val_cal_subset=False):
   
@@ -314,9 +351,9 @@ def get_data(Flags, get_waves=False, val_cal_subset=False):
   background_volume_range_= Flags.background_volume
   model_settings = prepare_model_settings(label_count, Flags)
 
-  bg_path=Flags.bg_path
+  background_path=Flags.background_path
   BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
-  background_data = prepare_background_data(bg_path,BACKGROUND_NOISE_DIR_NAME)
+  background_data = prepare_background_data(background_path,BACKGROUND_NOISE_DIR_NAME)
 
   AUTOTUNE = tf.data.AUTOTUNE
 
