@@ -17,7 +17,7 @@ def parse_command():
   parser.add_argument(
       '--background_path',
       type=str,
-      default=os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02'),
+      default=os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_'),
       help="""\
       Where to find background noise folder.
       """)
@@ -49,7 +49,14 @@ def parse_command():
       default=2,
       help="""\
       Number of repetitions of the target wakeword added to the validation set (before noise is added).
-      """)    
+      """)
+  parser.add_argument(
+      '--reps_of_target_test',
+      type=int,
+      default=0,
+      help="""\
+      Number of repetitions of the target wakeword added to the test set.
+      """)      
   parser.add_argument(
       '--num_silent_training',
       type=int,
@@ -64,6 +71,13 @@ def parse_command():
       help="""\
       Number of silent frames added to the validation set (before noise is added).
       """)
+  parser.add_argument(
+      '--num_silent_test',
+      type=int,
+      default=1200,
+      help="""\
+      Number of silent frames added to the test set (before noise is added).
+      """)      
   parser.add_argument(
       '--foreground_volume_min',
       type=float,
@@ -325,3 +339,13 @@ def get_callbacks(args):
 
 
     
+class DictWrapper(dict):
+  """
+  Allow access to dictionary through d.attr as well as d['attr']
+  Taken from https://stackoverflow.com/questions/50841165/how-to-correctly-wrap-a-dict-in-python-3
+  """
+  def __getattr__(self, item):
+    return super().__getitem__(item)
+
+  def __setattr__(self, item, value):
+    return super().__setitem__(item, value)

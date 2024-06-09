@@ -34,10 +34,7 @@ print('We will download data to {:}'.format(Flags.data_dir))
 print('We will train for {:} epochs'.format(Flags.epochs))
 print(20*'-')
 
-ds_train, ds_test, ds_val = str_ww_data.get_data(Flags)
-ds_train = ds_train.batch(Flags.batch_size)
-ds_test = ds_test.batch(Flags.batch_size)  
-ds_val = ds_val.batch(Flags.batch_size)
+ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)
 print("Done getting data")
 
 if Flags.model_init_path is None:

@@ -14,7 +14,6 @@ import numpy as np
 import os, pickle, glob, time, copy
 
 import str_ww_util as util
-from keras_model import prepare_model_settings
 
 rng = np.random.default_rng(2024)
 word_labels = ["Marvin", "Silence", "Unknown"]
@@ -77,10 +76,9 @@ def convert_dataset(item):
   return audio, label
 
 
-def get_preprocess_audio_func(model_settings,is_training=False,background_data = [], wave_frame_input=False):
+def get_preprocess_audio_func(data_config, background_data = [], wave_frame_input=False):
   """
-  model_settings,                  :  Dictionary of model parameters
-  is_training=False,               :  If true, add background noise to the input waveforms training.
+  data_config                      :  Data configuration
   background_data = [],            :  List of background noise waveforms (as TF arrays)
   wave_frame_input (default False) :  If True, build a dedicated model to extract features.  This is mostly
                                       intended to be exported to a TFLite model that can run on the DUT
@@ -92,7 +90,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
     """Builds a TensorFlow graph to apply the input distortions.
     Creates a graph that loads a WAVE file, decodes it, scales the volume,
     shifts it in time, adds in background noise, calculates a spectrogram, and
-    then builds an MFCC fingerprint from that.
+    then builds an feature tensor from that.
     This must be called with an active TensorFlow session running, and it
     creates multiple placeholder inputs, and one output:
       - wav_filename_placeholder_: Filename of the WAV to load.
@@ -103,13 +101,13 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       - background_volume_placeholder_: Loudness of mixed-in background.
       - mfcc_: Output 2D fingerprint of processed audio.
     Args:
-      model_settings: Information about the current model being trained.
+      log_mel_spec: Information about the how the data should be processed
     """
-    desired_samples = model_settings['desired_samples']
-    background_frequency = model_settings['background_frequency']
-    background_volume_range_= model_settings['background_volume_range_']
-    foreground_volume_min_ = model_settings['foreground_volume_min']
-    foreground_volume_max_ = model_settings['foreground_volume_max']
+    desired_samples = data_config['desired_samples']
+    background_frequency = data_config['background_frequency']
+    background_volume_range_= data_config['background_volume']
+    foreground_volume_min_ = data_config['foreground_volume_min']
+    foreground_volume_max_ = data_config['foreground_volume_max']
 
     if wave_frame_input:
       wav_decoder = tf.cast(next_element, tf.float32)
@@ -120,28 +118,25 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       wav_decoder = wav_decoder - tf.reduce_mean(wav_decoder)
       wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
 
-    if model_settings['feature_type'] == "td_samples":
+    if data_config['feature_type'] == "td_samples":
       wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
 
     if wave_frame_input:
       sliced_foreground = wav_decoder
     else:
-      # Previously, decode_wav was used with desired_samples as the length of array. The
-      # default option of this function was to pad zeros if the desired samples are not found
       wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
       
       # Allow the audio sample's volume to be adjusted.
       foreground_volume_placeholder_ = tf.random.uniform([1],minval=foreground_volume_min_,maxval=foreground_volume_max_)[0]
-      
-      scaled_foreground = tf.multiply(wav_decoder,
-                                      foreground_volume_placeholder_)
+      scaled_foreground = tf.multiply(wav_decoder, foreground_volume_placeholder_)
+
       # Shift the sample's start position, and pad any gaps with zeros.
       time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
       time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
       
       padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
       sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
-    if is_training and background_data != []:
+    if data_config['background_frequency'] != 0 and background_data != []:
       background_volume_range = tf.constant(background_volume_range_,dtype=tf.float32)
       background_index = tf.random.uniform([1],minval=0,maxval=len(background_data), dtype=tf.int32)[0]
       background_samples = tf.gather(background_data, background_index) # graph-compatible equivalent to background_data[background_index]
@@ -164,11 +159,11 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       background_add = tf.add(background_mul, sliced_foreground)
       sliced_foreground = tf.clip_by_value(background_add, -1.0, 1.0)
 
-    if model_settings['feature_type'] == 'lfbe':
+    if data_config['feature_type'] == 'lfbe':
       # apply preemphasis
       preemphasis_coef = 1 - 2 ** -5
       power_offset = 52
-      num_mel_bins = model_settings['dct_coefficient_count']
+      num_mel_bins = data_config['dct_coefficient_count']
       paddings = tf.constant([[0, 0], [1, 0]])
       # for some reason, tf.pad only works with the extra batch dimension, but then we remove it after pad
       if not wave_frame_input: # the feature extractor comes in already batched
@@ -177,8 +172,8 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
       sliced_foreground = tf.squeeze(sliced_foreground)
       
-      stfts = tf.signal.stft(sliced_foreground,  frame_length=model_settings['window_size_samples'], 
-                             frame_step=model_settings['window_stride_samples'], fft_length=None,
+      stfts = tf.signal.stft(sliced_foreground,  frame_length=data_config['window_size_samples'], 
+                             frame_step=data_config['window_stride_samples'], fft_length=None,
                              window_fn=functools.partial(
                                tf.signal.hamming_window, periodic=False),
                              pad_end=False,
@@ -189,7 +184,7 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       num_spectrogram_bins = magspec.shape[-1]
     
       # compute power spectrum [num_frames, NFFT]
-      powspec = (1 / model_settings['window_size_samples']) * tf.square(magspec)
+      powspec = (1 / data_config['window_size_samples']) * tf.square(magspec)
       powspec_max = tf.reduce_max(input_tensor=powspec)
       powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
     
@@ -201,12 +196,12 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
         return numerator / denominator
     
       # Warp the linear-scale, magnitude spectrograms into the mel-scale.
-      lower_edge_hertz, upper_edge_hertz = 0.0, model_settings['sample_rate'] / 2.0
+      lower_edge_hertz, upper_edge_hertz = 0.0, data_config['sample_rate'] / 2.0
       linear_to_mel_weight_matrix = (
           tf.signal.linear_to_mel_weight_matrix(
               num_mel_bins=num_mel_bins,
               num_spectrogram_bins=num_spectrogram_bins,
-              sample_rate=model_settings['sample_rate'],
+              sample_rate=data_config['sample_rate'],
               lower_edge_hertz=lower_edge_hertz,
               upper_edge_hertz=upper_edge_hertz))
 
@@ -236,14 +231,14 @@ def get_preprocess_audio_func(model_settings,is_training=False,background_data =
       wav_padded = tf.expand_dims(wav_padded, -1)
       next_element['audio'] = wav_padded
     else:
-      raise ValueError(f"Invalid value {model_settings['feature_type']}.  Should be one of 'lfbe', 'mfcc', 'td_samples'.")
+      raise ValueError(f"Invalid value {data_config['feature_type']}.  Should be one of 'lfbe', 'td_samples'.")
       
     return next_element
   
   return prepare_processing_graph
 
 
-def prepare_background_data(background_path,BACKGROUND_NOISE_DIR_NAME):
+def prepare_background_data(background_path):
   """Searches a folder for background noise audio, and loads it into memory.
   It's expected that the background audio samples will be in a subdirectory
   named '_background_noise_' inside the 'data_dir' folder, as .wavs that match
@@ -258,10 +253,9 @@ def prepare_background_data(background_path,BACKGROUND_NOISE_DIR_NAME):
     Exception: If files aren't found in the folder.
   """
   background_data = []
-  background_dir = os.path.join(background_path, BACKGROUND_NOISE_DIR_NAME)
-  if not os.path.exists(background_dir):
+  if not os.path.exists(background_path):
     return background_data
-  search_path = os.path.join(background_path, BACKGROUND_NOISE_DIR_NAME,'*.wav')
+  search_path = os.path.join(background_path, '*.wav')
 
   # In order to work with tf.gather later, the background audio all need to be of the same length
   # so we'll find the shortest length here, and clip the others to it.
@@ -326,6 +320,26 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # First populate the values that apply to all splits.  These can be overwritten
   # with either a split-specific flag (batch_size_validation) or with kwargs
   data_config = {k:general_flags.__dict__[k] for k in data_keys}
+  data_config['desired_samples'] = int(general_flags.sample_rate * general_flags.clip_duration_ms / 1000)
+
+  window_size_samples = int(general_flags.sample_rate * general_flags.window_size_ms / 1000)
+  window_stride_samples = int(general_flags.sample_rate * general_flags.window_stride_ms / 1000)
+  length_minus_window = (data_config['desired_samples'] - window_size_samples)
+  if length_minus_window < 0:
+    raise ValueError(
+      f"Wave length {data_config['desired_samples']} is too short for window size {window_size_samples}"
+      )
+  else:
+    spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
+  data_config["window_size_samples"] = window_size_samples
+  data_config["window_stride_samples"] = window_stride_samples
+  data_config["spectrogram_length"] = spectrogram_length
+  if split == "test":
+    # test split has no noise augmentation (validation split does).  This can
+    # be overridden with an explicit background_frequency_test flag
+    data_config['background_frequency'] = 0
+
+  data_config['shuffle'] = (split == "train")
 
   # any Flag ending in '_training' is written to the training config with the _training stripped
   # same for _validation, _test.  Could also be used for other splits if needed (e.g. _val2 should work)
@@ -337,25 +351,18 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # Generally False except for the demo run on a long waveform
   data_config['wave_frame_input']=wave_frame_input
   data_config['cal_subset']=cal_subset
+
   # anything specified in kwargs overrides
   data_config.update(kwargs)
-  # wrap in a Namespace to enable config.Flag style usage
-  data_config = Namespace(data_config)
+
+  # wrap to enable config.Flag style usage
+  return util.DictWrapper(data_config)
 
 def get_all_datasets(Flags):
 
-def get_data(Flags, get_waves=False, val_cal_subset=False):
-  
-  label_count=3
-  background_frequency = Flags.background_frequency
-  background_volume_range_= Flags.background_volume
-  model_settings = prepare_model_settings(label_count, Flags)
-
-  background_path=Flags.background_path
-  BACKGROUND_NOISE_DIR_NAME='_background_noise_' 
-  background_data = prepare_background_data(background_path,BACKGROUND_NOISE_DIR_NAME)
-
-  AUTOTUNE = tf.data.AUTOTUNE
+  flags_training = get_data_config(Flags, 'training')
+  flags_validation = get_data_config(Flags, 'validation')
+  flags_test = get_data_config(Flags, 'test')
 
   ## Build the data sets from files
   data_dir = Flags.data_dir
@@ -385,116 +392,95 @@ def get_data(Flags, get_waves=False, val_cal_subset=False):
   train_files = [f for f in filenames if f.split(os.sep)[-2][0] != '_']
   # validation and test files are listed explicitly in *_list.txt; train with everything else
   train_files = list(set(train_files) - set(test_files) - set(val_files))
-  # now convert into a TF tensor so we can use the tf.dataset pipeline
-  train_files = tf.constant(train_files)
+
+  ds_train = get_data(flags_training, train_files)
+  ds_val = get_data(flags_validation, val_files)
+  ds_test = get_data(flags_test, test_files)
   
-  ds_train = tf.data.Dataset.from_tensor_slices(train_files)
-  ds_train = ds_train.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
-  ds_train = ds_train.map(convert_labels_str2int)
+  return ds_train, ds_test, ds_val
+
+def get_data(Flags, file_list):
   
-  ds_val = tf.data.Dataset.from_tensor_slices(val_files)
-  ds_val = ds_val.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
-  ds_val = ds_val.map(convert_labels_str2int)
-  
-  ds_test = tf.data.Dataset.from_tensor_slices(test_files)
-  ds_test = ds_test.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
-  ds_test = ds_test.map(convert_labels_str2int)
-  
-  if val_cal_subset:  # only return the subset of val set used for quantization calibration
+  label_count=3
+  background_frequency = Flags.background_frequency
+  background_volume_range_= Flags.background_volume
+
+  background_data = prepare_background_data(Flags.background_path)
+
+  AUTOTUNE = tf.data.AUTOTUNE
+
+  dset = tf.data.Dataset.from_tensor_slices(file_list)
+  dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+  dset = dset.map(convert_labels_str2int)
+    
+  if Flags.cal_subset:  # only return the subset of val set used for quantization calibration
     with open("quant_cal_idxs.txt") as fpi:
       cal_indices = [int(line) for line in fpi]
     cal_indices.sort()
     # cal_indices are the positions of specific inputs that are selected to calibrate the quantization
     count = 0  # count will be the index into the validation set.
-    val_sub_audio = []
-    val_sub_labels = []
-    for d in ds_val:
+    cal_sub_audio = []
+    cal_sub_labels = []
+    for d in dset:
       if count in cal_indices:          # this is one of the calibration inpus
         new_audio = d['audio'].numpy()  # so add it to a stack of tensors 
         if len(new_audio) < 16000:      # from_tensor_slices doesn't work for ragged tensors, so pad to 16k
           new_audio = np.pad(new_audio, (0, 16000-len(new_audio)), 'constant')
-        val_sub_audio.append(new_audio)
-        val_sub_labels.append(d['label'].numpy())
+        cal_sub_audio.append(new_audio)
+        cal_sub_labels.append(d['label'].numpy())
       count += 1
     # and create a new dataset for just the calibration inputs.
-    ds_val = tf.data.Dataset.from_tensor_slices({"audio": val_sub_audio,
-                                                 "label": val_sub_labels})
-    ## end of if val_cal_subset
+    dset = tf.data.Dataset.from_tensor_slices({"audio": cal_sub_audio,
+                                                 "label": cal_sub_labels})
+    ## end of if Flags.cal_subset
 
   # create a few copies of only the target words to balance the distribution
   # noise will be added to them later
-  
-  ds_trn_only_target = ds_train.filter(lambda dat: dat['label'] == 0)
-  for _ in range(Flags.reps_of_target_training):
-     ds_train = ds_train.concatenate(ds_trn_only_target)
+  dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
+  for _ in range(Flags.reps_of_target):
+     dset = dset.concatenate(dset_only_target)
 
-  if not val_cal_subset:
-    ds_val_only_target = ds_val.filter(lambda dat: dat['label'] == 0)
-    for _ in range(Flags.reps_of_target_validation):
-      ds_val = ds_val.concatenate(ds_val_only_target)
-    
-  for dat in ds_train.take(1):
+  for dat in dset.take(1):
     wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
 
   # create some silent samples, which noise will be added to as well
-  if Flags.num_silent_training > 0:
-    ds_train = add_empty_frames(ds_train, input_shape=wave_shape, num_silent=Flags.num_silent_training, 
+  if Flags.num_silent > 0:
+    dset = add_empty_frames(dset, input_shape=wave_shape, num_silent=Flags.num_silent, 
                                 white_noise_scale=0.1, silent_label=1)
-  if Flags.num_silent_validation > 0 and not val_cal_subset:
-    ds_val = add_empty_frames(ds_val, input_shape=wave_shape, num_silent=int(Flags.num_silent_validation), 
-                              white_noise_scale=0.1, silent_label=1)
 
-  if get_waves:
-    ds_train = ds_train.map(cast_and_pad)
-    ds_test  =  ds_test.map(cast_and_pad)
-    ds_val   =   ds_val.map(cast_and_pad)
-  else:
-    # extract spectral features and add background noise
-    ds_train = ds_train.map(get_preprocess_audio_func(model_settings,is_training=True,
-                                                      background_data=background_data),
-                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    ds_test  =  ds_test.map(get_preprocess_audio_func(model_settings,is_training=False,
-                                                      background_data=background_data),
-                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    # is_training=True => add background noise to the validation set
-    ds_val   =   ds_val.map(get_preprocess_audio_func(model_settings,is_training=True,
-                                                      background_data=background_data),
-                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
-    # change output from a dictionary to a feature,label tuple
-    ds_train = ds_train.map(convert_dataset)
-    ds_test = ds_test.map(convert_dataset)
-    ds_val = ds_val.map(convert_dataset)
+  # extract spectral features and add background noise
+  audio_preprocessor = get_preprocess_audio_func(Flags,
+                                            background_data=background_data)
+  dset = dset.map(audio_preprocessor, num_parallel_calls=AUTOTUNE)
 
+  # change output from a dictionary to a feature,label tuple
+  dset = dset.map(convert_dataset)
 
-  if Flags.num_samples_training != -1:
-    ds_train = ds_train.take(Flags.num_samples_training)
-  if Flags.num_samples_validation != -1:
-    ds_val = ds_val.take(Flags.num_samples_validation)
-  if Flags.num_samples_test != -1:
-    ds_test = ds_test.take(Flags.num_samples_test)
+  if Flags.num_samples != -1:
+    dset = dset.take(Flags.num_samples)
 
   # The order of these next three steps is important: cache, then shuffle, then batch.
   # Cache at this point, so we don't have to repeat all the spectrogram calculations each epoch
-  ds_train = ds_train.cache()
-  ds_val = ds_val.cache()
-  ds_test = ds_test.cache()
+  dset = dset.cache()
 
-  # count the number of items in the training set.
-  # this will take some time, but it reduces the time in the 1st epoch
-  train_shuffle_buffer_size = ds_train.reduce(0, lambda x,_: x+1).numpy()  
-  ds_train = ds_train.shuffle(train_shuffle_buffer_size)
-  # don't need to shuffle val and test sets
+  if Flags.shuffle:
+    # count the number of items in the training set.
+    # this will take some time, but it reduces the time in the 1st epoch
+    shuffle_buffer_size = dset.reduce(0, lambda x,_: x+1).numpy()  
+    dset = dset.shuffle(train_shuffle_buffer_size)
   
-  return ds_train, ds_test, ds_val
+  dset = dset.batch(Flags.batch_size)
+
+  return dset
 
 def is_batched(ds):
-    ## This feels wrong/not robust, but I can't find a better way
-    try:
-        ds.unbatch()  # does not actually change ds. For that we would ds=ds.unbatch()
-    except:
-        return False # we'll assume that the error on unbatching is because the ds is not batched.
-    else:
-        return True  # if we were able to unbatch it then it must have been batched (??)
+  ## This feels wrong/not robust, but I can't find a better way
+  try:
+    ds.unbatch()  # does not actually change ds. For that we would ds=ds.unbatch()
+  except:
+    return False # we'll assume that the error on unbatching is because the ds is not batched.
+  else:
+    return True  # if we were able to unbatch it then it must have been batched (??)
 
 def count_labels(ds, label_index=1):
   """
