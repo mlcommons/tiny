@@ -339,6 +339,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
     # be overridden with an explicit background_frequency_test flag
     data_config['background_frequency'] = 0
 
+  # shuffle training data, but not val/test.  Can be overridden w/ explicit shuffle_<split>
   data_config['shuffle'] = (split == "train")
 
   # any Flag ending in '_training' is written to the training config with the _training stripped
@@ -434,11 +435,17 @@ def get_data(Flags, file_list):
                                                  "label": cal_sub_labels})
     ## end of if Flags.cal_subset
 
-  # create a few copies of only the target words to balance the distribution
-  # noise will be added to them later
-  dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
-  for _ in range(Flags.reps_of_target):
-     dset = dset.concatenate(dset_only_target)
+  if Flags.reps_of_target > 0:
+    # create a few copies of only the target words to balance the distribution
+    # noise will be added to them later
+    dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
+    for _ in range(Flags.reps_of_target):
+      dset = dset.concatenate(dset_only_target)
+
+    tmp_count = 0 
+    for element in dset_only_target:
+      tmp_count += 1
+    print(f"Only-target dataset has {tmp_count} elements.")
 
   for dat in dset.take(1):
     wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
