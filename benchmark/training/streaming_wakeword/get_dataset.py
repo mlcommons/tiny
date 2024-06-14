@@ -70,7 +70,7 @@ def cast_and_pad(sample_dict):
   return audio16, label
 
 def convert_dataset(item):
-  """Puts the mnist dataset in the format Keras expects, (features, labels)."""
+  """Puts the dataset in the format Keras expects, (features, labels)."""
   audio = item['audio']
   label = tf.one_hot(item['label'], depth=3, axis=-1, )
   return audio, label
@@ -340,7 +340,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
     data_config['background_frequency'] = 0
 
   # shuffle training data, but not val/test.  Can be overridden w/ explicit shuffle_<split>
-  data_config['shuffle'] = (split == "train")
+  data_config['shuffle'] = (split == "training")
 
   # any Flag ending in '_training' is written to the training config with the _training stripped
   # same for _validation, _test.  Could also be used for other splits if needed (e.g. _val2 should work)
@@ -359,14 +359,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # wrap to enable config.Flag style usage
   return util.DictWrapper(data_config)
 
-def get_all_datasets(Flags):
-
-  flags_training = get_data_config(Flags, 'training')
-  flags_validation = get_data_config(Flags, 'validation')
-  flags_test = get_data_config(Flags, 'test')
-
-  ## Build the data sets from files
-  data_dir = Flags.data_dir
+def get_file_lists(data_dir):
   filenames = glob.glob(os.path.join(str(data_dir), '*', '*.wav'))
   # the full speech-commands set lists which files are to be used
   # as test and validation data; train with everything else
@@ -393,6 +386,18 @@ def get_all_datasets(Flags):
   train_files = [f for f in filenames if f.split(os.sep)[-2][0] != '_']
   # validation and test files are listed explicitly in *_list.txt; train with everything else
   train_files = list(set(train_files) - set(test_files) - set(val_files))
+
+  return train_files, test_files, val_files
+
+def get_all_datasets(Flags):
+
+  flags_training = get_data_config(Flags, 'training')
+  flags_validation = get_data_config(Flags, 'validation')
+  flags_test = get_data_config(Flags, 'test')
+
+  ## Build the data sets from files
+  data_dir = Flags.data_dir
+  train_files, test_files, val_files = get_file_lists(data_dir)
 
   ds_train = get_data(flags_training, train_files)
   ds_val = get_data(flags_validation, val_files)
@@ -474,7 +479,9 @@ def get_data(Flags, file_list):
     # count the number of items in the training set.
     # this will take some time, but it reduces the time in the 1st epoch
     shuffle_buffer_size = dset.reduce(0, lambda x,_: x+1).numpy()  
-    dset = dset.shuffle(train_shuffle_buffer_size)
+    dset = dset.shuffle(shuffle_buffer_size)
+  else:
+    print(f"not shuffling")
   
   dset = dset.batch(Flags.batch_size)
 
