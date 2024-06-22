@@ -2,7 +2,7 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import os, argparse
+import os, argparse, json
 from argparse import Namespace
 
 from tensorflow import keras
@@ -54,6 +54,10 @@ if Flags.use_qat:
 else:
   float_epochs = Flags.epochs
   qat_epochs = 0
+
+
+with open(os.path.join(Flags.plot_dir, 'flags.json')) as fpo:
+  json.dump(Flags.__dict__, fpo)
 
 print(f"QAT enabled={Flags.use_qat}. About to train with {float_epochs} pretraining/float epochs followed by {qat_epochs} QAT epochs.")
 
