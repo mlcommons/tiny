@@ -37,6 +37,13 @@ def parse_command():
       """)
   parser.set_defaults(use_qat=True)
   parser.add_argument(
+      '--reps_of_target',
+      type=int,
+      default=12,
+      help="""\
+      Number of repetitions of the target wakeword added datasets (before noise is added).
+      """)
+  parser.add_argument(
       '--reps_of_target_training',
       type=int,
       default=12,
@@ -46,7 +53,7 @@ def parse_command():
   parser.add_argument(
       '--reps_of_target_validation',
       type=int,
-      default=2,
+      default=12,
       help="""\
       Number of repetitions of the target wakeword added to the validation set (before noise is added).
       """)
@@ -87,6 +94,30 @@ def parse_command():
       randomly, uniformly  between foreground_volume_min and foreground_volume_max.
       """)
   parser.add_argument(
+      '--foreground_volume_min_training',
+      type=float,
+      default=0.05,
+      help="""\
+      For training set, minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      """)
+  parser.add_argument(
+      '--foreground_volume_min_validation',
+      type=float,
+      default=0.2,
+      help="""\
+      (Validation set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      """)
+  parser.add_argument(
+      '--foreground_volume_min_test',
+      type=float,
+      default=0.05,
+      help="""\
+      (Test set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      """)
+  parser.add_argument(
       '--foreground_volume_max',
       type=float,
       default=1.0,
@@ -98,6 +129,30 @@ def parse_command():
       '--background_volume',
       type=float,
       default=2.0,
+      help="""\
+      How loud the background noise should be, between 0 and 1.  Noise volume will vary 
+      randomly between zero and background_volume.
+      """)
+  parser.add_argument(
+      '--background_volume_training',
+      type=float,
+      default=2.0,
+      help="""\
+      How loud the background noise should be, between 0 and 1.  Noise volume will vary 
+      randomly between zero and background_volume.
+      """)
+  parser.add_argument(
+      '--background_volume_validation',
+      type=float,
+      default=1.0,
+      help="""\
+      How loud the background noise should be, between 0 and 1.  Noise volume will vary 
+      randomly between zero and background_volume.
+      """)
+  parser.add_argument(
+      '--background_volume_test',
+      type=float,
+      default=0.0,
       help="""\
       How loud the background noise should be, between 0 and 1.  Noise volume will vary 
       randomly between zero and background_volume.

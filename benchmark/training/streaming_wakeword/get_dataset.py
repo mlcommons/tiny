@@ -314,7 +314,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
     'sample_rate', 'clip_duration_ms',
     'window_size_ms', 'window_stride_ms',
     'feature_type', 'dct_coefficient_count',
-    'batch_size',
+    'batch_size', 'reps_of_target',
     'num_bin_files', 'bin_file_path'
     ]
   # First populate the values that apply to all splits.  These can be overwritten
