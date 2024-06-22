@@ -468,9 +468,6 @@ def get_data(Flags, file_list):
   # change output from a dictionary to a feature,label tuple
   dset = dset.map(convert_dataset)
 
-  if Flags.num_samples != -1:
-    dset = dset.take(Flags.num_samples)
-
   # The order of these next three steps is important: cache, then shuffle, then batch.
   # Cache at this point, so we don't have to repeat all the spectrogram calculations each epoch
   dset = dset.cache()
@@ -482,6 +479,9 @@ def get_data(Flags, file_list):
     dset = dset.shuffle(shuffle_buffer_size)
   else:
     print(f"not shuffling")
+
+  if Flags.num_samples != -1:
+    dset = dset.take(Flags.num_samples)
   
   dset = dset.batch(Flags.batch_size)
 
