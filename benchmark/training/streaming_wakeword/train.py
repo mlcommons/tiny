@@ -55,8 +55,8 @@ else:
   float_epochs = Flags.epochs
   qat_epochs = 0
 
-
-with open(os.path.join(Flags.plot_dir, 'flags.json')) as fpo:
+# Save the Flags used into a json file
+with open(os.path.join(Flags.plot_dir, 'flags.json'), 'w') as fpo:
   json.dump(Flags.__dict__, fpo)
 
 print(f"QAT enabled={Flags.use_qat}. About to train with {float_epochs} pretraining/float epochs followed by {qat_epochs} QAT epochs.")

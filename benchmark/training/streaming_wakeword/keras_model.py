@@ -294,8 +294,8 @@ def get_model(args, use_qat=False):
       net = tf.keras.layers.Flatten()(net)
     # if len(net.shape) > 2 and net.shape[1] is not None: # more than (batch, units)
     #   net = tf.keras.layers.Flatten()(net)
-  
     net = tf.keras.layers.Dense(label_count, activation=tf.keras.activations.softmax)(net) 
+
     model =  tf.keras.Model(input_spec, net)
     
     ########################################
