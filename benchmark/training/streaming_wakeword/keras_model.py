@@ -294,8 +294,8 @@ def get_model(args, use_qat=False):
       net = tf.keras.layers.Flatten()(net)
     # if len(net.shape) > 2 and net.shape[1] is not None: # more than (batch, units)
     #   net = tf.keras.layers.Flatten()(net)
-    
-    net = tf.keras.layers.Dense(label_count)(net) 
+  
+    net = tf.keras.layers.Dense(label_count, activation=tf.keras.activations.softmax)(net) 
     model =  tf.keras.Model(input_spec, net)
     
     ########################################
@@ -335,7 +335,7 @@ def get_model(args, use_qat=False):
         
   model.compile(
     optimizer=optimizer,  
-    loss=keras.losses.CategoricalCrossentropy(from_logits=True),
+    loss=keras.losses.CategoricalCrossentropy(from_logits=False),
     metrics=[keras.metrics.CategoricalAccuracy(),
             keras.metrics.Precision(class_id=0, name='precision'), # prec = true_pos / (true_pos + false_pos)
             keras.metrics.Recall(class_id=0, name='recall'),    # recall = true_pos / (true_pos + false_neg)
