@@ -407,7 +407,7 @@ class DictWrapper(dict):
         return super().__setitem__(item, value)
 
 
-def debounce_detections(detection_signal, Flags):
+def debounce_false_detections(detection_signal, Flags):
     # repeated short positives near the same time should only count as one detection,
     # but an excessively long detection (e.g. 5 sec of continuous positive) should 
     # count as multiple detections.  So, the algorithm is:
@@ -434,5 +434,35 @@ def debounce_detections(detection_signal, Flags):
         detection_signal[idx:idx+fp_debounce_samples] = 0
         detection_signal[idx] = -1
         idx = idx+fp_debounce_samples
+    detection_signal[detection_signal==-1] = 1
+    return detection_signal
+
+def debounce_detections(detection_signal, sample_rate=16000, debounce_time=1.0):
+    # repeated short positives near the same time should only count as one detection,
+    # but an excessively long detection (e.g. 5 sec of continuous positive) should 
+    # count as multiple detections.  So, the algorithm is:
+    # * we walk through the detection signal (with correct detections already masked out).  
+    # * When we encounter a detection, count it and zero out the next fp_debounce_samples (~1s *16ks/s)
+    # * continue to the next detection
+    # this may be slow
+
+    # In ww_false_detected, positives in the original model output are '1'
+    # During the debouncing process, we'll zero out all of the original detections
+    # and use '-1' to keep track of the beginning of each separate detection
+    # Then we'll convert -1 back to +1 so each +1 indicates the beginning of
+    # one distinct detection.
+
+    debounce_samples = int(debounce_time*sample_rate)
+    idx = 0
+    detection_signal = np.copy(detection_signal)
+    while idx < len(detection_signal):
+        if not np.any(detection_signal[idx:]==1):
+            break
+        idx = np.min(np.nonzero(detection_signal==1))
+
+        detection_signal[idx:idx+debounce_samples] = 0
+        detection_signal[idx] = -1 # so that it's not caught by the nonzero condition above.
+        idx = idx+debounce_samples
+      
     detection_signal[detection_signal==-1] = 1
     return detection_signal
