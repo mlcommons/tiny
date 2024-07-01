@@ -238,7 +238,7 @@ def get_preprocess_audio_func(data_config, background_data = [], wave_frame_inpu
   return prepare_processing_graph
 
 
-def prepare_background_data(background_path):
+def prepare_background_data(background_path, clip_len_samples):
   """Searches a folder for background noise audio, and loads it into memory.
   It's expected that the background audio samples will be in a subdirectory
   named '_background_noise_' inside the 'data_dir' folder, as .wavs that match
@@ -252,25 +252,42 @@ def prepare_background_data(background_path):
   Raises:
     Exception: If files aren't found in the folder.
   """
+
+  if background_path is None:
+    return []
+  elif isinstance(background_path, str):
+    background_path = [background_path]
+  elif not isinstance(background_path, list):
+    raise ValueError(f"background_path should be either a string or list of strings")
+
   background_data = []
-  if not os.path.exists(background_path):
-    return background_data
-  search_path = os.path.join(background_path, '*.wav')
+
 
   # In order to work with tf.gather later, the background audio all need to be of the same length
-  # so we'll find the shortest length here, and clip the others to it.
-  min_len = np.inf
-  for wav_path in gfile.Glob(search_path):
-    #audio = tfio.audio.AudioIOTensor(wav_path)
-    raw_audio = tf.io.read_file(wav_path)
-    audio = tf.audio.decode_wav(raw_audio)
-    background_data.append(audio[0])
-    min_len = np.minimum(min_len, len(audio[0])).astype(int)
-  for i,bd in enumerate(background_data):
-    background_data[i] = bd[:min_len]
+  # skip any shorter than clip_len_samples.  For files over clip_len_samples, split into as 
+  # many clips as possible of length clip_len_samples, discard any fractional bits
+  # so e.g. w/ clip_len_samples=240,000 (15s at fs=16ksps), a 640000 sample file => 2 240-ksamp clips
+  for dir in background_path:
+    if not os.path.exists(dir):
+      raise RuntimeError(f"Directory {dir} in background_path does not exist.")
 
-  if not background_data:
-    raise Exception('No background wav files were found in ' + search_path)
+    wav_list = gfile.Glob(os.path.join(dir, '*.wav'))
+    if len(wav_list) == 0:
+      raise RuntimeError(f"Directory {dir} in background_path contains no wav files.")
+
+    for wav_path in wav_list: 
+      raw_audio = tf.io.read_file(wav_path)
+      audio, _ = tf.audio.decode_wav(raw_audio) # returns waveform, sample_rate
+      if len(audio) < clip_len_samples:
+        continue # file is too short, skip
+      # split waveform into as many clips of length clip_len_samples as we can
+      idx = 0
+      while idx+clip_len_samples-1<len(audio):
+        background_data.append(audio[idx:idx+clip_len_samples])
+        idx += clip_len_samples
+
+    if not background_data:
+      raise Exception('No background wav files were found in ' + search_path)
   return background_data
 
 def add_empty_frames(ds, input_shape=None, num_silent=None, white_noise_scale=0.0, silent_label=1): 
@@ -410,10 +427,12 @@ def get_data(Flags, file_list):
   label_count=3
   background_frequency = Flags.background_frequency
   background_volume_range_= Flags.background_volume
-
-  background_data = prepare_background_data(Flags.background_path)
-
   AUTOTUNE = tf.data.AUTOTUNE
+
+  background_data = prepare_background_data(
+    Flags.background_path, 
+    clip_len_samples=int(15.0*Flags.sample_rate)
+    )
 
   dset = tf.data.Dataset.from_tensor_slices(file_list)
   dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
