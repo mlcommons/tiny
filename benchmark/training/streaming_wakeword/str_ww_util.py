@@ -15,10 +15,13 @@ def parse_command():
       help="""\
       Where to download the speech training data to. Or where it is already saved.
       """)
+  default_bg_path = os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_')
+  default_bg_path += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "free-sound")
+  default_bg_path += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "us-gov")
   parser.add_argument(
       '--background_path',
       type=str,
-      default=os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_'),
+      default=default_bg_path,
       help="""\
       Where to find background noise folder.
       """)
@@ -333,6 +336,8 @@ def parse_command():
       """)
 
   Flags = parser.parse_args()
+
+  Flags.background_path = Flags.background_path.split(',')
 
   if Flags.foreground_volume_min > Flags.foreground_volume_max:
     raise ValueError(f"foreground_volume_min ({Flags.foreground_volume_min}) must be no",
