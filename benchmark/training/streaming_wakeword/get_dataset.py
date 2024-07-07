@@ -79,12 +79,11 @@ def convert_dataset(item):
 def get_preprocess_audio_func(data_config, background_data = [], wave_frame_input=False):
   """
   data_config                      :  Data configuration
-  background_data = [],            :  List of background noise waveforms (as TF arrays)
+  background_data = [],            :  TF Dataset of background noise waveforms
   wave_frame_input (default False) :  If True, build a dedicated model to extract features.  This is mostly
                                       intended to be exported to a TFLite model that can run on the DUT
   """
-  
-  # building a TF graph here, but do not use tf.function, because the 
+  # building a TF graph here, but do not use tf.function, because the
   # if statements should be evaluated at graph construction time, not evaluation time
   def prepare_processing_graph(next_element):
     """Builds a TensorFlow graph to apply the input distortions.
@@ -261,8 +260,6 @@ def prepare_background_data(background_path, clip_len_samples):
     raise ValueError(f"background_path should be either a string or list of strings")
 
   background_data = []
-
-
   # In order to work with tf.gather later, the background audio all need to be of the same length
   # skip any shorter than clip_len_samples.  For files over clip_len_samples, split into as 
   # many clips as possible of length clip_len_samples, discard any fractional bits
@@ -285,9 +282,79 @@ def prepare_background_data(background_path, clip_len_samples):
       while idx+clip_len_samples-1<len(audio):
         background_data.append(audio[idx:idx+clip_len_samples])
         idx += clip_len_samples
+      if len(background_data) >= 50:
+        break
 
-    if not background_data:
-      raise Exception('No background wav files were found in ' + search_path)
+  if len(background_data)==0:
+    raise Exception('No background wav files were found in ' + background_path)
+  return background_data
+
+def prepare_background_data_ds(background_path, clip_len_samples):
+  """ In-progress alternative version of this function that returns 
+  the background data as a dataset.
+  Searches a folder for background noise audio, and loads it into memory.
+  It's expected that the background audio samples will be in a subdirectory
+  named '_background_noise_' inside the 'data_dir' folder, as .wavs that match
+  the sample rate of the training data, but can be much longer in duration.
+  If the '_background_noise_' folder doesn't exist at all, this isn't an
+  error, it's just taken to mean that no background noise augmentation should
+  be used. If the folder does exist, but it's empty, that's treated as an
+  error.
+  Returns:
+    List of raw PCM-encoded audio samples of background noise.
+  Raises:
+    Exception: If files aren't found in the folder.
+  """
+
+  if background_path is None:
+    return []
+  elif isinstance(background_path, str):
+    background_path = [background_path]
+  elif not isinstance(background_path, list):
+    raise ValueError(f"background_path should be either a string or list of strings")
+
+  background_data = []
+  # In order to work with tf.gather later, the background audio all need to be of the same length
+  # skip any shorter than clip_len_samples.  For files over clip_len_samples, split into as 
+  # many clips as possible of length clip_len_samples, discard any fractional bits
+  # so e.g. w/ clip_len_samples=240,000 (15s at fs=16ksps), a 640000 sample file => 2 240-ksamp clips
+
+
+  wav_list = []
+  for dir in background_path:
+    if not os.path.exists(dir):
+      raise RuntimeError(f"Directory {dir} in background_path does not exist.")
+    wavs_this_dir = gfile.Glob(os.path.join(dir, '*.wav'))
+    if len(wavs_this_dir) == 0:
+      raise RuntimeError(f"Directory {dir} in background_path contains no wav files.")
+    wav_list.append(wavs_this_dir)
+    ds_bg_files = tf.data.Dataset.from_tensor_slices(wav_list)
+
+  ## TODO: convert this to map operations
+  ds_bg_files = ds_bg_files.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
+  
+  ## get_waveform_and_label => return {'audio':waveform, 'label':label}
+  # silent_wave_ds = silent_wave_ds.map(lambda dd: {
+  #   'audio':tf.cast(dd['audio'], 'float32')  ,
+  #   'label':tf.cast(dd['label'], 'int32')
+  # })
+
+  for wav_path in wav_list: 
+    raw_audio = tf.io.read_file(wav_path)
+    audio, _ = tf.audio.decode_wav(raw_audio) # returns waveform, sample_rate
+    if len(audio) < clip_len_samples:
+      continue # file is too short, skip
+    # split waveform into as many clips of length clip_len_samples as we can
+    idx = 0
+    while idx+clip_len_samples-1<len(audio):
+      background_data.append(audio[idx:idx+clip_len_samples])
+      idx += clip_len_samples
+
+  if len(background_data)==0:
+    raise Exception('No background wav files were found in ' + background_path)
+  # convert to tf dataset
+  background_data = tf.data.Dataset.from_tensor_slices(background_data)
+
   return background_data
 
 def add_empty_frames(ds, input_shape=None, num_silent=None, white_noise_scale=0.0, silent_label=1): 
@@ -435,6 +502,7 @@ def get_data(Flags, file_list):
     )
 
   dset = tf.data.Dataset.from_tensor_slices(file_list)
+  
   dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
   dset = dset.map(convert_labels_str2int)
     
@@ -459,18 +527,6 @@ def get_data(Flags, file_list):
                                                  "label": cal_sub_labels})
     ## end of if Flags.cal_subset
 
-  if Flags.reps_of_target > 0:
-    # create a few copies of only the target words to balance the distribution
-    # noise will be added to them later
-    dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
-    for _ in range(Flags.reps_of_target):
-      dset = dset.concatenate(dset_only_target)
-
-    tmp_count = 0 
-    for element in dset_only_target:
-      tmp_count += 1
-    print(f"Only-target dataset has {tmp_count} elements.")
-
   for dat in dset.take(1):
     wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
 
@@ -478,6 +534,32 @@ def get_data(Flags, file_list):
   if Flags.num_silent > 0:
     dset = add_empty_frames(dset, input_shape=wave_shape, num_silent=Flags.num_silent, 
                                 white_noise_scale=0.1, silent_label=1)
+  
+  if Flags.reps_of_target > 0:
+    # create a few copies of only the target words to balance the distribution
+    # noise will be added to them later
+    dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
+    
+    # filter() breaks cardinality(), so convert to an array and back again
+    target_wavs = []
+    target_labels = []
+    for dat in dset_only_target:
+      trg_wav = dat['audio']
+      trg_wav = np.pad(trg_wav, (0,Flags.desired_samples-len(trg_wav)))
+      target_wavs.append(trg_wav)
+      target_labels.append(dat['label'])
+    dset_only_target = tf.data.Dataset.from_tensor_slices({'audio':target_wavs,
+                                                      'label':target_labels})
+
+    # add repetitions of the target
+    for _ in range(Flags.reps_of_target):
+      dset = dset.concatenate(dset_only_target)
+
+    # tmp_count = 0 
+    # for element in dset_only_target:
+    #   tmp_count += 1
+    print(f"Only-target dataset has {dset_only_target.cardinality()} elements.")
+
 
   # extract spectral features and add background noise
   audio_preprocessor = get_preprocess_audio_func(Flags,
@@ -496,6 +578,7 @@ def get_data(Flags, file_list):
     # this will take some time, but it reduces the time in the 1st epoch
     shuffle_buffer_size = dset.reduce(0, lambda x,_: x+1).numpy()  
     dset = dset.shuffle(shuffle_buffer_size)
+    print(f"Shuffling with buffers size = {shuffle_buffer_size}")
   else:
     print(f"not shuffling")
 
@@ -537,7 +620,7 @@ def count_labels(ds, label_index=1):
 
 if __name__ == '__main__':
   Flags = util.parse_command()
-  ds_train, ds_test, ds_val = get_data(Flags)
+  ds_train, ds_test, ds_val = get_all_datasets(Flags)
 
   for dat in ds_train.take(1):
     print("One element from the training set has shape:")
