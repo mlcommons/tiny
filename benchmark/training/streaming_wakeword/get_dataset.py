@@ -391,14 +391,12 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # collect the subset of flags necessary for building the datasets
   # does not include *_training, *_validation, or *_test flags
   data_keys =  [
-    'data_dir', 'background_path',
-    'foreground_volume_min', 'foreground_volume_max',
-    'background_volume', 'background_frequency', 'time_shift_ms',
-    'silence_percentage', 'unknown_percentage',
+    'data_dir', 'time_shift_ms', 
+    'background_path', 'background_frequency',
     'sample_rate', 'clip_duration_ms',
     'window_size_ms', 'window_stride_ms',
     'feature_type', 'dct_coefficient_count',
-    'batch_size', 'reps_of_target',
+    'batch_size',
     'num_bin_files', 'bin_file_path'
     ]
   # First populate the values that apply to all splits.  These can be overwritten
@@ -505,7 +503,38 @@ def get_data(Flags, file_list):
   
   dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
   dset = dset.map(convert_labels_str2int)
+
+  if Flags.fraction_target > 0:
+    # create a few copies of only the target words to balance the distribution
+    # noise will be added to them later
+    dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
     
+    # filter() breaks cardinality(), so convert to an array and back again
+    target_wavs = []
+    target_labels = []
+    for dat in dset_only_target:
+      trg_wav = dat['audio']
+      # also pad to desired length; a ragged array breaks this code
+      trg_wav = np.pad(trg_wav, (0,Flags.desired_samples-len(trg_wav)))
+      target_wavs.append(trg_wav)
+      target_labels.append(dat['label'])
+
+    dset_only_target = tf.data.Dataset.from_tensor_slices({'audio':target_wavs,
+                                                      'label':target_labels})
+    num_targets_orig = dset_only_target.cardinality()
+    print(f"Only-target dataset has {num_targets_orig} elements.")
+
+  if Flags.num_samples == -1:
+    # how many non-target samples do we start with
+    num_other = dset.cardinality() - dset_only_target.cardinality()
+    # how many total samples will we have after adding silent, target up to the desired fractions
+    num_samples = int(num_other.numpy()/ (1.0-Flags.fraction_silent-Flags.fraction_target))
+    num_silent = int(Flags.fraction_silent * num_samples)
+  else:
+    num_samples = Flags.num_samples
+    num_silent = int(Flags.fraction_silent * num_samples)
+
+
   if Flags.cal_subset:  # only return the subset of val set used for quantization calibration
     with open("quant_cal_idxs.txt") as fpi:
       cal_indices = [int(line) for line in fpi]
@@ -531,36 +560,18 @@ def get_data(Flags, file_list):
     wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
 
   # create some silent samples, which noise will be added to as well
-  if Flags.num_silent > 0:
-    dset = add_empty_frames(dset, input_shape=wave_shape, num_silent=Flags.num_silent, 
+  if Flags.fraction_silent > 0:
+    dset = add_empty_frames(dset, input_shape=wave_shape, num_silent=num_silent, 
                                 white_noise_scale=0.1, silent_label=1)
   
-  if Flags.reps_of_target > 0:
-    # create a few copies of only the target words to balance the distribution
-    # noise will be added to them later
-    dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
-    
-    # filter() breaks cardinality(), so convert to an array and back again
-    target_wavs = []
-    target_labels = []
-    for dat in dset_only_target:
-      trg_wav = dat['audio']
-      trg_wav = np.pad(trg_wav, (0,Flags.desired_samples-len(trg_wav)))
-      target_wavs.append(trg_wav)
-      target_labels.append(dat['label'])
-    dset_only_target = tf.data.Dataset.from_tensor_slices({'audio':target_wavs,
-                                                      'label':target_labels})
+  # add repetitions of the target to fill in the rest of num_samples
+  while dset.cardinality()+num_targets_orig < num_samples:
+    dset = dset.concatenate(dset_only_target)
+  extra_targets_needed = dset.cardinality() - num_samples
+  if extra_targets_needed > 0:
+    dset = dset.concatenate(dset_only_target.take(extra_targets_needed))
 
-    # add repetitions of the target
-    for _ in range(Flags.reps_of_target):
-      dset = dset.concatenate(dset_only_target)
-
-    # tmp_count = 0 
-    # for element in dset_only_target:
-    #   tmp_count += 1
-    print(f"Only-target dataset has {dset_only_target.cardinality()} elements.")
-
-
+  print(f"About to apply preprocessor with {dset.cardinality()} samples")
   # extract spectral features and add background noise
   audio_preprocessor = get_preprocess_audio_func(Flags,
                                             background_data=background_data)

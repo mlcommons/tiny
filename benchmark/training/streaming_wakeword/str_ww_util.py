@@ -40,63 +40,55 @@ def parse_command():
       no_use_qat will disable quantization-aware training
       """)
   parser.set_defaults(use_qat=True)
+
   parser.add_argument(
-      '--reps_of_target',
-      type=int,
-      default=12,
-      help="""\
-      Number of repetitions of the target wakeword added datasets (before noise is added).
-      """)
-  parser.add_argument(
-      '--reps_of_target_training',
-      type=int,
-      default=12,
-      help="""\
-      Number of repetitions of the target wakeword added to the training set (before noise is added).
-      """)
-  parser.add_argument(
-      '--reps_of_target_validation',
-      type=int,
-      default=12,
-      help="""\
-      Number of repetitions of the target wakeword added to the validation set (before noise is added).
-      """)
-  parser.add_argument(
-      '--reps_of_target_test',
-      type=int,
-      default=0,
-      help="""\
-      Number of repetitions of the target wakeword added to the test set.
-      """)      
-  parser.add_argument(
-      '--num_silent_training',
-      type=int,
-      default=10000,
-      help="""\
-      Number of silent frames added to the training set (before noise is added).
-      """)
-  parser.add_argument(
-      '--num_silent_validation',
-      type=int,
-      default=1200,
-      help="""\
-      Number of silent frames added to the validation set (before noise is added).
-      """)
-  parser.add_argument(
-      '--num_silent_test',
-      type=int,
-      default=1200,
-      help="""\
-      Number of silent frames added to the test set (before noise is added).
-      """)      
-  parser.add_argument(
-      '--foreground_volume_min',
+      '--fraction_target_training',
       type=float,
-      default=0.05,
+      default=0.18,
       help="""\
-      Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
-      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      Fraction (0.0-1.0) of the training set that should be the target wakeword.
+      Target words will be duplicated to reach this fraction, but no words will be discarded,
+      even if that results in the fraction of target words being higher than requested.
       """)
+  parser.add_argument(
+      '--fraction_target_validation',
+      type=float,
+      default=0.18,
+      help="""\
+      Fraction (0.0-1.0) of the validation set that should be the target wakeword
+      Target words will be duplicated to reach this fraction, but no words will be discarded,
+      even if that results in the fraction of target words being higher than requested.
+      """)
+  parser.add_argument(
+      '--fraction_target_test',
+      type=float,
+      default=0.18,
+      help="""\
+      Fraction (0.0-1.0) of the test set that should be the target wakeword.
+      Target words will be duplicated to reach this fraction, but no words will be discarded,
+      even if that results in the fraction of target words being higher than requested.
+      """)      
+  parser.add_argument(
+      '--fraction_silent_training',
+      type=float,
+      default=0.1,
+      help="""\
+      Fraction (0.0-1.0) of training set consisting of silent frames (before noise is added).
+      """)
+  parser.add_argument(
+      '--fraction_silent_validation',
+      type=float,
+      default=0.1,
+      help="""\
+      Fraction (0.0-1.0) of validation set consisting of silent frames (before noise is added).
+      """)
+  parser.add_argument(
+      '--fraction_silent_test',
+      type=float,
+      default=0.1,
+      help="""\
+      Fraction (0.0-1.0) of test set consisting of silent frames (before noise is added).
+      """)      
   parser.add_argument(
       '--foreground_volume_min_training',
       type=float,
@@ -122,21 +114,29 @@ def parse_command():
       randomly, uniformly  between foreground_volume_min and foreground_volume_max.
       """)
   parser.add_argument(
-      '--foreground_volume_max',
+      '--foreground_volume_max_training',
       type=float,
       default=1.0,
       help="""\
-      Maximum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
-      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      Maximum level for how loud the foreground words should be in the training set, between 0 and 1. Word
+      volume will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max. 
+      """)
+  parser.add_argument(
+      '--foreground_volume_max_validation',
+      type=float,
+      default=1.0,
+      help="""\
+      Maximum level for how loud the foreground words should be in the val set, between 0 and 1. Word volume 
+      will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
       """)  
   parser.add_argument(
-      '--background_volume',
+      '--foreground_volume_max_test',
       type=float,
-      default=2.0,
+      default=1.0,
       help="""\
-      How loud the background noise should be, between 0 and 1.  Noise volume will vary 
-      randomly between zero and background_volume.
-      """)
+      Maximum level for how loud the foreground words should be in the test set, between 0 and 1. Word volume
+      will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+      """)        
   parser.add_argument(
       '--background_volume_training',
       type=float,
@@ -166,7 +166,7 @@ def parse_command():
       type=float,
       default=0.8,
       help="""\
-      How many of the training samples have background noise mixed in.
+      What fraction of the samples have background noise mixed in.
       """)
   parser.add_argument(
       '--silence_percentage',
@@ -243,22 +243,22 @@ def parse_command():
       '--num_samples_training',
       type=int,
       default=-1, # 85511,
-    help='How many samples from the training set to use',)
+    help='Total samples in the training set. Set to -1 to use all the data',)
   parser.add_argument(
       '--num_samples_validation',
       type=int,
       default=-1, # 10102,
-    help='How many samples from the validation set to use',)
+    help='Total samples in the  validation set. Set to -1 to use all the data',)
   parser.add_argument(
       '--num_samples_test',
       type=int,
       default=-1, # 4890,
-    help='How many samples from the test set to use',)
+    help='How many samples from the test set to use. Set to -1 to use all the data',)
   parser.add_argument(
       '--batch_size',
       type=int,
       default=100,
-      help='How many items to train with at once',)
+      help='Batch size for training',)
   parser.add_argument(
       '--num_bin_files',
       type=int,
@@ -339,9 +339,17 @@ def parse_command():
 
   Flags.background_path = Flags.background_path.split(',')
 
-  if Flags.foreground_volume_min > Flags.foreground_volume_max:
-    raise ValueError(f"foreground_volume_min ({Flags.foreground_volume_min}) must be no",
-                     f"larger than foreground_volume_max ({Flags.foreground_volume_max})")
+  if Flags.foreground_volume_min_training > Flags.foreground_volume_max_training:
+    raise ValueError(f"foreground_volume_min_training ({Flags.foreground_volume_min_training}) must be no",
+                     f"larger than foreground_volume_max_training ({Flags.foreground_volume_max_training})")
+
+  if Flags.foreground_volume_min_validation > Flags.foreground_volume_max_validation:
+    raise ValueError(f"foreground_volume_min_validation ({Flags.foreground_volume_min_validation}) must be no",
+                     f"larger than foreground_volume_max_validation ({Flags.foreground_volume_max_validation})")
+                     
+  if Flags.foreground_volume_min_test > Flags.foreground_volume_max_test:
+    raise ValueError(f"foreground_volume_min_test ({Flags.foreground_volume_min_test}) must be no",
+                     f"larger than foreground_volume_max_test ({Flags.foreground_volume_max_test})")
 
   return Flags
 
