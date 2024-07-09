@@ -505,7 +505,7 @@ def get_data(Flags, file_list):
   dset = dset.map(convert_labels_str2int)
 
   if Flags.fraction_target > 0:
-    # create a few copies of only the target words to balance the distribution
+    # create copies of only the target words to balance the distribution.
     # noise will be added to them later
     dset_only_target = dset.filter(lambda dat: dat['label'] == 0)
     
@@ -529,11 +529,10 @@ def get_data(Flags, file_list):
     num_other = dset.cardinality() - dset_only_target.cardinality()
     # how many total samples will we have after adding silent, target up to the desired fractions
     num_samples = int(num_other.numpy()/ (1.0-Flags.fraction_silent-Flags.fraction_target))
-    num_silent = int(Flags.fraction_silent * num_samples)
   else:
     num_samples = Flags.num_samples
-    num_silent = int(Flags.fraction_silent * num_samples)
-
+  num_silent = int(Flags.fraction_silent * num_samples)
+  num_targets = int(Flags.fraction_target * num_samples)
 
   if Flags.cal_subset:  # only return the subset of val set used for quantization calibration
     with open("quant_cal_idxs.txt") as fpi:
