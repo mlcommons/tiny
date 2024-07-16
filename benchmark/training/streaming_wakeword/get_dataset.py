@@ -282,7 +282,7 @@ def prepare_background_data(background_path, clip_len_samples):
       while idx+clip_len_samples-1<len(audio):
         background_data.append(audio[idx:idx+clip_len_samples])
         idx += clip_len_samples
-      if len(background_data) >= 50:
+      if len(background_data) >= 100:
         break
 
   if len(background_data)==0:
