@@ -62,7 +62,7 @@ def parse_command():
   parser.add_argument(
       '--fraction_target_test',
       type=float,
-      default=0.18,
+      default=0.18, 
       help="""\
       Fraction (0.0-1.0) of the test set that should be the target wakeword.
       Target words will be duplicated to reach this fraction, but no words will be discarded,
@@ -453,3 +453,67 @@ def debounce_detections(detection_signal, sample_rate=16000, debounce_time=1.0):
       
     detection_signal[detection_signal==-1] = 1
     return detection_signal
+
+def get_true_and_false_detections(detection_signal, ww_present, Flags,
+                                  true_pos_max_delay_sec=0.5, false_pos_suppresion_delay_sec=1.0
+                                 ):
+    """
+    detection_signal:       binary output of the detector (0=absent, 1=present), on the time-scale of spectrograms,
+                            i.e. at the same effective sampling rate as the model output (not the acoustic sample rate)
+    ww_present:             ground truth for when the wakeword is present, at the acoustic sample rate
+    
+    true_pos_max_delay_sec: After the end of a wakeword instance, detection_signal must be high within 
+                            <true_pos_max_delay_sec> to register a true positive
+    false_pos_suppresion_delay_sec: After the end of a wakeword instance, positives within 
+                                    <false_pos_suppresion_delay_sec> will *not* cause a false positive.
+
+    returns:                (true_detects, false_detects, false_rejects)
+                            debounced true and false detections and false_rejects
+                            All are at the same sample rate and length as ww_present (plottable directly 
+                            with the original waveform).
+                            Both are 1 at the start of a detection (or missed wakeword), 0 elsewhere.
+                            
+                                            
+    """
+  
+    # count true detections for det_delay_tol samples after ww is present
+    det_delay_tol = int(true_pos_max_delay_sec*Flags.sample_rate)
+    # detections within det_mask_delay samples after the ww end are ignored during false positive counting
+    det_mask_delay = int(false_pos_suppresion_delay_sec*Flags.sample_rate)
+
+    # match sample rate and length to ww_present
+    ww_detected = np.repeat(detection_signal, Flags.window_stride_ms*Flags.sample_rate/1000)
+    extra_zeros = np.zeros(len(ww_present)-len(ww_detected))
+    ww_detected = np.concatenate((extra_zeros, ww_detected), axis=0)
+    
+    ww_false_detected = np.copy(ww_detected)
+    ww_false_rejected = np.zeros(ww_detected.shape)
+    ww_true_detected  = np.zeros(ww_detected.shape)
+
+    ww_starts = np.nonzero(np.diff(ww_present)>0.5)[0]
+    ww_stops = np.nonzero(np.diff(ww_present)<-0.5)[0]
+    if len(ww_starts) != len(ww_stops) or ww_present[0] > 0 or ww_present[-1] > 0:
+        raise ValueError("ww_present should have the same number of rising and falling",
+                         "edges and should start and end with '0's, i.e. no wakeword should",
+                         "be in progress at the beginning or end of the waveform.")
+    ww_windows = [(n_start, n_stop) for (n_start, n_stop) in zip(ww_starts, ww_stops)]
+  
+    true_positives = 0
+    false_negatives = 0
+    for win in ww_windows:
+        if np.any(ww_detected[win[0]:win[1]+det_delay_tol]==1): # is detection signal positive within the window?
+            true_positives += 1
+            ww_true_detected[win[0]] = 1 # just mark the beginning of the actual wakeword 
+            # print(f"Counted a true positive for wakeword at {win[0]}:{win[1]}")
+        else:
+            false_negatives += 1
+            ww_false_rejected[win[0]] = 1
+            # print(f"Counted a false negative for wakeword at {win[0]}:{win[1]}")
+        # mask out any detections in the window or within det_mask_delay samples after it
+        ww_false_detected[win[0]:win[1]+det_mask_delay]=0
+
+    ww_false_detected = debounce_detections(ww_false_detected, Flags.sample_rate)
+
+    print(f"In function, counted {true_positives} true positives and {false_negatives} false negatives.")
+    return ww_true_detected,  ww_false_detected, ww_false_rejected  
+  
