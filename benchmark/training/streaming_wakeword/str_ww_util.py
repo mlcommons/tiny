@@ -15,15 +15,41 @@ def parse_command():
       help="""\
       Where to download the speech training data to. Or where it is already saved.
       """)
-  default_bg_path = os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_')
-  default_bg_path += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "free-sound")
-  default_bg_path += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "us-gov")
+  # the long test waveform (final test) draws from speech/librivox, music/hd-classical under MUSAN
+  default_bg_path_train = os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_')
+  default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "free-sound")
+  default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "us-gov")
+
+  default_bg_path_val = os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "sound-bible")
+  default_bg_path_val += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "librivox")
+
   parser.add_argument(
-      '--background_path',
+      '--background_path_training',
       type=str,
-      default=default_bg_path,
+      default=default_bg_path_train,
       help="""\
-      Where to find background noise folder.
+      Where to find background noise wav files for training. Directories separated by comma (',').
+      """)
+  parser.add_argument(
+      '--background_path_validation',
+      type=str,
+      default=default_bg_path_val,
+      help="""\
+      Where to find background noise wav files for training. Directories separated by comma (',').
+      """)
+  parser.add_argument(
+      '--background_path_test',
+      type=str,
+      default='',
+      help="""\
+      Where to find background noise wav files for test. Directories separated by comma (',').
+      """)        
+  parser.add_argument(
+      '--num_background_clips',
+      type=int,
+      default=100,
+      help="""\
+      Number of (15-sec) background clips to assemble.  Used to augment samples with background noise.  Too high will use excessive memory.
       """)
   parser.add_argument(
       '--use_qat',
@@ -337,8 +363,11 @@ def parse_command():
 
   Flags = parser.parse_args()
 
-  Flags.background_path = Flags.background_path.split(',')
-
+  # the 2nd half of these assignments is to that an empty original string yields an empty list instead of ['']
+  Flags.background_path_training   = Flags.background_path_training.split(',') if len(Flags.background_path_training)>0 else []
+  Flags.background_path_validation = Flags.background_path_validation.split(',') if len(Flags.background_path_validation)>0 else []
+  Flags.background_path_test       = Flags.background_path_test.split(',') if len(Flags.background_path_test)>0 else []
+  
   if Flags.foreground_volume_min_training > Flags.foreground_volume_max_training:
     raise ValueError(f"foreground_volume_min_training ({Flags.foreground_volume_min_training}) must be no",
                      f"larger than foreground_volume_max_training ({Flags.foreground_volume_max_training})")

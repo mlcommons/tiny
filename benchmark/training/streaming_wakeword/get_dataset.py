@@ -237,7 +237,7 @@ def get_preprocess_audio_func(data_config, background_data = [], wave_frame_inpu
   return prepare_processing_graph
 
 
-def prepare_background_data(background_path, clip_len_samples):
+def prepare_background_data(background_path, clip_len_samples, num_clips):
   """Searches a folder for background noise audio, and loads it into memory.
   It's expected that the background audio samples will be in a subdirectory
   named '_background_noise_' inside the 'data_dir' folder, as .wavs that match
@@ -259,34 +259,43 @@ def prepare_background_data(background_path, clip_len_samples):
   elif not isinstance(background_path, list):
     raise ValueError(f"background_path should be either a string or list of strings")
 
+  # exclude the files used in the long test wav
+  with open('exclude_background_files.txt', 'r') as fpi:
+    exclude_files = [f.strip() for f in fpi if f[0]!='#']
+
   background_data = []
   # In order to work with tf.gather later, the background audio all need to be of the same length
   # skip any shorter than clip_len_samples.  For files over clip_len_samples, split into as 
   # many clips as possible of length clip_len_samples, discard any fractional bits
   # so e.g. w/ clip_len_samples=240,000 (15s at fs=16ksps), a 640000 sample file => 2 240-ksamp clips
+  wav_list = []
   for dir in background_path:
     if not os.path.exists(dir):
       raise RuntimeError(f"Directory {dir} in background_path does not exist.")
-
-    wav_list = gfile.Glob(os.path.join(dir, '*.wav'))
+    
+    wav_list += gfile.Glob(os.path.join(dir, '*.wav'))
     if len(wav_list) == 0:
       raise RuntimeError(f"Directory {dir} in background_path contains no wav files.")
+  random.shuffle(wav_list)
 
-    for wav_path in wav_list: 
-      raw_audio = tf.io.read_file(wav_path)
-      audio, _ = tf.audio.decode_wav(raw_audio) # returns waveform, sample_rate
-      if len(audio) < clip_len_samples:
-        continue # file is too short, skip
-      # split waveform into as many clips of length clip_len_samples as we can
-      idx = 0
-      while idx+clip_len_samples-1<len(audio):
-        background_data.append(audio[idx:idx+clip_len_samples])
-        idx += clip_len_samples
-      if len(background_data) >= 100:
-        break
+  for wav_path in wav_list:
+    if wav_path.rsplit(os.sep)[-1] in exclude_files:
+      continue
+    raw_audio = tf.io.read_file(wav_path)
+    audio, _ = tf.audio.decode_wav(raw_audio) # returns waveform, sample_rate
+    if len(audio) < clip_len_samples:
+      continue # file is too short, skip
+    # split waveform into as many clips of length clip_len_samples as we can
+    idx = 0
+    while idx+clip_len_samples-1<len(audio): # while (there is another full clip in the file)
+      background_data.append(audio[idx:idx+clip_len_samples])
+      idx += clip_len_samples
+    if len(background_data) >= num_clips:
+      break
 
-  if len(background_data)==0:
-    raise Exception('No background wav files were found in ' + background_path)
+  background_data = background_data[:num_clips]
+  print(f"Finished gathering.  {len(background_data)} /{num_clips} clips so far.")
+
   return background_data
 
 def prepare_background_data_ds(background_path, clip_len_samples):
@@ -392,7 +401,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # does not include *_training, *_validation, or *_test flags
   data_keys =  [
     'data_dir', 'time_shift_ms', 
-    'background_path', 'background_frequency',
+    'background_frequency', 'num_background_clips',
     'sample_rate', 'clip_duration_ms',
     'window_size_ms', 'window_stride_ms',
     'feature_type', 'dct_coefficient_count',
@@ -505,7 +514,8 @@ def get_data(Flags, file_list):
 
   background_data = prepare_background_data(
     Flags.background_path, 
-    clip_len_samples=int(15.0*Flags.sample_rate)
+    clip_len_samples=int(15.0*Flags.sample_rate),
+    num_clips=Flags.num_background_clips
     )
 
   num_targets_orig = len(files_target)
@@ -580,13 +590,8 @@ def get_data(Flags, file_list):
                                                  "label": cal_sub_labels})
     ## end of if Flags.cal_subset
   
-  
-  print(f"about to get wave_shape, before for block")
   for dat in dset.take(1):
-    print(f"about to get wave_shape, in for block")
     wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
-  print(f"after for block, wave_shape = {wave_shape}")
-
 
   # create some silent samples, which noise will be added to as well
   if Flags.fraction_silent > 0:
