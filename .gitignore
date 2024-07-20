@@ -3,5 +3,6 @@
 *~
 tmp*
 tmp/
+.tmp*
 **/.DS_Store
 **/.ipynb_checkpoints/
