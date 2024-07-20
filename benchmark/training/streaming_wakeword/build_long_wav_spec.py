@@ -38,7 +38,7 @@ ww_amplitudes = rng.uniform(low=min_ww_ampl, high=min_ww_ampl, size=(len(inserti
 ww_files = []
 for line in open(os.path.join(Flags.data_dir, 'testing_list.txt')):
     if line.split('/')[0] == 'marvin':
-        ww_path = "{speech_commands_path}" + line.strip()
+        ww_path = os.path.join("{speech_commands_path}",line.strip())
         ww_files.append(ww_path)
 
 ww_files = ww_files[:len(insertion_secs)]
