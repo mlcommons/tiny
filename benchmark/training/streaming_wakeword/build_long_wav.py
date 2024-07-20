@@ -11,6 +11,17 @@ rel_thresh = 0.05 # trim out leading/trailing space with less than rel_thresh*ma
 samp_freq = Flags.sample_rate
 wav_spec_file = "long_wav_spec.json"
 
+try:
+    with open('streaming_config.json', 'r') as fpi:
+        streaming_config = json.load(fpi)
+    musan_path = streaming_config['musan_path']
+except:
+    raise RuntimeError("""
+        In this directory, copy streaming_config_template.json to streaming_config.json
+        and edit it to point to the directories where you have the speech commands dataset
+        and the MUSAN noise data set.
+        """)
+
 with open(wav_spec_file, 'r') as fpi:
     wav_spec = json.load(fpi)
 long_wav_len_sec = wav_spec['length_sec']
@@ -28,9 +39,10 @@ def trim_and_normalize(wav_in, rel_thresh):
   wav_out = wav_in[idx_start:idx_stop]
   wav_out = wav_out / np.std(wav_out) 
   return wav_out
-
+print(streaming_config)
 long_wav = np.zeros(int(long_wav_len_sec*samp_freq), dtype=np.float32)
 for bg_path, t_start, t_stop, rms_level in wav_spec['configs_background']: 
+    bg_path = util.replace_env_vars(bg_path, env_dict=streaming_config)
     bg_sampling_freq, tmp_wav = wavfile.read(bg_path)
     assert bg_sampling_freq == samp_freq
     tmp_wav = tmp_wav[:int((t_stop-t_start)*samp_freq)]

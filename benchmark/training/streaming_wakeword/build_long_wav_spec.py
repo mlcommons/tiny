@@ -11,23 +11,18 @@ max_ww_ampl = 0.75
 
 rng = np.random.default_rng()
 
-
-with open('streaming_config.json', 'r') as fpi:
-    streaming_config = json.load(fpi)
-musan_path = streaming_config['musan_path']
-
 bg_file_configs = [
-    (musan_path+'/speech/librivox/speech-librivox-0149.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/speech/librivox/speech-librivox-0150.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/speech/librivox/speech-librivox-0152.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/speech/librivox/speech-librivox-0163.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/speech/librivox/speech-librivox-0163.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/speech/librivox/speech-librivox-0164.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/speech/librivox/speech-librivox-0165.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/speech/librivox/speech-librivox-0166.wav', 100.0, 300.0, 0.1),
-    (musan_path+'/music/hd-classical/music-hd-0002.wav', 300.0, 450.0, 0.5),
-    (musan_path+'/music/jamendo/music-jamendo-0000.wav', 450.0, 600.0, 0.5),
-    (musan_path+'/speech/librivox/speech-librivox-0052.wav', 600.0, 1200.0, 0.5),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0149.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0150.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0152.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0163.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0163.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0164.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0165.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0166.wav', 100.0, 300.0, 0.1),
+    ('{musan_path}'+'/music/hd-classical/music-hd-0002.wav', 300.0, 450.0, 0.5),
+    ('{musan_path}'+'/music/jamendo/music-jamendo-0000.wav', 450.0, 600.0, 0.5),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0052.wav', 600.0, 1200.0, 0.5),
 ]
 
 intervals = rng.exponential(scale=7.0, size=(num_targets))

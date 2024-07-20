@@ -1,10 +1,9 @@
-import os
-import argparse
+import argparse, os, math, re
 import matplotlib.pyplot as plt
-import math
+import numpy as np
+
 import tensorflow as tf
 from tensorflow import keras
-import numpy as np
 
 def parse_command():
   parser = argparse.ArgumentParser()
@@ -550,4 +549,25 @@ def get_true_and_false_detections(detection_signal, ww_present, Flags,
 
     ww_false_detected = debounce_detections(ww_false_detected, Flags.sample_rate)
     return ww_true_detected,  ww_false_detected, ww_false_rejected  
-  
+
+def replace_env_vars(str_in, env_dict=None):
+    """
+    Replaces any sub-strings enclosed by curly braces in str_in with the value 
+    of the corresponding variable from env_dict.
+    env_dict: a dict (or dict-like) of the form {'VAR_NAME':'value'}
+    """
+    if env_dict is None:
+        env_dict = os.environ
+
+    matches = re.findall(r"{(\w+)}", str_in)
+    new_str = str_in
+    for env_var_name in matches:
+        if env_var_name in env_dict:
+            env_var_value = env_dict[env_var_name]
+            # Replace the enclosed string and curly braces with the value of the environment variable
+            new_str = new_str.replace("{" + env_var_name + "}", env_var_value)
+        else:
+            raise ValueError(f"Environment variable {env_var_name} not found")
+            
+    return new_str
+

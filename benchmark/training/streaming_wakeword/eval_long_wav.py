@@ -58,6 +58,6 @@ for t_start, t_stop in ww_windows:
 ww_detected_spec_scale = (yy[:,0]>det_thresh).astype(int)
 ww_true_detects, ww_false_detects, ww_false_rejects = util.get_true_and_false_detections(ww_detected_spec_scale, ww_present, Flags)
 
-print(f"{np.sum(ww_false_detects!=0)} false detections by counting")
-print(f"{np.sum(ww_true_detects!=0)} true detections by counting")
-print(f"{np.sum(ww_false_rejects!=0)} false rejections by counting")
+print(f"False Detections: {np.sum(ww_false_detects!=0)},",
+      f"True rejections: {np.sum(ww_true_detects!=0)},",
+      f"False rejections: {np.sum(ww_false_rejects!=0)}")
