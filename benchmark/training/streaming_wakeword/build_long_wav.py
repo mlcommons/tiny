@@ -39,7 +39,8 @@ def trim_and_normalize(wav_in, rel_thresh):
   wav_out = wav_in[idx_start:idx_stop]
   wav_out = wav_out / np.std(wav_out) 
   return wav_out
-print(streaming_config)
+
+
 long_wav = np.zeros(int(long_wav_len_sec*samp_freq), dtype=np.float32)
 for bg_path, t_start, t_stop, rms_level in wav_spec['configs_background']: 
     bg_path = util.replace_env_vars(bg_path, env_dict=streaming_config)
@@ -53,6 +54,7 @@ ww_present = np.zeros(long_wav.shape)
 ww_windows = [] # populate this with start,stop tuples
 
 for fname, insertion_secs, ampl in wav_spec['configs_wakeword']:
+    fname = util.replace_env_vars(fname, env_dict=streaming_config)
     ww_sampling_freq, ww_wav = wavfile.read(fname)
     assert int(ww_sampling_freq) == samp_freq
     index = int(insertion_secs * samp_freq)
