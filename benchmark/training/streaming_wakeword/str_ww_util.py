@@ -15,6 +15,13 @@ def parse_command():
       help="""\
       Where to download the speech training data to. Or where it is already saved.
       """)
+  parser.add_argument(
+      '--test_wav_path',
+      type=str,
+      default="long_wav.wav",
+      help="""\
+      Wav file to run the model on for the long-wav test.
+      """)
   # the long test waveform (final test) draws from speech/librivox, music/hd-classical under MUSAN
   default_bg_path_train = os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_')
   default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "free-sound")
@@ -542,7 +549,5 @@ def get_true_and_false_detections(detection_signal, ww_present, Flags,
         ww_false_detected[win[0]:win[1]+det_mask_delay]=0
 
     ww_false_detected = debounce_detections(ww_false_detected, Flags.sample_rate)
-
-    print(f"In function, counted {true_positives} true positives and {false_negatives} false negatives.")
     return ww_true_detected,  ww_false_detected, ww_false_rejected  
   

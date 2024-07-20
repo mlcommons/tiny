@@ -50,7 +50,8 @@ for fname, insertion_secs, ampl in wav_spec['configs_wakeword']:
     
     long_wav[index:index+len(ww_wav)] += ampl*ww_wav
     ww_present[index:index+len(ww_wav)] = 1
-    ww_windows.append((index,index+len(ww_wav)))
+    # each ww_window is the start,stop time in seconds when the wakeword is present
+    ww_windows.append((insertion_secs,insertion_secs+len(ww_wav)/samp_freq))
 
 
 data_config_long = get_dataset.get_data_config(Flags, 'training')
@@ -62,7 +63,7 @@ data_config_long['desired_samples']= len(long_wav)
 long_wav = long_wav / np.max(np.abs(long_wav)) # scale into [-1.0, +1.0] range
 
 feature_extractor_long = get_dataset.get_preprocess_audio_func(data_config_long)
-# the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is
+# the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is   
 long_spec = feature_extractor_long({'audio':long_wav, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
 
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
