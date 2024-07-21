@@ -81,7 +81,7 @@ def conv_block(inputs,
                  dilation,
                  stride,
                  filter_separable,
-                 residual=False,
+                 residual=False,  
                  padding='same',
                  dropout=0.0,
                  activation='relu',
@@ -133,12 +133,14 @@ def conv_block(inputs,
         strides=(stride, stride),
         padding=dw_pad,
         dilation_rate=(dilation, 1),
+        kernel_regularizer=regularizers.L2(1e-3),
         use_bias=False)(
       net)
 
   # Conv2D 1x1 - streamable by default
   net = keras.layers.Conv2D(
-      filters=filters, kernel_size=1, use_bias=False, padding='valid')(
+      filters=filters, kernel_size=1, use_bias=False, 
+      kernel_regularizer=regularizers.L2(1e-3), padding='valid')(
           net)
   
   net = keras.layers.BatchNormalization(scale=scale)(net)
