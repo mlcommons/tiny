@@ -258,9 +258,6 @@ def get_model(args, use_qat=False):
     
     net = input_spec
     
-    # make it [batch, time, 1, feature]
-    # net = tf.keras.backend.expand_dims(net, axis=2)
-    
     for count in range(len(ds_stride)):  
       net = conv_block(net, repeat=ds_repeat[count], 
                          kernel_size=ds_kernel_size[count],
@@ -274,25 +271,13 @@ def get_model(args, use_qat=False):
                          dropout=dropout,
                          activation=activation)
       
-    # net = tf.keras.layers.GlobalAveragePooling2D()(net)
-    # if input shape is variable, we have to fix the pool size, so we can't use Global Pooling, 
-    # but this has to change if preprocessing changes
-
-    ## added length to DSC filters so there is nothing left to average in the time dimension
-    # pool_len_time = 5 # is there a good way to infer this from the shape when input length is variable (None)
-    # net = tf.keras.layers.AveragePooling2D((pool_len_time,1), strides=(1,1))(net)
-
-    # time axis should be reduced to 1 after avg pool, so we don't
-    # want to flatten across time when we have variable length, since that 
-    # is modeling multiple inferences in one run.
     if variable_length:
       # net = tf.squeeze(net, axis=2) # this is what we want, but squeeze does not work with QAT
       # keep the (unknown:-1) time duration (shape[0]) and channels (shape[-1]).  Remove the singleton feature dimension
       net = tf.keras.layers.Reshape((-1, net.shape[-1]))(net) 
     else:
       net = tf.keras.layers.Flatten()(net)
-    # if len(net.shape) > 2 and net.shape[1] is not None: # more than (batch, units)
-    #   net = tf.keras.layers.Flatten()(net)
+
     net = tf.keras.layers.Dense(label_count, activation=tf.keras.activations.softmax)(net) 
 
     model =  tf.keras.Model(input_spec, net)
