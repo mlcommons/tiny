@@ -336,7 +336,7 @@ def parse_command():
       help='Path to json file defining a model dictionary.  If None, standard config is used.')  
   parser.add_argument(
       '--tfl_file_name',
-      default='trained_models/kws_model.tflite',
+      default='trained_models/strm_ww_int8.tflite',
       help='File name to which the TF Lite model will be saved (quantize.py) or loaded (eval_quantized_model)')
   parser.add_argument(
       '--learning_rate',
@@ -366,6 +366,13 @@ def parse_command():
       help="""\
       For eval_quantized_model, which set to measure.
       """)
+  parser.add_argument(
+      '--use_tflite_model',
+      action="store_true",
+      help="""\
+        In eval_long_wav.py, run the TFLite model. Otherwise, run the standard keras model
+        """)
+
 
   Flags = parser.parse_args()
 

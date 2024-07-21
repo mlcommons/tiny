@@ -3,6 +3,7 @@ import numpy as np
 from scipy.io import  wavfile
 
 import tensorflow_model_optimization as tfmot
+import tensorflow as tf
 import keras
 
 import str_ww_util as util
@@ -16,15 +17,26 @@ samp_freq = Flags.sample_rate
 # For wav file 'long_wav.wav', the wakeword windows should be in 'long_wav_ww_windows.json'
 ww_windows_file = Flags.test_wav_path.split('.')[0] + '_ww_windows.json'
 
-with tfmot.quantization.keras.quantize_scope(): # needed for the QAT wrappers
-    model_std = keras.models.load_model(Flags.saved_model_path) # normal model for fixed-length inputs
+if Flags.use_tflite_model:
+    interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
+    interpreter.allocate_tensors()
+    input_details = interpreter.get_input_details()
+    output_details = interpreter.get_output_details()
+    input_shape = input_details[0]['shape']
+    output_data = []
+    labels = []
+    input_scale, input_zero_point = input_details[0]["quantization"]
+    output_scale, output_zero_point = output_details[0]["quantization"]
+else:
+    with tfmot.quantization.keras.quantize_scope(): # needed for the QAT wrappers
+        model_std = keras.models.load_model(Flags.saved_model_path) # normal model for fixed-length inputs
 
-## Build a model that can accept variable-length inputs to process the long waveform/spectrogram
-Flags.variable_length=True
-model_varlen = models.get_model(args=Flags, use_qat=False) # model with variable-length input
-Flags.variable_length=False
-# transfer weights from trained model into variable-length model
-model_varlen.set_weights(model_std.get_weights())
+    ## Build a model that can accept variable-length inputs to process the long waveform/spectrogram
+    Flags.variable_length=True
+    model_varlen = models.get_model(args=Flags, use_qat=False) # model with variable-length input
+    Flags.variable_length=False
+    # transfer weights from trained model into variable-length model
+    model_varlen.set_weights(model_std.get_weights())
 
 
 wav_sampling_freq, long_wav = wavfile.read(Flags.test_wav_path)
@@ -44,7 +56,24 @@ feature_extractor_long = get_dataset.get_preprocess_audio_func(data_config_long)
 long_spec = feature_extractor_long({'audio':long_wav, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
 
-yy = model_varlen(np.expand_dims(long_spec, 0))[0].numpy()
+if Flags.use_tflite_model:
+    yy_q = np.nan*np.zeros((long_spec.shape[0]-input_shape[1]+1,3))
+
+    for idx in range(long_spec.shape[0]-input_shape[1]+1):
+        spec = long_spec[idx:idx+input_shape[1],:,:]
+        spec = np.expand_dims(spec, 0) # add batch dimension  
+        spec_q = np.array(spec/input_scale + input_zero_point, dtype=np.int8)
+        
+        interpreter.set_tensor(input_details[0]['index'], spec_q)
+        interpreter.invoke()
+        # get_tensor() returns a copy of the tensor data.
+        # Use `tensor()` to get a pointer to it
+        yy_q[idx,:] = interpreter.get_tensor(output_details[0]['index'])
+
+    # Dequantize so that softmax output is in range [0,1]
+    yy = (yy_q.astype(np.float32) - output_zero_point)*output_scale
+else:
+    yy = model_varlen(np.expand_dims(long_spec, 0))[0].numpy()
 
 ## shows detection when ww activation > thresh
 with open(ww_windows_file, 'r') as fpi:
@@ -58,6 +87,6 @@ for t_start, t_stop in ww_windows:
 ww_detected_spec_scale = (yy[:,0]>det_thresh).astype(int)
 ww_true_detects, ww_false_detects, ww_false_rejects = util.get_true_and_false_detections(ww_detected_spec_scale, ww_present, Flags)
 
-print(f"False Detections: {np.sum(ww_false_detects!=0)},",
-      f"True rejections: {np.sum(ww_true_detects!=0)},",
+print(f"False detections: {np.sum(ww_false_detects!=0)},",
+      f"True detections: {np.sum(ww_true_detects!=0)},",
       f"False rejections: {np.sum(ww_false_rejects!=0)}")
