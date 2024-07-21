@@ -5,6 +5,7 @@ import tensorflow as tf
 from tensorflow.lite.experimental.microfrontend.python.ops import audio_microfrontend_op as frontend_op
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras import regularizers
 
 from tensorflow.python.platform import gfile
 
