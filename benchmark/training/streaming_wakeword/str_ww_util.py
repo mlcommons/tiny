@@ -132,7 +132,7 @@ def parse_command():
   parser.add_argument(
       '--foreground_volume_min_validation',
       type=float,
-      default=0.2,
+      default=0.05,
       help="""\
       (Validation set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
       randomly, uniformly  between foreground_volume_min and foreground_volume_max.
@@ -172,7 +172,7 @@ def parse_command():
   parser.add_argument(
       '--background_volume_training',
       type=float,
-      default=2.0,
+      default=1.5,
       help="""\
       How loud the background noise should be, between 0 and 1.  Noise volume will vary 
       randomly between zero and background_volume.
@@ -180,7 +180,7 @@ def parse_command():
   parser.add_argument(
       '--background_volume_validation',
       type=float,
-      default=1.0,
+      default=1.5,
       help="""\
       How loud the background noise should be, between 0 and 1.  Noise volume will vary 
       randomly between zero and background_volume.
@@ -376,7 +376,7 @@ def parse_command():
 
   Flags = parser.parse_args()
 
-  # the 2nd half of these assignments is to that an empty original string yields an empty list instead of ['']
+  # the 2nd half of these assignments is so that an empty original string yields an empty list instead of ['']
   Flags.background_path_training   = Flags.background_path_training.split(',') if len(Flags.background_path_training)>0 else []
   Flags.background_path_validation = Flags.background_path_validation.split(',') if len(Flags.background_path_validation)>0 else []
   Flags.background_path_test       = Flags.background_path_test.split(',') if len(Flags.background_path_test)>0 else []
