@@ -83,6 +83,8 @@ long_spec = feature_extractor_long({'audio':long_wav, 'label':[0.0, 0.0, 0.0]})[
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
 wavfile.write('long_wav.wav', 16000, (long_wav*(2**15)).astype(np.int16))
 
+np.savez_compressed("long_specgram.npz", long_spec)
+
 pretty_json_str = pprint.pformat(ww_windows, compact=True).replace("(","[").replace(")","]")
 with open('long_wav_ww_windows.json', 'w') as fpo:
     fpo.write(pretty_json_str)
