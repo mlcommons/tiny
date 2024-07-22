@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import tensorflow as tf
-# import tensorflow_datasets as tfds
 from tensorflow.lite.experimental.microfrontend.python.ops import audio_microfrontend_op as frontend_op
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -532,7 +531,10 @@ def get_data(Flags, file_list):
     num_unknown = int(fraction_unknown * num_samples)
 
   num_silent = int(Flags.fraction_silent * num_samples)
-  num_targets = int(Flags.fraction_target * num_samples)
+  if Flags.fraction_target < 0.0:
+    num_targets = num_targets_orig
+  else:
+    num_targets = int(Flags.fraction_target * num_samples)
 
   dset_unknown = tf.data.Dataset.from_tensor_slices(files_unknown)
   dset_target = tf.data.Dataset.from_tensor_slices(files_target)
@@ -569,16 +571,24 @@ def get_data(Flags, file_list):
   dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
   dset = dset.map(convert_labels_str2int)
 
+  for dat in dset.take(1):
+    wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
+
+  # create some silent samples, which noise will be added to as well
+  if Flags.fraction_silent > 0:
+    dset = add_empty_frames(dset, input_shape=wave_shape, num_silent=num_silent, 
+                                white_noise_scale=0.1, silent_label=1)
+  
   if Flags.cal_subset:  # only return the subset of val set used for quantization calibration
     with open("quant_cal_idxs.txt") as fpi:
-      cal_indices = [int(line) for line in fpi]
+      cal_indices = [int(line) for line in fpi] 
     cal_indices.sort()
     # cal_indices are the positions of specific inputs that are selected to calibrate the quantization
     count = 0  # count will be the index into the validation set.
     cal_sub_audio = []
     cal_sub_labels = []
     for d in dset:
-      if count in cal_indices:          # this is one of the calibration inpus
+      if count in cal_indices:          # this is one of the calibration inputs
         new_audio = d['audio'].numpy()  # so add it to a stack of tensors 
         if len(new_audio) < 16000:      # from_tensor_slices doesn't work for ragged tensors, so pad to 16k
           new_audio = np.pad(new_audio, (0, 16000-len(new_audio)), 'constant')
@@ -589,14 +599,6 @@ def get_data(Flags, file_list):
     dset = tf.data.Dataset.from_tensor_slices({"audio": cal_sub_audio,
                                                  "label": cal_sub_labels})
     ## end of if Flags.cal_subset
-  
-  for dat in dset.take(1):
-    wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
-
-  # create some silent samples, which noise will be added to as well
-  if Flags.fraction_silent > 0:
-    dset = add_empty_frames(dset, input_shape=wave_shape, num_silent=num_silent, 
-                                white_noise_scale=0.1, silent_label=1)
   
   print(f"About to apply preprocessor with {dset.cardinality()} samples")
   # extract spectral features and add background noise

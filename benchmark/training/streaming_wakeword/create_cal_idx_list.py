@@ -4,20 +4,20 @@ from get_dataset import get_data, get_file_lists, get_data_config
 
 Flags = util.parse_command()
 
-rng = np.random.default_rng()
+rng = np.random.default_rng(seed=1)
 
+# these flags need to align with the ones in extract_cal_subset.py
 flags_validation = get_data_config(Flags, 'validation')
+flags_validation.batch_size = 1
+flags_validation.fraction_target = -1.0 # neg => just use original target samples
 
 ## Build the data sets from files
 data_dir = Flags.data_dir
 _, _, val_files = get_file_lists(data_dir)
-
 ds_val = get_data(flags_validation, val_files)
 
 label_mat = np.zeros((ds_val.cardinality()*ds_val._batch_size.numpy(), 3))
-with open('val_labels_2.txt', 'w') as fpo:
-  for i,(spec,lbl) in enumerate(ds_val.unbatch()):
-    fpo.write(f"{i:4} {lbl}\n")
+for i,(spec,lbl) in enumerate(ds_val.unbatch()):
     label_mat[i,:] = lbl
 label_mat = label_mat[np.sum(label_mat, axis=1)!=0] # discard the unpopulated remainder of the terminal partial batch
 
