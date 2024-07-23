@@ -74,16 +74,24 @@ data_config_long['background_frequency'] = 0.0 # do not add background noise or 
 data_config_long['time_shift_ms'] = 0.0
 data_config_long['desired_samples']= len(long_wav)
 
+import json
+with open("data_config_script.json", "w") as fpo:
+    json.dump(data_config_long, fpo, indent=4)
+
 long_wav = long_wav / np.max(np.abs(long_wav)) # scale into [-1.0, +1.0] range
+# emulate INT16 quantization, dequant, so this spectrogram matches 
+# one from reading the wav file.
+long_wav_int16 = (long_wav*(2**15)).astype(np.int16)
 
 feature_extractor_long = get_dataset.get_preprocess_audio_func(data_config_long)
+
+wavfile.write('long_wav.wav', 16000, long_wav_int16)
+
 # the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is   
-long_spec = feature_extractor_long({'audio':long_wav, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
-
+long_spec = feature_extractor_long({'audio':long_wav_int16/2**15, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
-wavfile.write('long_wav.wav', 16000, (long_wav*(2**15)).astype(np.int16))
 
-np.savez_compressed("long_specgram.npz", long_spec)
+np.savez_compressed("long_specgram.npz", specgram=long_spec)
 
 pretty_json_str = pprint.pformat(ww_windows, compact=True).replace("(","[").replace(")","]")
 with open('long_wav_ww_windows.json', 'w') as fpo:

@@ -114,7 +114,7 @@ def get_preprocess_audio_func(data_config, background_data = [], wave_frame_inpu
     
     if not wave_frame_input: # don't rescale if we're only processing one frame of samples
       wav_decoder = wav_decoder - tf.reduce_mean(wav_decoder)
-      wav_decoder = wav_decoder/tf.reduce_max(wav_decoder)
+      wav_decoder = wav_decoder/tf.reduce_max(tf.abs(wav_decoder))
 
     if data_config['feature_type'] == "td_samples":
       wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
@@ -209,7 +209,7 @@ def get_preprocess_audio_func(data_config, background_data = [], wave_frame_inpu
 
       log_mel_spec = 10 * log10(mel_spectrograms)
       log_mel_spec = tf.expand_dims(log_mel_spec, -2, name="mel_spec")
-    
+
       log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
       log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
 

@@ -38,7 +38,6 @@ else:
     # transfer weights from trained model into variable-length model
     model_varlen.set_weights(model_std.get_weights())
 
-
 wav_sampling_freq, long_wav = wavfile.read(Flags.test_wav_path)
 assert wav_sampling_freq == samp_freq
 
