@@ -41,18 +41,14 @@ else:
 wav_sampling_freq, long_wav = wavfile.read(Flags.test_wav_path)
 assert wav_sampling_freq == samp_freq
 
-data_config_long = get_dataset.get_data_config(Flags, 'training')
-data_config_long['foreground_volume_max'] = data_config_long['foreground_volume_min'] = 1.0 # scale to [-1.0,1.0]
-data_config_long['background_frequency'] = 0.0 # do not add background noise or time-shift the input
-data_config_long['time_shift_ms'] = 0.0
-data_config_long['desired_samples']= len(long_wav)
+data_config = get_dataset.get_data_config(Flags, 'validation')
 
 long_wav = long_wav / np.max(np.abs(long_wav)) # scale into [-1.0, +1.0] range
 t = np.arange(len(long_wav))/samp_freq
 
-feature_extractor_long = get_dataset.get_lfbe_func(data_config_long)
+feature_extractor = get_dataset.get_lfbe_func(data_config)
 # the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is
-long_spec = feature_extractor_long(long_wav).numpy()
+long_spec = feature_extractor(long_wav).numpy()
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
 
 if Flags.use_tflite_model:
@@ -86,6 +82,21 @@ for t_start, t_stop in ww_windows:
 ww_detected_spec_scale = (yy[:,0]>det_thresh).astype(int)
 ww_true_detects, ww_false_detects, ww_false_rejects = util.get_true_and_false_detections(ww_detected_spec_scale, ww_present, Flags)
 
-print(f"False detections: {np.sum(ww_false_detects!=0)},",
-      f"True detections: {np.sum(ww_true_detects!=0)},",
-      f"False rejections: {np.sum(ww_false_rejects!=0)}")
+flags_validation = get_dataset.get_data_config(Flags, 'validation')
+flags_validation.batch_size = 50
+
+## Build the data sets from files
+data_dir = Flags.data_dir
+_, _, val_files = get_dataset.get_file_lists(data_dir)
+ds_val = get_dataset.get_data(flags_validation, val_files)
+
+
+val_loss, val_acc, val_prec, val_recl = model_std.evaluate(ds_val)
+
+print(f"Results: false_detections={np.sum(ww_false_detects!=0)},",
+      f"true_detections={np.sum(ww_true_detects!=0)},",
+      f"false_rejections={np.sum(ww_false_rejects!=0)},", end=""
+      )
+
+print(f"val_loss={val_loss:5.4f}, val_acc={val_acc:5.4f}, val_precision={val_prec:5.4f}, val_recall={val_recl:5.4f}")
+
