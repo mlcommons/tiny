@@ -50,9 +50,9 @@ data_config_long['desired_samples']= len(long_wav)
 long_wav = long_wav / np.max(np.abs(long_wav)) # scale into [-1.0, +1.0] range
 t = np.arange(len(long_wav))/samp_freq
 
-feature_extractor_long = get_dataset.get_preprocess_audio_func(data_config_long)
+feature_extractor_long = get_dataset.get_lfbe_func(data_config_long)
 # the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is
-long_spec = feature_extractor_long({'audio':long_wav, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
+long_spec = feature_extractor_long(long_wav).numpy()
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
 
 if Flags.use_tflite_model:
