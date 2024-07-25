@@ -322,13 +322,14 @@ def get_model(args, use_qat=False):
                 num_bits_activation=8,
             ),
         )  
-        
+
+  # prec = true_pos / (true_pos + false_pos), recall = true_pos / (true_pos + false_neg)
   model.compile(
     optimizer=optimizer,  
     loss=keras.losses.CategoricalCrossentropy(from_logits=False),
     metrics=[keras.metrics.CategoricalAccuracy(),
-            keras.metrics.Precision(class_id=0, name='precision'), # prec = true_pos / (true_pos + false_pos)
-            keras.metrics.Recall(class_id=0, name='recall'),    # recall = true_pos / (true_pos + false_neg)
+            keras.metrics.Precision(class_id=0, thresholds=0.95, name='precision'),
+            keras.metrics.Recall(class_id=0,  thresholds=0.95, name='recall'),
             ],
   )
 
