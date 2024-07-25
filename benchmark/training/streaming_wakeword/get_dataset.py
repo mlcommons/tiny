@@ -70,70 +70,55 @@ def cast_and_pad(sample_dict):
 
 def convert_dataset(item):
   """Puts the dataset in the format Keras expects, (features, labels)."""
-  audio = item['audio']
+  features = item['features']
   label = tf.one_hot(item['label'], depth=3, axis=-1, )
-  return audio, label
+  return features, label
 
 
-def get_preprocess_audio_func(data_config, background_data = [], wave_frame_input=False):
+def get_augment_wavs_func(data_config, background_data = []):
   """
-  data_config                      :  Data configuration
+  Returns a TF graph as a function that pads wavs to data_config['desired_samples'] and
+  augments with time-shifting, amplitude variation, and background noise
+  The returned function takes wave tensor input and returns a wave tensor output.
+
+  data_config                      :  Data configuration dictionary
   background_data = [],            :  TF Dataset of background noise waveforms
-  wave_frame_input (default False) :  If True, build a dedicated model to extract features.  This is mostly
-                                      intended to be exported to a TFLite model that can run on the DUT
   """
   # building a TF graph here, but do not use tf.function, because the
   # if statements should be evaluated at graph construction time, not evaluation time
-  def prepare_processing_graph(next_element):
-    """Builds a TensorFlow graph to apply the input distortions.
-    Creates a graph that loads a WAVE file, decodes it, scales the volume,
-    shifts it in time, adds in background noise, calculates a spectrogram, and
-    then builds an feature tensor from that.
-    This must be called with an active TensorFlow session running, and it
-    creates multiple placeholder inputs, and one output:
-      - wav_filename_placeholder_: Filename of the WAV to load.
-      - foreground_volume_placeholder_: How loud the main clip should be.
-      - time_shift_padding_placeholder_: Where to pad the clip.
-      - time_shift_offset_placeholder_: How much to move the clip in time.
-      - background_data_placeholder_: PCM sample data for background noise.
-      - background_volume_placeholder_: Loudness of mixed-in background.
-      - mfcc_: Output 2D fingerprint of processed audio.
-    Args:
-      log_mel_spec: Information about the how the data should be processed
-    """
+  def augment_wavs_func(next_element):
+    # Performs the following augmentations:
+    # 1. Pads the waveform to desired_length
+    # 2. Random time-shifing
+    # 3. Vary the foreground sample volume.
+    # 4. Add in background noise at a random volume
+
     desired_samples = data_config['desired_samples']
     background_frequency = data_config['background_frequency']
     background_volume_range_= data_config['background_volume']
     foreground_volume_min_ = data_config['foreground_volume_min']
     foreground_volume_max_ = data_config['foreground_volume_max']
 
-    if wave_frame_input:
-      wav_decoder = tf.cast(next_element, tf.float32)
-    else:
-      wav_decoder = tf.cast(next_element['audio'], tf.float32)
+    audio_wav = tf.cast(next_element, tf.float32)
+
+    # scale and shift to [-1,+1] range
+    audio_wav = audio_wav - tf.reduce_mean(audio_wav)
+    audio_wav = audio_wav/tf.reduce_max(tf.abs(audio_wav))
+
+    # pad to desired length
+    audio_wav = tf.pad(audio_wav,[[0,desired_samples-tf.shape(audio_wav)[-1]]]) 
     
-    if not wave_frame_input: # don't rescale if we're only processing one frame of samples
-      wav_decoder = wav_decoder - tf.reduce_mean(wav_decoder)
-      wav_decoder = wav_decoder/tf.reduce_max(tf.abs(wav_decoder))
+    # Allow the audio sample's volume to be adjusted.
+    foreground_volume_placeholder_ = tf.random.uniform([1],minval=foreground_volume_min_,maxval=foreground_volume_max_)[0]
+    scaled_foreground = tf.multiply(audio_wav, foreground_volume_placeholder_)
 
-    if data_config['feature_type'] == "td_samples":
-      wav_decoder = wav_decoder/tf.constant(2**15,dtype=tf.float32)
+    # Shift the sample's start position, and pad any gaps with zeros.
+    time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
+    time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
+    
+    padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
+    sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
 
-    if wave_frame_input:
-      sliced_foreground = wav_decoder
-    else:
-      wav_decoder = tf.pad(wav_decoder,[[0,desired_samples-tf.shape(wav_decoder)[-1]]]) 
-      
-      # Allow the audio sample's volume to be adjusted.
-      foreground_volume_placeholder_ = tf.random.uniform([1],minval=foreground_volume_min_,maxval=foreground_volume_max_)[0]
-      scaled_foreground = tf.multiply(wav_decoder, foreground_volume_placeholder_)
-
-      # Shift the sample's start position, and pad any gaps with zeros.
-      time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
-      time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
-      
-      padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
-      sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
     if data_config['background_frequency'] != 0 and background_data != []:
       background_volume_range = tf.constant(background_volume_range_,dtype=tf.float32)
       background_index = tf.random.uniform([1],minval=0,maxval=len(background_data), dtype=tf.int32)[0]
@@ -141,7 +126,7 @@ def get_preprocess_audio_func(data_config, background_data = [], wave_frame_inpu
       background_offset = tf.random.uniform([1],minval=0,maxval=len(background_samples) - desired_samples, dtype=tf.int32)[0]
       background_clipped = background_samples[background_offset:(background_offset + desired_samples)]
       background_clipped = tf.squeeze(background_clipped)
-      background_reshaped = tf.pad(background_clipped,[[0,desired_samples-tf.shape(wav_decoder)[-1]]])
+      background_reshaped = tf.pad(background_clipped,[[0,desired_samples-tf.shape(audio_wav)[-1]]])
       background_reshaped = tf.cast(background_reshaped, tf.float32)
       
       bg_rand_draw = tf.random.uniform([1],minval=0.0,maxval=1.0)[0]
@@ -152,88 +137,85 @@ def get_preprocess_audio_func(data_config, background_data = [], wave_frame_inpu
       )
 
       background_data_placeholder_ = background_reshaped
-      background_mul = tf.multiply(background_data_placeholder_,
+      background_scaled = tf.multiply(background_data_placeholder_,
                            background_volume_placeholder_)
-      background_add = tf.add(background_mul, sliced_foreground)
-      sliced_foreground = tf.clip_by_value(background_add, -1.0, 1.0)
+      sliced_foreground = tf.add(background_scaled, sliced_foreground)
+      sliced_foreground = tf.clip_by_value(sliced_foreground, -1.0, 1.0)
 
-    if data_config['feature_type'] == 'lfbe':
-      # apply preemphasis
-      preemphasis_coef = 1 - 2 ** -5
-      power_offset = 52
-      num_mel_bins = data_config['dct_coefficient_count']
-      paddings = tf.constant([[0, 0], [1, 0]])
-      # for some reason, tf.pad only works with the extra batch dimension, but then we remove it after pad
-      if not wave_frame_input: # the feature extractor comes in already batched
-        sliced_foreground = tf.expand_dims(sliced_foreground, 0)
-      sliced_foreground = tf.pad(tensor=sliced_foreground, paddings=paddings, mode='CONSTANT')
-      sliced_foreground = sliced_foreground[:, 1:] - preemphasis_coef * sliced_foreground[:, :-1]
-      sliced_foreground = tf.squeeze(sliced_foreground)
+    return sliced_foreground
+
+  return augment_wavs_func
+
+
+def get_lfbe_func(data_config):
+  """
+  Returns a TF graph as a function that converts an audio waveform into log Mel filterbank energies.
+  The returned function takes wave tensor input and returns a spectrogram tensor output.
+
+  data_config                      :  Data configuration, returned by get_data_config()
+  """
+  # building a TF graph here, but do not use tf.function, because the
+  # if statements should be evaluated at graph construction time, not evaluation time
+  def lfbe_func(next_element):
+    audio_wav = tf.cast(next_element, tf.float32)
       
-      stfts = tf.signal.stft(sliced_foreground,  frame_length=data_config['window_size_samples'], 
-                             frame_step=data_config['window_stride_samples'], fft_length=None,
-                             window_fn=functools.partial(
-                               tf.signal.hamming_window, periodic=False),
-                             pad_end=False,
-                             name='STFT')
+    # apply preemphasis
+    preemphasis_coef = 1 - 2 ** -5
+    power_offset = 52
+    num_mel_bins = data_config['dct_coefficient_count']
+    paddings = tf.constant([[0, 0], [1, 0]])
+    # for some reason, tf.pad only works with the extra batch dimension, but then we remove it after pad
+    audio_wav = tf.expand_dims(audio_wav, 0)
+    audio_wav = tf.pad(tensor=audio_wav, paddings=paddings, mode='CONSTANT')
+    audio_wav = audio_wav[:, 1:] - preemphasis_coef * audio_wav[:, :-1]
+    audio_wav = tf.squeeze(audio_wav)
     
-      # compute magnitude spectrum [batch_size, num_frames, NFFT]
-      magspec = tf.abs(stfts)
-      num_spectrogram_bins = magspec.shape[-1]
-    
-      # compute power spectrum [num_frames, NFFT]
-      powspec = (1 / data_config['window_size_samples']) * tf.square(magspec)
-      powspec_max = tf.reduce_max(input_tensor=powspec)
-      powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
-    
-      def log10(x):
-        # Compute log base 10 on the tensorflow graph.
-        # x is a tensor.  returns log10(x) as a tensor
-        numerator = tf.math.log(x)
-        denominator = tf.math.log(tf.constant(10, dtype=numerator.dtype))
-        return numerator / denominator
-    
-      # Warp the linear-scale, magnitude spectrograms into the mel-scale.
-      lower_edge_hertz, upper_edge_hertz = 0.0, data_config['sample_rate'] / 2.0
-      linear_to_mel_weight_matrix = (
-          tf.signal.linear_to_mel_weight_matrix(
-              num_mel_bins=num_mel_bins,
-              num_spectrogram_bins=num_spectrogram_bins,
-              sample_rate=data_config['sample_rate'],
-              lower_edge_hertz=lower_edge_hertz,
-              upper_edge_hertz=upper_edge_hertz))
-
-      mel_spectrograms = tf.tensordot(powspec, linear_to_mel_weight_matrix,1)
-      mel_spectrograms.set_shape(magspec.shape[:-1].concatenate(
-          linear_to_mel_weight_matrix.shape[-1:]))
-
-      log_mel_spec = 10 * log10(mel_spectrograms)
-      log_mel_spec = tf.expand_dims(log_mel_spec, -2, name="mel_spec")
-
-      log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
-      log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
-
-      if wave_frame_input: 
-        # for building a feature extractor model, we need to return a tensor
-        next_element = log_mel_spec
-      else:
-        # for building a dataset, we're returning a dictionary
-        next_element['audio'] = log_mel_spec
-
-    elif model_settings['feature_type'] == 'td_samples':
-      ## sliced_foreground should have the right data.  Make sure it's the right format (int16)
-      # and just return it.
-      paddings = [[0, 16000-tf.shape(sliced_foreground)[0]]]
-      wav_padded = tf.pad(sliced_foreground, paddings)
-      wav_padded = tf.expand_dims(wav_padded, -1)
-      wav_padded = tf.expand_dims(wav_padded, -1)
-      next_element['audio'] = wav_padded
-    else:
-      raise ValueError(f"Invalid value {data_config['feature_type']}.  Should be one of 'lfbe', 'td_samples'.")
-      
-    return next_element
+    stfts = tf.signal.stft(audio_wav,  frame_length=data_config['window_size_samples'], 
+                            frame_step=data_config['window_stride_samples'], fft_length=None,
+                            window_fn=functools.partial(
+                              tf.signal.hamming_window, periodic=False),
+                            pad_end=False,
+                            name='STFT')
   
-  return prepare_processing_graph
+    # compute magnitude spectrum [batch_size, num_frames, NFFT]
+    magspec = tf.abs(stfts)
+    num_spectrogram_bins = magspec.shape[-1]
+  
+    # compute power spectrum [num_frames, NFFT]
+    powspec = (1 / data_config['window_size_samples']) * tf.square(magspec)
+    powspec_max = tf.reduce_max(input_tensor=powspec)
+    powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
+  
+    def log10(x):
+      # Compute log base 10 on the tensorflow graph.
+      # x is a tensor.  returns log10(x) as a tensor
+      numerator = tf.math.log(x)
+      denominator = tf.math.log(tf.constant(10, dtype=numerator.dtype))
+      return numerator / denominator
+  
+    # Warp the linear-scale, magnitude spectrograms into the mel-scale.
+    lower_edge_hertz, upper_edge_hertz = 0.0, data_config['sample_rate'] / 2.0
+    linear_to_mel_weight_matrix = (
+        tf.signal.linear_to_mel_weight_matrix(
+            num_mel_bins=num_mel_bins,
+            num_spectrogram_bins=num_spectrogram_bins,
+            sample_rate=data_config['sample_rate'],
+            lower_edge_hertz=lower_edge_hertz,
+            upper_edge_hertz=upper_edge_hertz))
+
+    mel_spectrograms = tf.tensordot(powspec, linear_to_mel_weight_matrix,1)
+    mel_spectrograms.set_shape(magspec.shape[:-1].concatenate(
+        linear_to_mel_weight_matrix.shape[-1:]))
+
+    log_mel_spec = 10 * log10(mel_spectrograms)
+    log_mel_spec = tf.expand_dims(log_mel_spec, -2, name="mel_spec")
+
+    log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
+    log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
+      
+    return log_mel_spec
+  
+  return lfbe_func
 
 
 def prepare_background_data(background_path, clip_len_samples, num_clips):
@@ -517,6 +499,7 @@ def get_data(Flags, file_list):
     num_clips=Flags.num_background_clips
     )
 
+  ## Calculate how many of each class (target, other, silent) to create
   num_targets_orig = len(files_target)
   num_unknown_orig = len(files_unknown)
   print(f"Dataset has {num_targets_orig} targets and {num_unknown_orig} unknown samples.")
@@ -536,11 +519,11 @@ def get_data(Flags, file_list):
   else:
     num_targets = int(Flags.fraction_target * num_samples)
 
+  ## Build the dataset, starting with target and other/unknown wav files.
   dset_unknown = tf.data.Dataset.from_tensor_slices(files_unknown)
   dset_target = tf.data.Dataset.from_tensor_slices(files_target)
 
-  # combine the target and unknown datasets in the right proportions
-
+  ## combine the target and unknown datasets in the right proportions
   # add needed quantity of targets, repeating the originals if needed
   num_targ_repeats = int(num_targets / num_targets_orig)
   extra_targets_needed = num_targets % num_targets_orig
@@ -556,7 +539,7 @@ def get_data(Flags, file_list):
     dset_target = dset_target.concatenate(dset_target.take(extra_targets_needed))
   
   # add repetitions of unknown samples to fill in the rest of num_samples
-  # there is really no point in num_unkown being greater than 
+  # there is really no point in num_unknown being greater than 
   # num_unknown_orig, but we will support it anyway
   num_unk_repeats = int(num_unknown / num_unknown_orig)
   extra_unk_needed = num_unknown % num_unknown_orig
@@ -601,10 +584,20 @@ def get_data(Flags, file_list):
     ## end of if Flags.cal_subset
   
   print(f"About to apply preprocessor with {dset.cardinality()} samples")
-  # extract spectral features and add background noise
-  audio_preprocessor = get_preprocess_audio_func(Flags,
-                                            background_data=background_data)
-  dset = dset.map(audio_preprocessor, num_parallel_calls=AUTOTUNE)
+
+  # ds3 = ds1.map(lambda d: {"a":d["a"], "b":d["b"]+"!"})
+  aug_func = get_augment_wavs_func(Flags, background_data)
+  feature_extractor = get_lfbe_func(Flags)
+
+  # apply augmentation and extract spectral features
+  dset = dset.map(
+    lambda d: {"audio":aug_func(d["audio"]), "label":d["label"]}, 
+    num_parallel_calls=AUTOTUNE
+    )
+  dset = dset.map(
+    lambda d: {"features":feature_extractor(d["audio"]), "label":d["label"]},
+    num_parallel_calls=AUTOTUNE
+    )
 
   # change output from a dictionary to a feature,label tuple
   dset = dset.map(convert_dataset)
