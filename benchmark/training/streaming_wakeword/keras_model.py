@@ -86,6 +86,7 @@ def conv_block(inputs,
                  padding='same',
                  dropout=0.0,
                  activation='relu',
+                 l2_reg=1e-3,
                  scale=True):
   """Convolutional block.  Can be optionally residual
 
@@ -117,7 +118,11 @@ def conv_block(inputs,
     raise ValueError('padding should be same or causal for residual blocks')
 
   net = inputs
-  
+  if l2_reg is not None and l2_reg != 0.0:
+    regularizer = regularizers.L2(1e-3)
+  else:
+    regularizer = None
+
   if kernel_size > 0:
     # DepthwiseConv1D
     if padding=='causal':
@@ -134,14 +139,14 @@ def conv_block(inputs,
         strides=(stride, stride),
         padding=dw_pad,
         dilation_rate=(dilation, 1),
-        kernel_regularizer=regularizers.L2(1e-3),
+        kernel_regularizer=regularizer,
         use_bias=False)(
       net)
 
   # Conv2D 1x1 - streamable by default
   net = keras.layers.Conv2D(
       filters=filters, kernel_size=1, use_bias=False, 
-      kernel_regularizer=regularizers.L2(1e-3), padding='valid')(
+      kernel_regularizer=regularizer, padding='valid')(
           net)
   
   net = keras.layers.BatchNormalization(scale=scale)(net)
@@ -269,6 +274,7 @@ def get_model(args, use_qat=False):
                          padding=ds_padding[count], 
                          scale=ds_scale,
                          dropout=dropout,
+                         l2_reg=args.l2_reg,
                          activation=activation)
       
     if variable_length:

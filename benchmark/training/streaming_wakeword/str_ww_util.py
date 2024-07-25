@@ -344,6 +344,11 @@ def parse_command():
       default=0.001,
       help='Initial LR',)
   parser.add_argument(
+      '--l2_reg',
+      type=float,
+      default=0.001,
+      help='L2 regularization coefficient for conv layers',)      
+  parser.add_argument(
       '--lr_sched_name',
       type=str,
       default='reduce_on_plateau',
@@ -372,7 +377,6 @@ def parse_command():
       help="""\
         In eval_long_wav.py, run the TFLite model. Otherwise, run the standard keras model
         """)
-
 
   Flags = parser.parse_args()
 
