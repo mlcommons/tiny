@@ -323,7 +323,7 @@ def parse_command():
       '--saved_model_path',
       type=str,
       default='trained_models/str_ww_model.h5',
-      help='In quantize.py, path to load pretrained model from; in train.py, destination for trained model')
+      help='In quantize.py or evaluate.py, path to load pretrained model from; in train.py, destination for trained model')
   parser.add_argument(
       '--model_init_path',
       type=str,
