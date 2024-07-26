@@ -487,7 +487,14 @@ def get_data(Flags, file_list):
   background_volume_range_= Flags.background_volume
   AUTOTUNE = tf.data.AUTOTUNE
 
+  # Many of the recorded wake words are bad.  The bad "marvin"s been human-tested and listed in 
+  # bad_marvin_files.txt.  Read in all the bad ones, collecting just the filename (hashes are unique)
+  bad_marvin_files = [line.strip().split('/')[-1] for line in open("bad_marvin_files.txt", "r")]
+
   files_target = [f for f in file_list if f.split(os.path.sep)[-2]=='marvin']
+  # only keep the target files that are not listed in bad_marvin_files.txt
+  files_target = [f for f in files_target if f.split('/')[-1] not in bad_marvin_files]
+
   files_unknown = list(set(file_list) - set(files_target))
 
   random.shuffle(files_target)

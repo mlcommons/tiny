@@ -69,10 +69,10 @@ for fname, insertion_secs, ampl in wav_spec['configs_wakeword']:
 
 
 data_config_long = get_dataset.get_data_config(Flags, 'training')
-data_config_long['foreground_volume_max'] = data_config_long['foreground_volume_min'] = 1.0 # scale to [-1.0,1.0]
-data_config_long['background_frequency'] = 0.0 # do not add background noise or time-shift the input
-data_config_long['time_shift_ms'] = 0.0
-data_config_long['desired_samples']= len(long_wav)
+# data_config_long['foreground_volume_max'] = data_config_long['foreground_volume_min'] = 1.0 # scale to [-1.0,1.0]
+# data_config_long['background_frequency'] = 0.0 # do not add background noise or time-shift the input
+# data_config_long['time_shift_ms'] = 0.0
+# data_config_long['desired_samples']= len(long_wav)
 
 import json
 with open("data_config_script.json", "w") as fpo:
@@ -83,12 +83,13 @@ long_wav = long_wav / np.max(np.abs(long_wav)) # scale into [-1.0, +1.0] range
 # one from reading the wav file.
 long_wav_int16 = (long_wav*(2**15)).astype(np.int16)
 
-feature_extractor_long = get_dataset.get_preprocess_audio_func(data_config_long)
+feature_extractor_long = get_dataset.get_lfbe_func(data_config_long)
 
 wavfile.write('long_wav.wav', 16000, long_wav_int16)
 
 # the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is   
-long_spec = feature_extractor_long({'audio':long_wav_int16/2**15, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
+# long_spec = feature_extractor_long({'audio':long_wav_int16/2**15, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
+long_spec = feature_extractor_long(long_wav_int16/2**15).numpy()
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
 
 np.savez_compressed("long_specgram.npz", specgram=long_spec)
