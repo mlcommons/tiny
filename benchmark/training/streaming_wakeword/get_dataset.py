@@ -275,7 +275,7 @@ def prepare_background_data(background_path, clip_len_samples, num_clips):
       break
 
   background_data = background_data[:num_clips]
-  print(f"Finished gathering.  {len(background_data)} /{num_clips} clips so far.")
+  print(f"Finished gathering background wavs.  {len(background_data)} /{num_clips} clips so far.")
 
   return background_data
 
@@ -492,11 +492,12 @@ def get_data(Flags, file_list):
   bad_marvin_files = [line.strip().split('/')[-1] for line in open("bad_marvin_files.txt", "r")]
 
   files_target = [f for f in file_list if f.split(os.path.sep)[-2]=='marvin']
+  # some of the bad_marvin wavs are ambiguous.  leave them out altogether
+  files_unknown = list(set(file_list) - set(files_target))
   # only keep the target files that are not listed in bad_marvin_files.txt
   files_target = [f for f in files_target if f.split('/')[-1] not in bad_marvin_files]
 
-  files_unknown = list(set(file_list) - set(files_target))
-
+  
   random.shuffle(files_target)
   random.shuffle(files_unknown)
 
@@ -509,7 +510,7 @@ def get_data(Flags, file_list):
   ## Calculate how many of each class (target, other, silent) to create
   num_targets_orig = len(files_target)
   num_unknown_orig = len(files_unknown)
-  print(f"Dataset has {num_targets_orig} targets and {num_unknown_orig} unknown samples.")
+  print(f"Raw dataset has {num_targets_orig} targets and {num_unknown_orig} unknown samples.")
 
   fraction_unknown = 1.0 - Flags.fraction_silent - Flags.fraction_target
   if Flags.num_samples == -1:
@@ -526,6 +527,7 @@ def get_data(Flags, file_list):
   else:
     num_targets = int(Flags.fraction_target * num_samples)
 
+  print(f"Building dataset with {num_targets} targets, {num_silent} silent, and {num_unknown} other.")
   ## Build the dataset, starting with target and other/unknown wav files.
   dset_unknown = tf.data.Dataset.from_tensor_slices(files_unknown)
   dset_target = tf.data.Dataset.from_tensor_slices(files_target)
@@ -552,12 +554,19 @@ def get_data(Flags, file_list):
   extra_unk_needed = num_unknown % num_unknown_orig
   print(f"Using {num_unk_repeats} repeats of the unkown set plus", 
         f" {extra_unk_needed} unknown samples")
-  dset_unknown = dset_unknown.repeat(num_unk_repeats)
+
+  if num_unknown < num_unknown_orig: # less than 1 full copy
+    dset_unknown = dset_unknown.take(num_unknown)
+    extra_unk_needed = 0
+  else:
+    dset_unknown = dset_unknown.repeat(num_unk_repeats)
+
   if extra_unk_needed > 0:
     dset_unknown = dset_unknown.concatenate(dset_unknown.take(extra_unk_needed))
   
   # Combine target and unknown datasets, then convert to dicts of wav,int-label 
   dset = dset_unknown.concatenate(dset_target)
+  print(f"just combined target and unknown.  Combined size = {dset.cardinality()} samples.")
   dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
   dset = dset.map(convert_labels_str2int)
 
@@ -652,6 +661,8 @@ def count_labels(ds, label_index=1):
   label_counts = {}
   for dat in ds:
     new_label = dat[label_index].numpy()
+    if len(new_label) > 1:
+      new_label = np.argmax(new_label)
     if new_label in label_counts:
       label_counts[new_label] += 1
     else:
