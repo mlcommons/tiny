@@ -70,7 +70,7 @@ def cast_and_pad(sample_dict):
 def convert_dataset(item):
   """Puts the dataset in the format Keras expects, (features, labels)."""
   features = item['features']
-  label = tf.one_hot(item['label'], depth=3, axis=-1, )
+  label = tf.one_hot(item['label'], depth=2, axis=-1, )
   return features, label
 
 
