@@ -182,7 +182,7 @@ def select_optimizer(Flags, learning_rate):
 def get_model(args, use_qat=False):
   model_name = args.model_architecture
 
-  label_count=3
+  label_count=2
   model_settings = prepare_model_settings(label_count, args)
 
   # For testing on long waveforms (measuring false alarms, hit rate), we 

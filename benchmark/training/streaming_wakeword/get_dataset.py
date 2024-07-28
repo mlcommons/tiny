@@ -15,7 +15,6 @@ import os, pickle, glob, time, copy, random
 import str_ww_util as util
 
 rng = np.random.default_rng(2024)
-word_labels = ["Marvin", "Silence", "Unknown"]
 
 def decode_audio(audio_binary):
   # Decode WAV-encoded audio files to `float32` tensors, normalized
@@ -44,16 +43,16 @@ def convert_labels_str2int(datum):
   datum is {'audio':<audio>, 'label':<label_as_string>} 
   returns {'audio':<audio>, 'label':<label_as_int>}
   according to:
-        keys=tf.constant(["marvin", "_silence", "_unknown"]),
-        values=tf.constant([0, 1, 2]),
+          keys=tf.constant(["marvin", "_silence"]),
+          values=tf.constant([0, 1]),
   """
   # build a lookup table
   label_map = tf.lookup.StaticHashTable(
       initializer=tf.lookup.KeyValueTensorInitializer(
-          keys=tf.constant(["marvin", "_silence", "_unknown"]),
-          values=tf.constant([0, 1, 2]),
+          keys=tf.constant(["marvin", "_silence"]),
+          values=tf.constant([0, 1]),
       ),
-      default_value=tf.constant(2), # map other labels to _unknown
+      default_value=tf.constant(1), # map other labels to "other"
       name="class_labels"
   )
   return {'audio': datum['audio'], 
@@ -482,7 +481,7 @@ def get_all_datasets(Flags):
 
 def get_data(Flags, file_list):
   
-  label_count=3
+  label_count=2
   background_frequency = Flags.background_frequency
   background_volume_range_= Flags.background_volume
   AUTOTUNE = tf.data.AUTOTUNE
