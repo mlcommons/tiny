@@ -70,9 +70,9 @@ def cast_and_pad(sample_dict):
 
 def convert_dataset(item):
   """Puts the dataset in the format Keras expects, (features, labels)."""
-  features = item['features']
+  audio = item['audio']
   label = tf.one_hot(item['label'], depth=3, axis=-1, )
-  return features, label
+  return audio, label
 
 
 def get_augment_wavs_func(data_config, background_data = []):
@@ -480,7 +480,7 @@ def get_all_datasets(Flags):
   print("Done building datasets")
   return ds_train, ds_test, ds_val
 
-def get_data(Flags, file_list):
+def get_data(Flags, file_list, return_wavs=False):
   
   label_count=3
   background_frequency = Flags.background_frequency
@@ -610,12 +610,14 @@ def get_data(Flags, file_list):
     lambda d: {"audio":aug_func(d["audio"]), "label":d["label"]}, 
     num_parallel_calls=AUTOTUNE
     )
-  dset = dset.map(
-    lambda d: {"features":feature_extractor(d["audio"]), "label":d["label"]},
-    num_parallel_calls=AUTOTUNE
-    )
 
-  # change output from a dictionary to a feature,label tuple
+  if not return_wavs: # skip feature extraction. mostly for debugging.
+    dset = dset.map(
+      lambda d: {"audio":feature_extractor(d["audio"]), "label":d["label"]},
+      num_parallel_calls=AUTOTUNE
+      )
+
+  # change output from a dictionary to a feature, label tuple
   dset = dset.map(convert_dataset)
 
   # The order of these next three steps is important: cache, then shuffle, then batch.
