@@ -24,9 +24,7 @@ def parse_command():
   # the long test waveform (final test) draws from speech/librivox, music/hd-classical under MUSAN
   default_bg_path_train = os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_')
   default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "free-sound")
-
   default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "us-gov")
-#   default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "ms_snsd_babble")
 
   default_bg_path_val = os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "sound-bible")
   default_bg_path_val += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "librivox")
@@ -78,7 +76,7 @@ def parse_command():
   parser.add_argument(
       '--fraction_target_training',
       type=float,
-      default=0.18,
+      default=0.2,
       help="""\
       Fraction (0.0-1.0) of the training set that should be the target wakeword.
       Target words will be duplicated to reach this fraction, but no words will be discarded,
@@ -87,7 +85,7 @@ def parse_command():
   parser.add_argument(
       '--fraction_target_validation',
       type=float,
-      default=0.18,
+      default=0.2,
       help="""\
       Fraction (0.0-1.0) of the validation set that should be the target wakeword
       Target words will be duplicated to reach this fraction, but no words will be discarded,
@@ -96,7 +94,7 @@ def parse_command():
   parser.add_argument(
       '--fraction_target_test',
       type=float,
-      default=0.18, 
+      default=0.2,
       help="""\
       Fraction (0.0-1.0) of the test set that should be the target wakeword.
       Target words will be duplicated to reach this fraction, but no words will be discarded,
@@ -126,7 +124,7 @@ def parse_command():
   parser.add_argument(
       '--foreground_volume_min_training',
       type=float,
-      default=0.05,
+      default=0.25,
       help="""\
       For training set, minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
       randomly, uniformly  between foreground_volume_min and foreground_volume_max.
@@ -134,7 +132,7 @@ def parse_command():
   parser.add_argument(
       '--foreground_volume_min_validation',
       type=float,
-      default=0.05,
+      default=0.25,
       help="""\
       (Validation set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
       randomly, uniformly  between foreground_volume_min and foreground_volume_max.
@@ -142,7 +140,7 @@ def parse_command():
   parser.add_argument(
       '--foreground_volume_min_test',
       type=float,
-      default=0.05,
+      default=0.25,
       help="""\
       (Test set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
       randomly, uniformly  between foreground_volume_min and foreground_volume_max.
@@ -150,7 +148,7 @@ def parse_command():
   parser.add_argument(
       '--foreground_volume_max_training',
       type=float,
-      default=1.0,
+      default=1.5,
       help="""\
       Maximum level for how loud the foreground words should be in the training set, between 0 and 1. Word
       volume will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max. 
@@ -158,7 +156,7 @@ def parse_command():
   parser.add_argument(
       '--foreground_volume_max_validation',
       type=float,
-      default=1.0,
+      default=1.5,
       help="""\
       Maximum level for how loud the foreground words should be in the val set, between 0 and 1. Word volume 
       will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
@@ -166,7 +164,7 @@ def parse_command():
   parser.add_argument(
       '--foreground_volume_max_test',
       type=float,
-      default=1.0,
+      default=1.5,
       help="""\
       Maximum level for how loud the foreground words should be in the test set, between 0 and 1. Word volume
       will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
