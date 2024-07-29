@@ -82,12 +82,12 @@ if qat_epochs > 0:
   train_hist_qat = model_qat.fit(ds_train, validation_data=ds_val, 
                                  epochs=qat_epochs, callbacks=callbacks)
   util.plot_training(Flags.plot_dir,train_hist_qat, suffix='_qat')
-  model.save(Flags.saved_model_path)
   print(f"After QAT training/fine-tuning. On training set:")
   model.evaluate(ds_train)
   print(f"On validation set:")
   model.evaluate(ds_val)
-
+  
+model.save(Flags.saved_model_path)
 # append the QAT metrics log to the float training log 
 if train_hist is None:
   train_hist = train_hist_qat
@@ -104,6 +104,7 @@ util.plot_training(Flags.plot_dir,train_hist, suffix='_combined')
 np.savez(os.path.join(Flags.plot_dir, "train_hist.npz"), train_hist)
 
 if Flags.run_test_set:
+  print(f"On test set")
   test_scores = model.evaluate(ds_test)
   print("Test loss:", test_scores[0])
   print("Test accuracy:", test_scores[1])

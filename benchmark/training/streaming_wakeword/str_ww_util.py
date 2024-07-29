@@ -24,7 +24,9 @@ def parse_command():
   # the long test waveform (final test) draws from speech/librivox, music/hd-classical under MUSAN
   default_bg_path_train = os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_')
   default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "free-sound")
+
   default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "us-gov")
+#   default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "ms_snsd_babble")
 
   default_bg_path_val = os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "sound-bible")
   default_bg_path_val += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "librivox")
