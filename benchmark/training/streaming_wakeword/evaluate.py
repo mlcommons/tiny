@@ -2,6 +2,9 @@ import json, os, pprint
 import numpy as np
 from scipy.io import  wavfile
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+
 import tensorflow_model_optimization as tfmot
 import tensorflow as tf
 import keras
@@ -47,7 +50,6 @@ long_wav = long_wav / np.max(np.abs(long_wav)) # scale into [-1.0, +1.0] range
 t = np.arange(len(long_wav))/samp_freq
 
 feature_extractor = get_dataset.get_lfbe_func(data_config)
-# the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is
 long_spec = feature_extractor(long_wav).numpy()
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
 
@@ -90,13 +92,14 @@ data_dir = Flags.data_dir
 _, _, val_files = get_dataset.get_file_lists(data_dir)
 ds_val = get_dataset.get_data(flags_validation, val_files)
 
-
-val_loss, val_acc, val_prec, val_recl = model_std.evaluate(ds_val)
+if not Flags.use_tflite_model:
+    val_loss, val_acc, val_prec, val_recl = model_std.evaluate(ds_val)
 
 print(f"Results: false_detections={np.sum(ww_false_detects!=0)},",
       f"true_detections={np.sum(ww_true_detects!=0)},",
       f"false_rejections={np.sum(ww_false_rejects!=0)},", end=""
       )
 
-print(f"val_loss={val_loss:5.4f}, val_acc={val_acc:5.4f}, val_precision={val_prec:5.4f}, val_recall={val_recl:5.4f}")
+if not Flags.use_tflite_model:
+    print(f"val_loss={val_loss:5.4f}, val_acc={val_acc:5.4f}, val_precision={val_prec:5.4f}, val_recall={val_recl:5.4f}")
 
