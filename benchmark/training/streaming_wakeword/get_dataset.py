@@ -595,12 +595,12 @@ def get_data(Flags, file_list, return_wavs=False):
   aug_func = get_augment_wavs_func(Flags, background_data)
   feature_extractor = get_lfbe_func(Flags)
 
-  # apply augmentation and extract spectral features
+  # apply augmentation 
   dset = dset.map(
     lambda d: {"audio":aug_func(d["audio"]), "label":d["label"]}, 
     num_parallel_calls=AUTOTUNE
     )
-
+  # and extract spectral features
   if not return_wavs: # return_wavs => skip feature extraction. mostly for debugging.
     dset = dset.map(
       lambda d: {"audio":feature_extractor(d["audio"]), "label":d["label"]},
