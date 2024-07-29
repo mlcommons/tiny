@@ -33,10 +33,9 @@ from tensorflow.keras.layers import Input, Dense, Activation, Flatten, BatchNorm
 from tensorflow.keras.layers import Conv2D, DepthwiseConv2D, AveragePooling2D, GlobalAveragePooling2D
 from tensorflow.keras.regularizers import l2
 
-def prepare_model_settings(label_count, args):
+def prepare_model_settings(args):
   """Calculates common settings needed for all models.
   Args:
-    label_count: How many classes are to be recognized.
     sample_rate: Number of audio samples per second.
     clip_duration_ms: Length of each audio clip to be analyzed.
     window_size_ms: Duration of frequency analysis window.
@@ -71,7 +70,6 @@ def prepare_model_settings(label_count, args):
     'spectrogram_length': spectrogram_length,
     'dct_coefficient_count': dct_coefficient_count,
     'fingerprint_size': fingerprint_size,
-    'label_count': label_count,
     'sample_rate': args.sample_rate,
   }
 
@@ -182,8 +180,7 @@ def select_optimizer(Flags, learning_rate):
 def get_model(args, use_qat=False):
   model_name = args.model_architecture
 
-  label_count=3
-  model_settings = prepare_model_settings(label_count, args)
+  model_settings = prepare_model_settings(args)
 
   # For testing on long waveforms (measuring false alarms, hit rate), we 
   # can make the model accept a variable length input.  
@@ -284,28 +281,12 @@ def get_model(args, use_qat=False):
     else:
       net = tf.keras.layers.Flatten()(net)
 
-    net = tf.keras.layers.Dense(label_count, activation=tf.keras.activations.softmax)(net) 
+    net = tf.keras.layers.Dense(args.num_classes, activation=tf.keras.activations.softmax)(net) 
 
     model =  tf.keras.Model(input_spec, net)
     
     ########################################
   
-  elif model_name=="fc4":
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Flatten(input_shape=(model_settings['spectrogram_length'],
-                                             model_settings['dct_coefficient_count'])),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(256, activation='relu'),
-        tf.keras.layers.Dropout(0.2),
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Dense(model_settings['label_count'], activation="softmax")
-    ])
-
   else:
     raise ValueError("Model name {:} not supported".format(model_name))
 

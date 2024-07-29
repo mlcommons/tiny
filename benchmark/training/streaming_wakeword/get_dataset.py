@@ -39,27 +39,6 @@ def get_waveform_and_label(file_path):
   waveform = decode_audio(audio_binary)
   return {'audio':waveform, 'label':label}
 
-def convert_labels_str2int(datum):
-  """
-  datum is {'audio':<audio>, 'label':<label_as_string>} 
-  returns {'audio':<audio>, 'label':<label_as_int>}
-  according to:
-        keys=tf.constant(["marvin", "_silence", "_unknown"]),
-        values=tf.constant([0, 1, 2]),
-  """
-  # build a lookup table
-  label_map = tf.lookup.StaticHashTable(
-      initializer=tf.lookup.KeyValueTensorInitializer(
-          keys=tf.constant(["marvin", "_silence", "_unknown"]),
-          values=tf.constant([0, 1, 2]),
-      ),
-      default_value=tf.constant(2), # map other labels to _unknown
-      name="class_labels"
-  )
-  return {'audio': datum['audio'], 
-          'label':label_map.lookup(datum['label'])
-         }
-
 def cast_and_pad(sample_dict):
   audio = sample_dict['audio']
   label = sample_dict['label']
@@ -385,7 +364,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
     'sample_rate', 'clip_duration_ms',
     'window_size_ms', 'window_stride_ms',
     'feature_type', 'dct_coefficient_count',
-    'batch_size',
+    'batch_size', 'num_classes',
     'num_bin_files', 'bin_file_path'
     ]
   # First populate the values that apply to all splits.  These can be overwritten
@@ -481,7 +460,7 @@ def get_all_datasets(Flags):
 
 def get_data(Flags, file_list, return_wavs=False):
   
-  label_count=3
+  label_count=Flags.num_classes
   background_frequency = Flags.background_frequency
   background_volume_range_= Flags.background_volume
   AUTOTUNE = tf.data.AUTOTUNE
@@ -496,7 +475,6 @@ def get_data(Flags, file_list, return_wavs=False):
   # only keep the target files that are not listed in bad_marvin_files.txt
   files_target = [f for f in files_target if f.split('/')[-1] not in bad_marvin_files]
 
-  
   random.shuffle(files_target)
   random.shuffle(files_unknown)
 
@@ -562,7 +540,27 @@ def get_data(Flags, file_list, return_wavs=False):
   # Combine target and unknown datasets, then convert to dicts of wav,int-label 
   dset = dset_unknown.concatenate(dset_target)
   dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
-  dset = dset.map(convert_labels_str2int)
+  # dset = dset.map(convert_labels_str2int)
+
+  # build a lookup table to map string names to integers.
+  if Flags.num_classes == 3:
+    label_strings = ["marvin", "_silence", "_unknown"]
+  elif Flags.num_classes == 2:
+    label_strings = ["marvin", "other"]
+ 
+  label_map = tf.lookup.StaticHashTable(
+      initializer=tf.lookup.KeyValueTensorInitializer(
+          keys=tf.constant(label_strings),
+          values=tf.constant(range(Flags.num_classes)),
+      ),
+      default_value=tf.constant(Flags.num_classes-1), # map other labels to _unknown
+      name="class_labels"
+  )
+  # now actually apply the lookup table
+  dset = dset.map(
+    lambda d: {"audio":d["audio"], "label":label_map.lookup(d['label'])}, 
+    num_parallel_calls=AUTOTUNE
+    )
 
   for dat in dset.take(1):
     wave_shape = dat['audio'].shape # we'll need this to build the silent dataset
@@ -603,14 +601,16 @@ def get_data(Flags, file_list, return_wavs=False):
     num_parallel_calls=AUTOTUNE
     )
 
-  if not return_wavs: # skip feature extraction. mostly for debugging.
+  if not return_wavs: # return_wavs => skip feature extraction. mostly for debugging.
     dset = dset.map(
       lambda d: {"audio":feature_extractor(d["audio"]), "label":d["label"]},
       num_parallel_calls=AUTOTUNE
       )
 
-  # change output from a dictionary to a feature, label tuple
-  dset = dset.map(convert_dataset)
+  dset = dset.map(
+    lambda d: (d['audio'], tf.one_hot(d['label'], depth=Flags.num_classes, axis=-1)),
+    num_parallel_calls=AUTOTUNE
+  )
 
   # The order of these next three steps is important: cache, then shuffle, then batch.
   # Cache at this point, so we don't have to repeat all the spectrogram calculations each epoch

@@ -253,6 +253,15 @@ def parse_command():
       default=40,
       help='How many MFCC or log filterbank energy features')
   parser.add_argument(
+      '--num_classes',
+      type=int,
+      default=3,
+      choices=range(2,4), # only allow 2 or 3.
+      help="""
+      How many output classes.  If 3, use separate classes for unknown,silent.
+      If 2, group unknown and silent into one class.  
+      """)
+  parser.add_argument(
       '--epochs',
       type=int,
       default=36,
