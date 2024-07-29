@@ -5,6 +5,9 @@ import numpy as np
 import os, argparse, json
 from argparse import Namespace
 
+if "TF_CPP_MIN_LOG_LEVEL" not in os.environ:
+  os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2' 
+
 from tensorflow import keras
 import tensorflow
 

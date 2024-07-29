@@ -275,7 +275,6 @@ def prepare_background_data(background_path, clip_len_samples, num_clips):
       break
 
   background_data = background_data[:num_clips]
-  print(f"Finished gathering background wavs.  {len(background_data)} /{num_clips} clips so far.")
 
   return background_data
 
@@ -510,7 +509,6 @@ def get_data(Flags, file_list, return_wavs=False):
   ## Calculate how many of each class (target, other, silent) to create
   num_targets_orig = len(files_target)
   num_unknown_orig = len(files_unknown)
-  print(f"Raw dataset has {num_targets_orig} targets and {num_unknown_orig} unknown samples.")
 
   fraction_unknown = 1.0 - Flags.fraction_silent - Flags.fraction_target
   if Flags.num_samples == -1:
@@ -536,8 +534,7 @@ def get_data(Flags, file_list, return_wavs=False):
   # add needed quantity of targets, repeating the originals if needed
   num_targ_repeats = int(num_targets / num_targets_orig)
   extra_targets_needed = num_targets % num_targets_orig
-  print(f"Using {num_targ_repeats} repeats of the target set plus", 
-        f" {extra_targets_needed} target samples")
+
   if num_targets < num_targets_orig:
     dset_target = dset_target.take(num_targets)
     extra_targets_needed = 0
@@ -552,8 +549,6 @@ def get_data(Flags, file_list, return_wavs=False):
   # num_unknown_orig, but we will support it anyway
   num_unk_repeats = int(num_unknown / num_unknown_orig)
   extra_unk_needed = num_unknown % num_unknown_orig
-  print(f"Using {num_unk_repeats} repeats of the unkown set plus", 
-        f" {extra_unk_needed} unknown samples")
 
   if num_unknown < num_unknown_orig: # less than 1 full copy
     dset_unknown = dset_unknown.take(num_unknown)
@@ -566,7 +561,6 @@ def get_data(Flags, file_list, return_wavs=False):
   
   # Combine target and unknown datasets, then convert to dicts of wav,int-label 
   dset = dset_unknown.concatenate(dset_target)
-  print(f"just combined target and unknown.  Combined size = {dset.cardinality()} samples.")
   dset = dset.map(get_waveform_and_label, num_parallel_calls=AUTOTUNE)
   dset = dset.map(convert_labels_str2int)
 
@@ -599,8 +593,6 @@ def get_data(Flags, file_list, return_wavs=False):
                                                  "label": cal_sub_labels})
     ## end of if Flags.cal_subset
   
-  print(f"About to apply preprocessor with {dset.cardinality()} samples")
-
   # ds3 = ds1.map(lambda d: {"a":d["a"], "b":d["b"]+"!"})
   aug_func = get_augment_wavs_func(Flags, background_data)
   feature_extractor = get_lfbe_func(Flags)
@@ -629,9 +621,6 @@ def get_data(Flags, file_list, return_wavs=False):
     # this will take some time, but it reduces the time in the 1st epoch
     shuffle_buffer_size = dset.reduce(0, lambda x,_: x+1).numpy()  
     dset = dset.shuffle(shuffle_buffer_size)
-    print(f"Shuffling with buffers size = {shuffle_buffer_size}")
-  else:
-    print(f"not shuffling")
 
   if Flags.num_samples != -1:
     dset = dset.take(Flags.num_samples)
