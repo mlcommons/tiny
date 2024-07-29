@@ -2,8 +2,8 @@ import json, os, pprint
 import numpy as np
 from scipy.io import  wavfile
 
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2' 
+if "TF_CPP_MIN_LOG_LEVEL" not in os.environ:
+  os.environ["TF_CPP_MIN_LOG_LEVEL"] = '2' 
 
 import tensorflow_model_optimization as tfmot
 import tensorflow as tf
