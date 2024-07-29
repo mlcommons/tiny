@@ -50,7 +50,6 @@ if True:
 
   def representative_dataset_gen():
     for next_spec, label in zip(cal_specs, cal_labels):
-      print(f"label = {label} ")
       next_spec = np.expand_dims(next_spec, 0).astype(np.float32)
       yield [next_spec]
     
