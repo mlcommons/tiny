@@ -76,3 +76,6 @@ marvin/c9e251d2_nohash_0.wav
 marvin/f45fcf9a_nohash_0.wav
 marvin/5104f2f4_nohash_0.wav
 marvin/80768fa5_nohash_0.wav
+marvin/5d4e3bb8_nohash_1.wav
+marvin/4b3a7ad5_nohash_1.wav
+marvin/5f1253e9_nohash_0.wav
