@@ -77,6 +77,7 @@ def get_augment_wavs_func(data_config, background_data = []):
     background_volume_range_= data_config['background_volume']
     foreground_volume_min_ = data_config['foreground_volume_min']
     foreground_volume_max_ = data_config['foreground_volume_max']
+    time_shift_max = 500 # samples
 
     audio_wav = tf.cast(next_element, tf.float32)
 
@@ -92,8 +93,16 @@ def get_augment_wavs_func(data_config, background_data = []):
     scaled_foreground = tf.multiply(audio_wav, foreground_volume_placeholder_)
 
     # Shift the sample's start position, and pad any gaps with zeros.
-    time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
-    time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
+    # time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
+    
+
+    time_shift_padding_placeholder_ = tf.constant([[time_shift_max,time_shift_max]], tf.int32)
+    ts_min_val = -1*time_shift_max
+    ts_max_val = time_shift_max
+    print(f"time shift should range from {ts_min_val} to {ts_max_val}")
+    # time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
+    # because of the padding, a shift of 0 => offset for the slice = padding_amount=ts_max_val
+    time_shift_offset_placeholder_ = tf.random.uniform([1],minval=0,maxval=2*ts_max_val-1, dtype=tf.int32)
     
     padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
     sliced_foreground = tf.slice(padded_foreground, time_shift_offset_placeholder_, [desired_samples])
@@ -618,8 +627,9 @@ def get_data(Flags, file_list, return_wavs=False):
 
   if Flags.shuffle:
     # count the number of items in the training set.
-    # this will take some time, but it reduces the time in the 1st epoch
-    shuffle_buffer_size = dset.reduce(0, lambda x,_: x+1).numpy()  
+    shuffle_buffer_size = dset.cardinality()
+    if shuffle_buffer_size < 0:
+      print(f"cardinality() returned {shuffle_buffer_size} < 0.  Counting by iteration.  This could take a few minutes.")
     dset = dset.shuffle(shuffle_buffer_size)
 
   if Flags.num_samples != -1:
