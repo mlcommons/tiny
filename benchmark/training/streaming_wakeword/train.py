@@ -33,8 +33,7 @@ num_classes = 3 # should probably draw this directly from the dataset.
 Flags = util.parse_command()
 print(f"Flags={Flags}\n")
 
-print('We will download data to {:}'.format(Flags.data_dir))
-print('We will train for {:} epochs'.format(Flags.epochs))
+print("Using speech commands data from {Flags.speech_commands_path} \nand background noise from {Flags.musan_path}")
 print(20*'-')
 
 ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)

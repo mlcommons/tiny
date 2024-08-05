@@ -370,7 +370,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # collect the subset of flags necessary for building the datasets
   # does not include *_training, *_validation, or *_test flags
   data_keys =  [
-    'data_dir', 'time_shift_ms', 
+    'time_shift_ms', 
     'background_frequency', 'num_background_clips',
     'sample_rate', 'clip_duration_ms',
     'window_size_ms', 'window_stride_ms',
@@ -413,6 +413,23 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # Generally False except for the demo run on a long waveform
   data_config['wave_frame_input']=wave_frame_input
   data_config['cal_subset']=cal_subset
+
+  # 'training', 'validation', or 'test'
+  if split=='training':
+    # the long test waveform (final test) draws from speech/librivox, music/hd-classical under MUSAN
+    data_config['background_path'] = [
+      os.path.join(general_flags.speech_commands_path, '_background_noise_'),
+      os.path.join(general_flags.musan_path, 'noise', 'free-sound'),
+      os.path.join(general_flags.musan_path, 'speech', 'us-gov')
+    ]
+  elif split=='validation':
+    # the long test waveform (final test) draws from speech/librivox, music/hd-classical under MUSAN
+    data_config['background_path'] = [
+      os.path.join(general_flags.musan_path, 'noise', 'sound-bible'),
+      os.path.join(general_flags.musan_path, 'speech', 'librivox')
+    ]
+  elif split=='test':
+    data_config['background_path'] = [] # test set is not augmented with background noise
 
   # anything specified in kwargs overrides
   data_config.update(kwargs)
@@ -457,8 +474,7 @@ def get_all_datasets(Flags):
   flags_test = get_data_config(Flags, 'test')
 
   ## Build the data sets from files
-  data_dir = Flags.data_dir
-  train_files, test_files, val_files = get_file_lists(data_dir)
+  train_files, test_files, val_files = get_file_lists(Flags.speech_commands_path)
 
   print("About to get val data")
   ds_val = get_data(flags_validation, val_files)

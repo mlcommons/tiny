@@ -1,4 +1,4 @@
-import argparse, os, math, re
+import argparse, os, math, re, json
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -8,52 +8,17 @@ from tensorflow import keras
 def parse_command():
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--data_dir',
-      type=str,
-      default=os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02'),
-      help="""\
-      Where to download the speech training data to. Or where it is already saved.
-      """)
-  parser.add_argument(
       '--test_wav_path',
       type=str,
       default="long_wav.wav",
       help="""\
       Wav file to run the model on for the long-wav test.
       """)
-  # the long test waveform (final test) draws from speech/librivox, music/hd-classical under MUSAN
-  default_bg_path_train = os.path.join(os.getenv('HOME'), 'data', 'speech_commands_v0.02', '_background_noise_')
-  default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "free-sound")
-  default_bg_path_train += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "us-gov")
 
-  default_bg_path_val = os.path.join(os.getenv('HOME'), 'data', "musan", "noise", "sound-bible")
-  default_bg_path_val += "," + os.path.join(os.getenv('HOME'), 'data', "musan", "speech", "librivox")
-
-  parser.add_argument(
-      '--background_path_training',
-      type=str,
-      default=default_bg_path_train,
-      help="""\
-      Where to find background noise wav files for training. Directories separated by comma (',').
-      """)
-  parser.add_argument(
-      '--background_path_validation',
-      type=str,
-      default=default_bg_path_val,
-      help="""\
-      Where to find background noise wav files for training. Directories separated by comma (',').
-      """)
-  parser.add_argument(
-      '--background_path_test',
-      type=str,
-      default='',
-      help="""\
-      Where to find background noise wav files for test. Directories separated by comma (',').
-      """)        
   parser.add_argument(
       '--num_background_clips',
       type=int,
-      default=100,
+      default=50,
       help="""\
       Number of (15-sec) background clips to assemble.  Used to augment samples with background noise.  Too high will use excessive memory.
       """)
@@ -409,11 +374,21 @@ def parse_command():
 
   Flags = parser.parse_args()
 
-  # the 2nd half of these assignments is so that an empty original string yields an empty list instead of ['']
-  Flags.background_path_training   = Flags.background_path_training.split(',') if len(Flags.background_path_training)>0 else []
-  Flags.background_path_validation = Flags.background_path_validation.split(',') if len(Flags.background_path_validation)>0 else []
-  Flags.background_path_test       = Flags.background_path_test.split(',') if len(Flags.background_path_test)>0 else []
-  
+  # add the path to the two datasets from a json file so that the notebooks can 
+  # be run without modification, since it's hard to pass command line arguments
+  # to a notebook and edits create false conflicts in git that we don't actually want to 
+  try:
+    with open('streaming_config.json', 'r') as fpi:
+        streaming_config = json.load(fpi)
+    Flags.speech_commands_path = streaming_config['speech_commands_path']
+    Flags.musan_path = streaming_config['musan_path']
+  except:
+    raise RuntimeError("""
+        In this directory, copy streaming_config_template.json to streaming_config.json
+        and edit it to point to the directories where you have the speech commands dataset
+        and the MUSAN noise data set.
+        """)
+
   if Flags.foreground_volume_min_training > Flags.foreground_volume_max_training:
     raise ValueError(f"foreground_volume_min_training ({Flags.foreground_volume_min_training}) must be no",
                      f"larger than foreground_volume_max_training ({Flags.foreground_volume_max_training})")
