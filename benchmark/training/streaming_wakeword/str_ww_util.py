@@ -290,12 +290,12 @@ def parse_command():
       '--saved_model_path',
       type=str,
       default='trained_models/str_ww_model.h5',
-      help='In quantize.py or evaluate.py, path to load pretrained model from; in train.py, destination for trained model')
+      help='In train.py, destination for trained model')
   parser.add_argument(
       '--model_init_path',
       type=str,
       default=None,
-      help='Path to load pretrained model for evaluation or starting point for training')
+      help='Path to load pretrained model for evaluation or quantization or starting point for training')
   parser.add_argument(
       '--model_config_path',
       type=str,

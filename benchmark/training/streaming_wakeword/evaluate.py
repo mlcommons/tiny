@@ -32,7 +32,7 @@ if Flags.use_tflite_model:
     output_scale, output_zero_point = output_details[0]["quantization"]
 else:
     with tfmot.quantization.keras.quantize_scope(): # needed for the QAT wrappers
-        model_std = keras.models.load_model(Flags.saved_model_path) # normal model for fixed-length inputs
+        model_std = keras.models.load_model(Flags.model_init_path) # normal model for fixed-length inputs
 
     ## Build a model that can accept variable-length inputs to process the long waveform/spectrogram
     Flags.variable_length=True
