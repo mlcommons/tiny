@@ -77,6 +77,7 @@ def get_augment_wavs_func(data_config, background_data = []):
     background_volume_range_= data_config['background_volume']
     foreground_volume_min_ = data_config['foreground_volume_min']
     foreground_volume_max_ = data_config['foreground_volume_max']
+    min_snr = data_config['min_snr']
     time_shift_max = 500 # samples
 
     audio_wav = tf.cast(next_element, tf.float32)
@@ -123,7 +124,8 @@ def get_augment_wavs_func(data_config, background_data = []):
         lambda: tf.random.uniform([1],minval=0.5,maxval=background_volume_range_, dtype=tf.float32)[0],
         lambda: tf.constant(0.0, dtype=tf.float32)
       )
-
+      # enforce a minimum SNR by limiting the volume of background noise (to avoid impossible examples)
+      background_volume_placeholder_ = tf.minimum(background_volume_placeholder_,foreground_volume_placeholder_/min_snr)
       background_data_placeholder_ = background_reshaped
       background_scaled = tf.multiply(background_data_placeholder_,
                            background_volume_placeholder_)
@@ -374,7 +376,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
     'window_size_ms', 'window_stride_ms',
     'feature_type', 'dct_coefficient_count',
     'batch_size', 'num_classes',
-    'num_bin_files', 'bin_file_path'
+    'num_bin_files', 'bin_file_path',
     ]
   # First populate the values that apply to all splits.  These can be overwritten
   # with either a split-specific flag (batch_size_validation) or with kwargs

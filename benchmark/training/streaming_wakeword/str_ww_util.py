@@ -72,7 +72,27 @@ def parse_command():
       no_use_qat will disable quantization-aware training
       """)
   parser.set_defaults(use_qat=True)
-
+  parser.add_argument(
+      '--min_snr_training',
+      type=float,
+      default=0.5,
+      help="""\
+      Limits amplitude of noise relative to wakeword
+      """)
+  parser.add_argument(
+      '--min_snr_validation',
+      type=float,
+      default=0.5,
+      help="""\
+      Limits amplitude of noise relative to wakeword
+      """)
+  parser.add_argument(
+      '--min_snr_test',
+      type=float,
+      default=0.5,
+      help="""\
+      Limits amplitude of noise relative to wakeword
+      """)
   parser.add_argument(
       '--fraction_target_training',
       type=float,
