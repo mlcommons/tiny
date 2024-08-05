@@ -156,7 +156,7 @@ def parse_command():
   parser.add_argument(
       '--background_volume_training',
       type=float,
-      default=1.5,
+      default=2.0,
       help="""\
       How loud the background noise should be, between 0 and 1.  Noise volume will vary 
       randomly between zero and background_volume.
