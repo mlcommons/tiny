@@ -88,7 +88,7 @@ flags_validation = get_dataset.get_data_config(Flags, 'validation')
 flags_validation.batch_size = 50
 
 ## Build the data sets from files
-data_dir = Flags.data_dir
+data_dir = Flags.speech_commands_path
 _, _, val_files = get_dataset.get_file_lists(data_dir)
 ds_val = get_dataset.get_data(flags_validation, val_files)
 
