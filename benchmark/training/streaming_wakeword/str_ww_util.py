@@ -234,7 +234,7 @@ def parse_command():
   parser.add_argument(
       '--epochs',
       type=int,
-      default=36,
+      default=65,
       help="""\
       How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
       then the model will pretrain (without QAT) for pretrain_epochs, then train 
@@ -243,7 +243,7 @@ def parse_command():
   parser.add_argument(
       '--pretrain_epochs',
       type=int,
-      default=20,
+      default=50,
       help="""\
       How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
       then the model will pretrain (without QAT) for pretrain_epochs, then fine-tune 
