@@ -78,7 +78,7 @@ def get_augment_wavs_func(data_config, background_data = []):
     foreground_volume_min_ = data_config['foreground_volume_min']
     foreground_volume_max_ = data_config['foreground_volume_max']
     min_snr = data_config['min_snr']
-    time_shift_max = 500 # samples
+    time_shift_max = int(data_config['time_shift_ms']*data_config['sample_rate']/1000)
 
     audio_wav = tf.cast(next_element, tf.float32)
 
@@ -370,13 +370,11 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
   # collect the subset of flags necessary for building the datasets
   # does not include *_training, *_validation, or *_test flags
   data_keys =  [
-    'time_shift_ms', 
     'background_frequency', 'num_background_clips',
     'sample_rate', 'clip_duration_ms',
     'window_size_ms', 'window_stride_ms',
     'feature_type', 'dct_coefficient_count',
-    'batch_size', 'num_classes',
-    'num_bin_files', 'bin_file_path',
+    'batch_size', 'num_classes', 'time_shift_ms'
     ]
   # First populate the values that apply to all splits.  These can be overwritten
   # with either a split-specific flag (batch_size_validation) or with kwargs

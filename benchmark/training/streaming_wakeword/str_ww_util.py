@@ -14,7 +14,6 @@ def parse_command():
       help="""\
       Wav file to run the model on for the long-wav test.
       """)
-
   parser.add_argument(
       '--num_background_clips',
       type=int,
@@ -186,20 +185,6 @@ def parse_command():
       What fraction of the samples have background noise mixed in.
       """)
   parser.add_argument(
-      '--silence_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should be silence.
-      """)
-  parser.add_argument(
-      '--unknown_percentage',
-      type=float,
-      default=10.0,
-      help="""\
-      How much of the training data should be unknown words.
-      """)
-  parser.add_argument(
       '--time_shift_ms',
       type=float,
       default=100.0,
@@ -285,18 +270,6 @@ def parse_command():
       type=int,
       default=100,
       help='Batch size for training',)
-  parser.add_argument(
-      '--num_bin_files',
-      type=int,
-      default=1000,
-      help='How many binary test files for benchmark runner to create',)
-  parser.add_argument(
-      '--bin_file_path',
-      type=str,
-      default=os.path.join(os.getenv('HOME'), 'kws_test_files'),
-      help="""\
-      Directory where plots of binary test files for benchmark runner are written.
-      """)
   parser.add_argument(
       '--model_architecture',
       type=str,
