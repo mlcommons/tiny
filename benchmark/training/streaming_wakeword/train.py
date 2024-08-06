@@ -46,8 +46,6 @@ else:
   print(f"Starting with pre-trained model from {Flags.model_init_path}")
   model = keras.models.load_model(Flags.model_init_path)
 
-model.summary()
-
 callbacks = util.get_callbacks(args=Flags)   
 
 if Flags.use_qat:

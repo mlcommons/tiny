@@ -94,15 +94,9 @@ def get_augment_wavs_func(data_config, background_data = []):
     scaled_foreground = tf.multiply(audio_wav, foreground_volume_placeholder_)
 
     # Shift the sample's start position, and pad any gaps with zeros.
-    # time_shift_padding_placeholder_ = tf.constant([[2,2]], tf.int32)
-    
-
     time_shift_padding_placeholder_ = tf.constant([[time_shift_max,time_shift_max]], tf.int32)
     ts_min_val = -1*time_shift_max
     ts_max_val = time_shift_max
-    print(f"time shift should range from {ts_min_val} to {ts_max_val}")
-    # time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
-    # because of the padding, a shift of 0 => offset for the slice = padding_amount=ts_max_val
     time_shift_offset_placeholder_ = tf.random.uniform([1],minval=0,maxval=2*ts_max_val-1, dtype=tf.int32)
     
     padded_foreground = tf.pad(scaled_foreground, time_shift_padding_placeholder_, mode='CONSTANT')
@@ -474,11 +468,11 @@ def get_all_datasets(Flags):
   ## Build the data sets from files
   train_files, test_files, val_files = get_file_lists(Flags.speech_commands_path)
 
-  print("About to get val data")
+  print("About to get val data. ", end="")
   ds_val = get_data(flags_validation, val_files)
-  print("About to get train data")
+  print("About to get train data. ", end="")
   ds_train = get_data(flags_training, train_files)
-  print("About to get test data")
+  print("About to get test data. ", end="")
   ds_test = get_data(flags_test, test_files)
   print("Done building datasets")
   return ds_train, ds_test, ds_val
