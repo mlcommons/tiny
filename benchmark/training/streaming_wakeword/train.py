@@ -30,7 +30,7 @@ import str_ww_util as util
 
 num_classes = 3 # should probably draw this directly from the dataset.
 
-Flags = util.parse_command()
+Flags = util.parse_command("train")
 
 if not os.path.exists(Flags.plot_dir):
   os.makedirs(plot_dir)

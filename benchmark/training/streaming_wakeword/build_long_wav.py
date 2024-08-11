@@ -5,7 +5,7 @@ from scipy.io import  wavfile
 import str_ww_util as util
 import get_dataset
 
-Flags = util.parse_command()
+Flags = util.parse_command("build_long_wav")
 
 rel_thresh = 0.05 # trim out leading/trailing space with less than rel_thresh*max(waveform)
 samp_freq = Flags.sample_rate

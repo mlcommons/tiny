@@ -45,28 +45,21 @@ def prepare_model_settings(args):
     Dictionary containing common settings.
   """
   desired_samples = int(args.sample_rate * args.clip_duration_ms / 1000)
-  if args.feature_type == 'td_samples':
-    window_size_samples = 1
-    spectrogram_length = desired_samples
-    dct_coefficient_count = 1
-    window_stride_samples = 1
-    fingerprint_size = desired_samples
+
+  dct_coefficient_count = args.dct_coefficient_count
+  window_size_samples = int(args.sample_rate * args.window_size_ms / 1000)
+  window_stride_samples = int(args.sample_rate * args.window_stride_ms / 1000)
+  length_minus_window = (desired_samples - window_size_samples)
+  if length_minus_window < 0:
+    spectrogram_length = 0
   else:
-    dct_coefficient_count = args.dct_coefficient_count
-    window_size_samples = int(args.sample_rate * args.window_size_ms / 1000)
-    window_stride_samples = int(args.sample_rate * args.window_stride_ms / 1000)
-    length_minus_window = (desired_samples - window_size_samples)
-    if length_minus_window < 0:
-      spectrogram_length = 0
-    else:
-      spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
-      fingerprint_size = args.dct_coefficient_count * spectrogram_length
+    spectrogram_length = 1 + int(length_minus_window / window_stride_samples)
+    fingerprint_size = args.dct_coefficient_count * spectrogram_length
   
   return {
     'desired_samples': desired_samples,
     'window_size_samples': window_size_samples,
     'window_stride_samples': window_stride_samples,
-    'feature_type': args.feature_type, 
     'spectrogram_length': spectrogram_length,
     'dct_coefficient_count': dct_coefficient_count,
     'fingerprint_size': fingerprint_size,
@@ -178,7 +171,6 @@ def select_optimizer(Flags, learning_rate):
   return optimizer
   
 def get_model(args, use_qat=False):
-  model_name = args.model_architecture
 
   model_settings = prepare_model_settings(args)
 
@@ -187,108 +179,81 @@ def get_model(args, use_qat=False):
   # If flags does not have the option, default to False
   variable_length = ('variable_length' in args and args.variable_length)
 
-  if args.model_config_path:
-    with open(args.model_config_path, 'r') as fpi:
-        model_config = json.load(fpi)
-    print(f"Read model config from {args.model_config_path}")  
+  ds_filters          = [128, 128, 128, 32]
+  ds_repeat           = [1, 1, 1, 1]
+  ds_residual         = [0, 0, 0, 0]
+  ds_kernel_size      = [3, 5, 10, 15]
+  ds_stride           = [1, 1, 1, 1]
+  ds_dilation         = [1, 1, 1, 1]
+  ds_padding          = ['valid', 'valid', 'valid', 'valid']
+  ds_filter_separable = [1, 1, 1, 1]
+  ds_scale            = 1
+  ds_max_pool         = 0
+  dropout = 0.2
+  activation = "relu"
+
+  # check that all the lists are the same length. this was really only needed when taking different configs
+  num_blocks = len(ds_filters)
+  for param_list, param_name in [(ds_filters         , "ds_filters"),
+                                  (ds_repeat          , "ds_repeat"),       
+                                  (ds_residual        , "ds_residual"),
+                                  (ds_kernel_size     , "ds_kernel_size"),
+                                  (ds_stride          , "ds_stride"),
+                                  (ds_dilation        , "ds_dilation"),
+                                  (ds_padding         , "ds_padding"),
+                                  (ds_filter_separable, "ds_filter_separable")
+                                  ]:
+    if len(param_list) != num_blocks:
+      print(f"{param_name} = {param_list}")
+      raise ValueError(f"All config lists must be the same length ({num_blocks}).  {param_name} has length {len(param_list)}")
+
+  num_frames_training = model_settings['spectrogram_length'] # length in time
+  if variable_length:
+    input_len = None # let length in time be variable
   else:
-    model_config = None
+    input_len = num_frames_training
+    
+  input_shape = [input_len, 
+                  1,
+                  model_settings['dct_coefficient_count'] # number of features
+                  ]
 
+  weight_decay = 1e-4
+  regularizer = l2(weight_decay)
+
+  # Model layers
+  print(f"Input shape = {input_shape}")
+  input_spec = Input(shape=input_shape)
   
-  if model_name=="ds_tcn":
-    print("DS TCN model for streaming invoked")
-    if model_config is not None:
-      print(f"Using model config from {args.model_config_path}")
-      ds_filters          = model_config['ds_filters']
-      ds_repeat           = model_config['ds_repeat']
-      ds_residual         = model_config['ds_residual']
-      ds_kernel_size      = model_config['ds_kernel_size']
-      ds_stride           = model_config['ds_stride']
-      ds_dilation         = model_config['ds_dilation']
-      ds_padding          = model_config['ds_padding']
-      ds_filter_separable = model_config['ds_filter_separable']
-      ds_scale            = model_config['ds_scale']
-      ds_max_pool         = model_config['ds_max_pool']
-      dropout             = model_config['dropout']
-      activation          = model_config['activation']
-    else:
-      print(f"Using default model config (hard-coded in keras_model.py)")
-      ds_filters          = [128, 128, 128, 32]
-      ds_repeat           = [1, 1, 1, 1]
-      ds_residual         = [0, 0, 0, 0]
-      ds_kernel_size      = [3, 5, 10, 15]
-      ds_stride           = [1, 1, 1, 1]
-      ds_dilation         = [1, 1, 1, 1]
-      ds_padding          = ['valid', 'valid', 'valid', 'valid']
-      ds_filter_separable = [1, 1, 1, 1]
-      ds_scale            = 1
-      ds_max_pool         = 0
-      dropout = 0.2
-      activation = "relu"
-    # check that all the lists are the same length
-    num_blocks = len(ds_filters)
-    for param_list, param_name in [(ds_filters         , "ds_filters"),
-                                   (ds_repeat          , "ds_repeat"),       
-                                   (ds_residual        , "ds_residual"),
-                                   (ds_kernel_size     , "ds_kernel_size"),
-                                   (ds_stride          , "ds_stride"),
-                                   (ds_dilation        , "ds_dilation"),
-                                   (ds_padding         , "ds_padding"),
-                                   (ds_filter_separable, "ds_filter_separable")
-                                   ]:
-      if len(param_list) != num_blocks:
-        print(f"{param_name} = {param_list}")
-        raise ValueError(f"All config lists must be the same length ({num_blocks}).  {param_name} has length {len(param_list)}")
-
-    num_frames_training = model_settings['spectrogram_length'] # length in time
-    if variable_length:
-      input_len = None # let length in time be variable
-    else:
-      input_len = num_frames_training
-      
-    input_shape = [input_len, 
-                   1,
-                   model_settings['dct_coefficient_count'] # number of features
-                   ]
-
-    weight_decay = 1e-4
-    regularizer = l2(weight_decay)
-
-    # Model layers
-    print(f"Input shape = {input_shape}")
-    input_spec = Input(shape=input_shape)
-    
-    net = input_spec
-    
-    for count in range(len(ds_stride)):  
-      net = conv_block(net, repeat=ds_repeat[count], 
-                         kernel_size=ds_kernel_size[count],
-                         filters=ds_filters[count],
-                         dilation=ds_dilation[count],
-                         stride=ds_stride[count],
-                         filter_separable=ds_filter_separable[count], 
-                         residual=ds_residual[count], 
-                         padding=ds_padding[count], 
-                         scale=ds_scale,
-                         dropout=dropout,
-                         l2_reg=args.l2_reg,
-                         activation=activation)
-      
-    if variable_length:
-      # net = tf.squeeze(net, axis=2) # this is what we want, but squeeze does not work with QAT
-      # keep the (unknown:-1) time duration (shape[0]) and channels (shape[-1]).  Remove the singleton feature dimension
-      net = tf.keras.layers.Reshape((-1, net.shape[-1]))(net) 
-    else:
-      net = tf.keras.layers.Flatten()(net)
-
-    net = tf.keras.layers.Dense(args.num_classes, activation=tf.keras.activations.softmax)(net) 
-
-    model =  tf.keras.Model(input_spec, net)
-    
-    ########################################
+  net = input_spec
   
+  for count in range(len(ds_stride)):  
+    net = conv_block(net, repeat=ds_repeat[count], 
+                        kernel_size=ds_kernel_size[count],
+                        filters=ds_filters[count],
+                        dilation=ds_dilation[count],
+                        stride=ds_stride[count],
+                        filter_separable=ds_filter_separable[count], 
+                        residual=ds_residual[count], 
+                        padding=ds_padding[count], 
+                        scale=ds_scale,
+                        dropout=dropout,
+                        l2_reg=args.l2_reg,
+                        activation=activation)
+    
+  if variable_length:
+    # net = tf.squeeze(net, axis=2) # this is what we want, but squeeze does not work with QAT
+    # keep the (unknown:-1) time duration (shape[0]) and channels (shape[-1]).  Remove the singleton feature dimension
+    net = tf.keras.layers.Reshape((-1, net.shape[-1]))(net) 
   else:
-    raise ValueError("Model name {:} not supported".format(model_name))
+    net = tf.keras.layers.Flatten()(net)
+
+  net = tf.keras.layers.Dense(args.num_classes, activation=tf.keras.activations.softmax)(net) 
+
+  model =  tf.keras.Model(input_spec, net)
+  
+  ########################################
+
 
   optimizer = select_optimizer(args, args.learning_rate)
 

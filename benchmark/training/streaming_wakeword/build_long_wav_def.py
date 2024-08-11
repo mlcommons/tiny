@@ -2,7 +2,7 @@ import json, os, pprint
 import numpy as np
 import str_ww_util as util
 
-Flags = util.parse_command()
+Flags = util.parse_command("build_long_wav_def")
 
 long_wav_len_sec = 20*60.0 # 20 minutes
 num_targets = 100
