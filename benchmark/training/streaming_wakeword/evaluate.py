@@ -15,6 +15,11 @@ import get_dataset
 
 Flags = util.parse_command("evaluate")
 
+if not Flags.use_tflite_model and Flags.saved_model_path is None:
+    err_str = "Unless use_tflite_model is specified, saved_model_path is required."
+if Flags.use_tflite_model and Flags.tfl_file_name is None:  
+    err_str = "When use_tflite_model is specified, tfl_file_name is required."
+
 det_thresh = 0.95
 samp_freq = Flags.sample_rate
 # For wav file 'long_wav.wav', the wakeword windows should be in 'long_wav_ww_windows.json'
@@ -102,4 +107,5 @@ print(f"Results: false_detections={np.sum(ww_false_detects!=0)},",
 
 if not Flags.use_tflite_model:
     print(f"val_loss={val_loss:5.4f}, val_acc={val_acc:5.4f}, val_precision={val_prec:5.4f}, val_recall={val_recl:5.4f}")
-
+else:
+    print("") # We need a newline

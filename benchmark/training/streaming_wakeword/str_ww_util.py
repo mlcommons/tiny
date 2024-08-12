@@ -288,7 +288,7 @@ def add_training_args(parser):
     parser.add_argument(
         '--model_init_path',
         type=str,
-        default='trained_models/str_ww_ref_model.h5',
+        default=None,
         help='Path to load pretrained model for evaluation or quantization or starting point for training')
     parser.add_argument(
         '--lr_sched_name',
@@ -318,7 +318,7 @@ def add_eval_args(parser):
     parser.add_argument(
         '--saved_model_path',
         type=str,
-        required=True,
+        required=False,
         default=None,
         help='Trained model to evaluate')
     parser.add_argument(
@@ -327,6 +327,10 @@ def add_eval_args(parser):
         help="""\
             Run the TFLite model. Otherwise, run the standard keras model
             """)
+    parser.add_argument(
+        '--tfl_file_name',
+        default=None,
+        help='File name from which the TF Lite model is loaded.')
 
 
 def add_quantize_args(parser):
