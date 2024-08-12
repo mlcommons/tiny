@@ -318,7 +318,7 @@ def add_eval_args(parser):
     parser.add_argument(
         '--saved_model_path',
         type=str,
-        required=True,
+        required=False,
         default=None,
         help='Trained model to evaluate')
     parser.add_argument(
@@ -327,6 +327,10 @@ def add_eval_args(parser):
         help="""\
             Run the TFLite model. Otherwise, run the standard keras model
             """)
+    parser.add_argument(
+        '--tfl_file_name',
+        default=None,
+        help='File name from which the TF Lite model is loaded.')
 
 
 def add_quantize_args(parser):

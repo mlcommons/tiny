@@ -15,6 +15,11 @@ import get_dataset
 
 Flags = util.parse_command("evaluate")
 
+if not Flags.use_tflite_model and Flags.pretrained_model_path is None:
+    err_str = "Unless use_tflite_model is specified, saved_model_path is required."
+if Flags.use_tflite_model and Flags.tfl_file_name is None:  
+    err_str = "When use_tflite_model is specified, tfl_file_name is required."
+
 det_thresh = 0.95
 samp_freq = Flags.sample_rate
 # For wav file 'long_wav.wav', the wakeword windows should be in 'long_wav_ww_windows.json'
