@@ -2,7 +2,7 @@ import numpy as np
 import str_ww_util as util
 from get_dataset import get_data, get_file_lists, get_data_config
 
-Flags = util.parse_command()
+Flags = util.parse_command("create_cal_idx_list")
 
 rng = np.random.default_rng(seed=1)
 

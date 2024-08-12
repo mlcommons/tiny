@@ -34,7 +34,7 @@ import str_ww_util as util
 import get_dataset
 import keras_model as models
 
-Flags = util.parse_command()
+Flags = util.parse_command("quantize")
 pretrained_model_path = Flags.model_init_path
 tfl_file_name = Flags.tfl_file_name
 

@@ -2,11 +2,11 @@ import json, os, pprint
 import numpy as np
 import str_ww_util as util
 
-Flags = util.parse_command()
+Flags = util.parse_command("build_long_wav_def")
 
 long_wav_len_sec = 20*60.0 # 20 minutes
 num_targets = 100
-min_ww_ampl = 0.25
+min_ww_ampl = 0.5
 max_ww_ampl = 0.75
 
 rng = np.random.default_rng()
@@ -39,7 +39,7 @@ ww_amplitudes = rng.uniform(low=min_ww_ampl, high=max_ww_ampl, size=(len(inserti
 bad_marvin_files = [line.strip() for line in open("bad_marvin_files.txt", "r")]
 
 ww_files = []
-for line in open(os.path.join(Flags.data_dir, 'testing_list.txt')):
+for line in open(os.path.join(Flags.speech_commands_path, 'testing_list.txt')):
     if line.split('/')[0] == 'marvin':
         if line.strip() in bad_marvin_files:
             continue # skip this one

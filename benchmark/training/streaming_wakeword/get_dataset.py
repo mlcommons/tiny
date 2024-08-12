@@ -367,7 +367,7 @@ def get_data_config(general_flags, split, cal_subset=False, wave_frame_input=Fal
     'background_frequency', 'num_background_clips',
     'sample_rate', 'clip_duration_ms',
     'window_size_ms', 'window_stride_ms',
-    'feature_type', 'dct_coefficient_count',
+    'dct_coefficient_count',
     'batch_size', 'num_classes', 'time_shift_ms'
     ]
   # First populate the values that apply to all splits.  These can be overwritten
@@ -681,7 +681,7 @@ def count_labels(ds, label_index=1):
   return label_counts
 
 if __name__ == '__main__':
-  Flags = util.parse_command()
+  Flags = util.parse_command("get_data")
   ds_train, ds_test, ds_val = get_all_datasets(Flags)
 
   for dat in ds_train.take(1):

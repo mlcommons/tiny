@@ -5,376 +5,386 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 
-def parse_command():
-  parser = argparse.ArgumentParser()
-  parser.add_argument(
-      '--test_wav_path',
-      type=str,
-      default="long_wav.wav",
-      help="""\
-      Wav file to run the model on for the long-wav test.
-      """)
-  parser.add_argument(
-      '--num_background_clips',
-      type=int,
-      default=50,
-      help="""\
-      Number of (15-sec) background clips to assemble.  Used to augment samples with background noise.  Too high will use excessive memory.
-      """)
-  parser.add_argument(
-      '--use_qat',
-      dest='use_qat',
-      action='store_true',
-      help="""\
-      Enable quantization-aware training
-      """)
-  parser.add_argument(
-      '--no_use_qat',
-      dest='use_qat',
-      action='store_false',
-      help="""\
-      no_use_qat will disable quantization-aware training
-      """)
-  parser.set_defaults(use_qat=True)
-  parser.add_argument(
-      '--min_snr_training',
-      type=float,
-      default=0.5,
-      help="""\
-      Limits amplitude of noise relative to wakeword
-      """)
-  parser.add_argument(
-      '--min_snr_validation',
-      type=float,
-      default=0.5,
-      help="""\
-      Limits amplitude of noise relative to wakeword
-      """)
-  parser.add_argument(
-      '--min_snr_test',
-      type=float,
-      default=0.5,
-      help="""\
-      Limits amplitude of noise relative to wakeword
-      """)
-  parser.add_argument(
-      '--fraction_target_training',
-      type=float,
-      default=0.2,
-      help="""\
-      Fraction (0.0-1.0) of the training set that should be the target wakeword.
-      Target words will be duplicated to reach this fraction, but no words will be discarded,
-      even if that results in the fraction of target words being higher than requested.
-      """)
-  parser.add_argument(
-      '--fraction_target_validation',
-      type=float,
-      default=0.2,
-      help="""\
-      Fraction (0.0-1.0) of the validation set that should be the target wakeword
-      Target words will be duplicated to reach this fraction, but no words will be discarded,
-      even if that results in the fraction of target words being higher than requested.
-      """)
-  parser.add_argument(
-      '--fraction_target_test',
-      type=float,
-      default=0.2,
-      help="""\
-      Fraction (0.0-1.0) of the test set that should be the target wakeword.
-      Target words will be duplicated to reach this fraction, but no words will be discarded,
-      even if that results in the fraction of target words being higher than requested.
-      """)      
-  parser.add_argument(
-      '--fraction_silent_training',
-      type=float,
-      default=0.1,
-      help="""\
-      Fraction (0.0-1.0) of training set consisting of silent frames (before noise is added).
-      """)
-  parser.add_argument(
-      '--fraction_silent_validation',
-      type=float,
-      default=0.1,
-      help="""\
-      Fraction (0.0-1.0) of validation set consisting of silent frames (before noise is added).
-      """)
-  parser.add_argument(
-      '--fraction_silent_test',
-      type=float,
-      default=0.1,
-      help="""\
-      Fraction (0.0-1.0) of test set consisting of silent frames (before noise is added).
-      """)      
-  parser.add_argument(
-      '--foreground_volume_min_training',
-      type=float,
-      default=0.25,
-      help="""\
-      For training set, minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
-      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
-      """)
-  parser.add_argument(
-      '--foreground_volume_min_validation',
-      type=float,
-      default=0.25,
-      help="""\
-      (Validation set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
-      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
-      """)
-  parser.add_argument(
-      '--foreground_volume_min_test',
-      type=float,
-      default=0.25,
-      help="""\
-      (Test set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
-      randomly, uniformly  between foreground_volume_min and foreground_volume_max.
-      """)
-  parser.add_argument(
-      '--foreground_volume_max_training',
-      type=float,
-      default=1.5,
-      help="""\
-      Maximum level for how loud the foreground words should be in the training set, between 0 and 1. Word
-      volume will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max. 
-      """)
-  parser.add_argument(
-      '--foreground_volume_max_validation',
-      type=float,
-      default=1.5,
-      help="""\
-      Maximum level for how loud the foreground words should be in the val set, between 0 and 1. Word volume 
-      will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
-      """)  
-  parser.add_argument(
-      '--foreground_volume_max_test',
-      type=float,
-      default=1.5,
-      help="""\
-      Maximum level for how loud the foreground words should be in the test set, between 0 and 1. Word volume
-      will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
-      """)        
-  parser.add_argument(
-      '--background_volume_training',
-      type=float,
-      default=2.0,
-      help="""\
-      How loud the background noise should be, between 0 and 1.  Noise volume will vary 
-      randomly between zero and background_volume.
-      """)
-  parser.add_argument(
-      '--background_volume_validation',
-      type=float,
-      default=1.5,
-      help="""\
-      How loud the background noise should be, between 0 and 1.  Noise volume will vary 
-      randomly between zero and background_volume.
-      """)
-  parser.add_argument(
-      '--background_volume_test',
-      type=float,
-      default=0.0,
-      help="""\
-      How loud the background noise should be, between 0 and 1.  Noise volume will vary 
-      randomly between zero and background_volume.
-      """)
-  parser.add_argument(
-      '--background_frequency',
-      type=float,
-      default=0.8,
-      help="""\
-      What fraction of the samples have background noise mixed in.
-      """)
-  parser.add_argument(
-      '--time_shift_ms',
-      type=float,
-      default=100.0,
-      help="""\
-      Range to randomly shift the training audio by in time.
-      """)
-  parser.add_argument(
-      '--sample_rate',
-      type=int,
-      default=16000,
-      help='Expected sample rate of the wavs',)
-  parser.add_argument(
-      '--clip_duration_ms',
-      type=int,
-      default=1000,
-      help='Expected duration in milliseconds of the wavs',)
-  parser.add_argument(
-      '--window_size_ms',
-      type=float,
-      default=64.0,
-      help='How long each spectrogram timeslice is',)
-  parser.add_argument(
-      '--window_stride_ms',
-      type=float,
-      default=32.0,
-      help='How much time between each spectrogram timeslice.',)
-  parser.add_argument(
-      '--feature_type',
-      type=str,
-      default="lfbe",
-      choices=["mfcc", "lfbe", "td_samples"],
-      help='Type of input features. Valid values: "mfcc" (default), "lfbe", "td_samples"',)
-  parser.add_argument(
-      '--dct_coefficient_count',
-      type=int,
-      default=40,
-      help='How many MFCC or log filterbank energy features')
-  parser.add_argument(
-      '--num_classes',
-      type=int,
-      default=3,
-      choices=range(2,4), # only allow 2 or 3.
-      help="""
-      How many output classes.  If 3, use separate classes for unknown,silent.
-      If 2, group unknown and silent into one class.  
-      """)
-  parser.add_argument(
-      '--epochs',
-      type=int,
-      default=65,
-      help="""\
-      How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
-      then the model will pretrain (without QAT) for pretrain_epochs, then train 
-      with QAT for epochs-pretrain_epochs.
-      """)
-  parser.add_argument(
-      '--pretrain_epochs',
-      type=int,
-      default=50,
-      help="""\
-      How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
-      then the model will pretrain (without QAT) for pretrain_epochs, then fine-tune 
-      with QAT for epochs-pretrain_epochs.  If pretrain_epochs > epochs, then there
-      will be no QAT fine-tuning.
-      """)
-  parser.add_argument(
-      '--num_samples_training',
-      type=int,
-      default=-1, # 85511,
-    help='Total samples in the training set. Set to -1 to use all the data',)
-  parser.add_argument(
-      '--num_samples_validation',
-      type=int,
-      default=-1, # 10102,
-    help='Total samples in the  validation set. Set to -1 to use all the data',)
-  parser.add_argument(
-      '--num_samples_test',
-      type=int,
-      default=-1, # 4890,
-    help='How many samples from the test set to use. Set to -1 to use all the data',)
-  parser.add_argument(
-      '--batch_size',
-      type=int,
-      default=100,
-      help='Batch size for training',)
-  parser.add_argument(
-      '--model_architecture',
-      type=str,
-      default='ds_tcn',
-      help='What model architecture to use')
-  parser.add_argument(
-      '--run_test_set',
-      dest='run_test_set',
-      action="store_true",
-      help='In train.py, run model.eval() on test set if True')
-  parser.add_argument(
-      '--no_run_test_set',
-      dest='run_test_set',
-      action="store_false",
-      help='In train.py, do not run model.eval() on test set')
-  parser.set_defaults(run_test_set=True)
-  parser.add_argument(
-      '--saved_model_path',
-      type=str,
-      default='trained_models/str_ww_model.h5',
-      help='In train.py, destination for trained model')
-  parser.add_argument(
-      '--model_init_path',
-      type=str,
-      default=None,
-      help='Path to load pretrained model for evaluation or quantization or starting point for training')
-  parser.add_argument(
-      '--model_config_path',
-      type=str,
-      default=None,
-      help='Path to json file defining a model dictionary.  If None, standard config is used.')  
-  parser.add_argument(
-      '--tfl_file_name',
-      default='trained_models/strm_ww_int8.tflite',
-      help='File name to which the TF Lite model will be saved (quantize.py) or loaded (eval_quantized_model)')
-  parser.add_argument(
-      '--learning_rate',
-      type=float,
-      default=0.001,
-      help='Initial LR',)
-  parser.add_argument(
-      '--l2_reg',
-      type=float,
-      default=0.001,
-      help='L2 regularization coefficient for conv layers',)      
-  parser.add_argument(
-      '--lr_sched_name',
-      type=str,
-      default='reduce_on_plateau',
-      help="""\
-      lr schedule scheme name to be picked from lr.py.  Currently support either 
-      "reduce_on_plateau" or "step_function"
-      """
-      ) 
-  parser.add_argument(
-      '--plot_dir',
-      type=str,
-      default='./plots',
-      help="""\
-      Directory where plots of accuracy vs Epochs are stored
-      """)
-  parser.add_argument(
-      '--target_set',
-      type=str,
-      default='test',
-      help="""\
-      For eval_quantized_model, which set to measure.
-      """)
-  parser.add_argument(
-      '--use_tflite_model',
-      action="store_true",
-      help="""\
-        In eval_long_wav.py, run the TFLite model. Otherwise, run the standard keras model
+def add_dataset_args(parser):
+    parser.add_argument(
+        '--num_background_clips',
+        type=int,
+        default=50,
+        help="""\
+        Number of (15-sec) background clips to assemble.  Used to augment samples with background noise.  Too high will use excessive memory.
+        """)
+    parser.add_argument(
+        '--l2_reg',
+        type=float,
+        default=0.001,
+        help='L2 regularization coefficient for conv layers',)
+    parser.add_argument(
+        '--min_snr_training',
+        type=float,
+        default=0.5,
+        help="""\
+        Limits amplitude of noise relative to wakeword
+        """)
+    parser.add_argument(
+        '--min_snr_validation',
+        type=float,
+        default=0.5,
+        help="""\
+        Limits amplitude of noise relative to wakeword
+        """)
+    parser.add_argument(
+        '--min_snr_test',
+        type=float,
+        default=0.5,
+        help="""\
+        Limits amplitude of noise relative to wakeword in test set.
+        """)
+    parser.add_argument(
+        '--fraction_target_training',
+        type=float,
+        default=0.2,
+        help="""\
+        Fraction (0.0-1.0) of the training set that should be the target wakeword.
+        Target words will be duplicated or discarded to reach this fraction.  
+        Similar arguments _validation and _test apply to those datasets.
+        """)
+    parser.add_argument(
+        '--fraction_target_validation',
+        type=float,
+        default=0.2,
+        help="""\
+        Fraction (0.0-1.0) of the validation set that should be the target wakeword
+        Target words will be duplicated to reach this fraction, but no words will be discarded,
+        even if that results in the fraction of target words being higher than requested.
+        """)
+    parser.add_argument(
+        '--fraction_target_test',
+        type=float,
+        default=0.2,
+        help="""\
+        Fraction (0.0-1.0) of the test set that should be the target wakeword.
+        Target words will be duplicated to reach this fraction, but no words will be discarded,
+        even if that results in the fraction of target words being higher than requested.
+        """)      
+    parser.add_argument(
+        '--fraction_silent_training',
+        type=float,
+        default=0.1,
+        help="""\
+        Fraction (0.0-1.0) of training set consisting of silent frames (before noise is added).
+        """)
+    parser.add_argument(
+        '--fraction_silent_validation',
+        type=float,
+        default=0.1,
+        help="""\
+        Fraction (0.0-1.0) of validation set consisting of silent frames (before noise is added).
+        """)
+    parser.add_argument(
+        '--fraction_silent_test',
+        type=float,
+        default=0.1,
+        help="""\
+        Fraction (0.0-1.0) of test set consisting of silent frames (before noise is added).
+        """)      
+    parser.add_argument(
+        '--foreground_volume_min_training',
+        type=float,
+        default=0.25,
+        help="""\
+        For training set, minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+        randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+        """)
+    parser.add_argument(
+        '--foreground_volume_min_validation',
+        type=float,
+        default=0.25,
+        help="""\
+        (Validation set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+        randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+        """)
+    parser.add_argument(
+        '--foreground_volume_min_test',
+        type=float,
+        default=0.25,
+        help="""\
+        (Test set) Minimum level for how loud the foreground words should be, between 0 and 1. Word volume will vary 
+        randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+        """)
+    parser.add_argument(
+        '--foreground_volume_max_training',
+        type=float,
+        default=1.5,
+        help="""\
+        Maximum level for how loud the foreground words should be in the training set, between 0 and 1. Word
+        volume will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max. 
+        """)
+    parser.add_argument(
+        '--foreground_volume_max_validation',
+        type=float,
+        default=1.5,
+        help="""\
+        Maximum level for how loud the foreground words should be in the val set, between 0 and 1. Word volume 
+        will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+        """)  
+    parser.add_argument(
+        '--foreground_volume_max_test',
+        type=float,
+        default=1.5,
+        help="""\
+        Maximum level for how loud the foreground words should be in the test set, between 0 and 1. Word volume
+        will vary randomly, uniformly  between foreground_volume_min and foreground_volume_max.
+        """)        
+    parser.add_argument(
+        '--background_volume_training',
+        type=float,
+        default=2.0,
+        help="""\
+        How loud the background noise should be, between 0 and 1.  Noise volume will vary 
+        randomly between zero and background_volume.
+        """)
+    parser.add_argument(
+        '--background_volume_validation',
+        type=float,
+        default=1.5,
+        help="""\
+        How loud the background noise should be, between 0 and 1.  Noise volume will vary 
+        randomly between zero and background_volume.
+        """)
+    parser.add_argument(
+        '--background_volume_test',
+        type=float,
+        default=0.0,
+        help="""\
+        How loud the background noise should be, between 0 and 1.  Noise volume will vary 
+        randomly between zero and background_volume.
+        """)
+    parser.add_argument(
+        '--background_frequency',
+        type=float,
+        default=0.8,
+        help="""\
+        What fraction of the samples have background noise mixed in.
+        """)
+    parser.add_argument(
+        '--time_shift_ms',
+        type=float,
+        default=100.0,
+        help="""\
+        Range to randomly shift the training audio by in time.
+        """)
+    parser.add_argument(
+        '--clip_duration_ms',
+        type=int,
+        default=1000,
+        help='Expected duration in milliseconds of the wavs',)
+    parser.add_argument(
+        '--window_size_ms',
+        type=float,
+        default=64.0,
+        help='How long each spectrogram timeslice is',)
+    parser.add_argument(
+        '--window_stride_ms',
+        type=float,
+        default=32.0,
+        help='How much time between each spectrogram timeslice.',)
+    parser.add_argument(
+        '--dct_coefficient_count',
+        type=int,
+        default=40,
+        help='How many MFCC or log filterbank energy features')
+    parser.add_argument(
+        '--num_classes',
+        type=int,
+        default=3,
+        choices=range(2,4), # only allow 2 or 3.
+        help="""
+        How many output classes.  If 3, use separate classes for unknown,silent.
+        If 2, group unknown and silent into one class.  
+        """)
+    parser.add_argument(
+        '--num_samples_training',
+        type=int,
+        default=-1, # 85511,
+        help='Total samples in the training set. Set to -1 to use all the data',)
+    parser.add_argument(
+        '--num_samples_validation',
+        type=int,
+        default=-1, # 10102,
+        help='Total samples in the  validation set. Set to -1 to use all the data',)
+    parser.add_argument(
+        '--num_samples_test',
+        type=int,
+        default=-1, # 4890,
+        help='How many samples from the test set to use. Set to -1 to use all the data',)
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        default=100,
+        help='Batch size for training',)
+    parser.add_argument(
+        '--sample_rate',
+        type=int,
+        default=16000,
+        help='Expected sample rate of the wavs',)
+    parser.add_argument( # not really a dataset arg, but anything building the model needs this.
+        '--learning_rate',
+        type=float,
+        default=0.001,
+        help='Initial LR',) 
+
+
+def add_training_args(parser):
+    parser.add_argument(
+        '--use_qat',
+        dest='use_qat',
+        action='store_true',
+        help="""\
+        Enable quantization-aware training
+        """)
+    parser.add_argument(
+        '--no_use_qat',
+        dest='use_qat',
+        action='store_false',
+        help="""\
+        no_use_qat will disable quantization-aware training
+        """)
+    parser.set_defaults(use_qat=True)
+    parser.add_argument(
+        '--epochs',
+        type=int,
+        default=65,
+        help="""\
+        How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
+        then the model will pretrain (without QAT) for pretrain_epochs, then train 
+        with QAT for epochs-pretrain_epochs.
+        """)
+    parser.add_argument(
+        '--pretrain_epochs',
+        type=int,
+        default=50,
+        help="""\
+        How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
+        then the model will pretrain (without QAT) for pretrain_epochs, then fine-tune 
+        with QAT for epochs-pretrain_epochs.  If pretrain_epochs > epochs, then there
+        will be no QAT fine-tuning.
+        """)
+    parser.add_argument(
+        '--run_test_set',
+        dest='run_test_set',
+        action="store_true",
+        help='In train.py, run model.eval() on test set if True')
+    parser.add_argument(
+        '--no_run_test_set',
+        dest='run_test_set',
+        action="store_false",
+        help='In train.py, do not run model.eval() on test set')
+    parser.set_defaults(run_test_set=True)
+    parser.add_argument(
+        '--saved_model_path',
+        type=str,
+        default='trained_models/str_ww_model.h5',
+        help='In train.py, destination for trained model')
+    parser.add_argument(
+        '--model_init_path',
+        type=str,
+        default='trained_models/str_ww_ref_model.h5',
+        help='Path to load pretrained model for evaluation or quantization or starting point for training')
+    parser.add_argument(
+        '--lr_sched_name',
+        type=str,
+        default='reduce_on_plateau',
+        help="""\
+        lr schedule scheme name to be picked from lr.py.  Currently support either 
+        "reduce_on_plateau" or "step_function"
+        """
+        ) 
+    parser.add_argument(
+        '--plot_dir',
+        type=str,
+        default='./plots',
+        help="""\
+        Directory where plots of accuracy vs Epochs are stored
         """)
 
-  Flags = parser.parse_args()
-
-  # add the path to the two datasets from a json file so that the notebooks can 
-  # be run without modification, since it's hard to pass command line arguments
-  # to a notebook and edits create false conflicts in git that we don't actually want to 
-  try:
-    with open('streaming_config.json', 'r') as fpi:
-        streaming_config = json.load(fpi)
-    Flags.speech_commands_path = streaming_config['speech_commands_path']
-    Flags.musan_path = streaming_config['musan_path']
-  except:
-    raise RuntimeError("""
-        In this directory, copy streaming_config_template.json to streaming_config.json
-        and edit it to point to the directories where you have the speech commands dataset
-        and the MUSAN noise data set.
+def add_eval_args(parser):
+    parser.add_argument(
+        '--test_wav_path',
+        type=str,
+        default="long_wav.wav",
+        help="""\
+        Wav file to run the model on for the long-wav test.
         """)
+    parser.add_argument(
+        '--saved_model_path',
+        type=str,
+        required=True,
+        default=None,
+        help='Trained model to evaluate')
+    parser.add_argument(
+        '--use_tflite_model',
+        action="store_true",
+        help="""\
+            Run the TFLite model. Otherwise, run the standard keras model
+            """)
 
-  if Flags.foreground_volume_min_training > Flags.foreground_volume_max_training:
-    raise ValueError(f"foreground_volume_min_training ({Flags.foreground_volume_min_training}) must be no",
-                     f"larger than foreground_volume_max_training ({Flags.foreground_volume_max_training})")
 
-  if Flags.foreground_volume_min_validation > Flags.foreground_volume_max_validation:
-    raise ValueError(f"foreground_volume_min_validation ({Flags.foreground_volume_min_validation}) must be no",
-                     f"larger than foreground_volume_max_validation ({Flags.foreground_volume_max_validation})")
-                     
-  if Flags.foreground_volume_min_test > Flags.foreground_volume_max_test:
-    raise ValueError(f"foreground_volume_min_test ({Flags.foreground_volume_min_test}) must be no",
-                     f"larger than foreground_volume_max_test ({Flags.foreground_volume_max_test})")
+def add_quantize_args(parser):
+    parser.add_argument(
+        '--saved_model_path',
+        type=str,
+        required=True,
+        default=None,
+        help='Trained model to quantize')
+    parser.add_argument(
+        '--tfl_file_name',
+        default='trained_models/strm_ww_int8.tflite',
+        help='File name to which the TF Lite model will be saved (quantize.py) or loaded (eval_quantized_model)')
 
-  return Flags
+def parse_command(main_program):
+    parser = argparse.ArgumentParser()
+    
+    add_dataset_args(parser)
+    if main_program == "train":
+        add_training_args(parser)
+    if main_program == "evaluate":
+        add_eval_args(parser)
+    if main_program == "quantize":
+        add_quantize_args(parser)
+
+    Flags = parser.parse_args()
+
+    if Flags.foreground_volume_min_training > Flags.foreground_volume_max_training:
+        raise ValueError(f"foreground_volume_min_training ({Flags.foreground_volume_min_training}) must be no",
+                        f"larger than foreground_volume_max_training ({Flags.foreground_volume_max_training})")
+
+    if Flags.foreground_volume_min_validation > Flags.foreground_volume_max_validation:
+        raise ValueError(f"foreground_volume_min_validation ({Flags.foreground_volume_min_validation}) must be no",
+                        f"larger than foreground_volume_max_validation ({Flags.foreground_volume_max_validation})")
+                        
+    if Flags.foreground_volume_min_test > Flags.foreground_volume_max_test:
+        raise ValueError(f"foreground_volume_min_test ({Flags.foreground_volume_min_test}) must be no",
+                        f"larger than foreground_volume_max_test ({Flags.foreground_volume_max_test})")
+    
+
+
+    # add the path to the two datasets from a json file so that the notebooks can 
+    # be run without modification, since it's hard to pass command line arguments
+    # to a notebook and edits create false conflicts in git that we don't actually want to 
+    try:
+        with open('streaming_config.json', 'r') as fpi:
+            streaming_config = json.load(fpi)
+        Flags.speech_commands_path = streaming_config['speech_commands_path']
+        Flags.musan_path = streaming_config['musan_path']
+    except:
+        raise RuntimeError("""
+            In this directory, copy streaming_config_template.json to streaming_config.json
+            and edit it to point to the directories where you have the speech commands dataset
+            and the MUSAN noise data set.
+            """)
+
+
+    return Flags
 
 
 def plot_training(plot_dir,history, suffix=''):
