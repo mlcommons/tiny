@@ -75,3 +75,10 @@ Long waveform shape = (19200000,), spectrogram shape = (37499, 1, 40)
 Building dataset with 2796 targets, 1398 silent, and 9786 other.
 Results: false_detections=3, true_detections=40, false_rejections=10,
 ```
+
+## Training
+To train a model, you can use the `train.py` script.  Note that training (including fine-tuning, retraining) is not permitted for closed-division submissions.  The following command line will run a greatly reduced training run, mostly useful for checking that you have the correct file structure and a working installation of the required libraries.  It will use about 1% of the standard dataset and train for 3 epochs with standard floating-point computation, followed by 2 epochs using quantization-aware training.
+
+```
+python train.py --num_samples_training=1000 --num_samples_validation=1000 --epochs=5 --pretrain_epochs=3
+```
