@@ -82,3 +82,6 @@ To train a model, you can use the `train.py` script.  Note that training (includ
 ```
 python train.py --num_samples_training=1000 --num_samples_validation=1000 --epochs=5 --pretrain_epochs=3
 ```
+
+## Demonstration notebook
+You can also run the jupyter notebook `demo.ipynb` to get a feel for the data, see the main processes, and visualize some of the data, including a closer look at data where the model makes mistakes.
