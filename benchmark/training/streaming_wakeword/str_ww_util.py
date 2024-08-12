@@ -288,7 +288,7 @@ def add_training_args(parser):
     parser.add_argument(
         '--model_init_path',
         type=str,
-        default='trained_models/str_ww_ref_model.h5',
+        default=None,
         help='Path to load pretrained model for evaluation or quantization or starting point for training')
     parser.add_argument(
         '--lr_sched_name',
