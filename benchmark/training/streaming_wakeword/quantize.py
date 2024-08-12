@@ -35,7 +35,7 @@ import get_dataset
 import keras_model as models
 
 Flags = util.parse_command("quantize")
-pretrained_model_path = Flags.model_init_path
+pretrained_model_path = Flags.saved_model_path
 tfl_file_name = Flags.tfl_file_name
 
 cal_set = np.load("calibration_samples.npz")
