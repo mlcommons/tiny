@@ -15,7 +15,7 @@ import get_dataset
 
 Flags = util.parse_command("evaluate")
 
-if not Flags.use_tflite_model and Flags.pretrained_model_path is None:
+if not Flags.use_tflite_model and Flags.saved_model_path is None:
     err_str = "Unless use_tflite_model is specified, saved_model_path is required."
 if Flags.use_tflite_model and Flags.tfl_file_name is None:  
     err_str = "When use_tflite_model is specified, tfl_file_name is required."
