@@ -60,6 +60,18 @@ Results: false_detections=4, true_detections=40, false_rejections=10,val_loss=0.
 ## Quantization
 To quantize and convert a trained model into a TFlite model, run this line.
 ```
-python quantize.py --model_init_path=my_model.h5
+python quantize.py --saved_model_path=trained_models/str_ww_ref_model.h5
 ```
-With no `model_init_path`, it will default to `trained_models/str_ww_ref_model.h5`
+As with `evaluate.py`, `saved_model_path` is required and has no default.
+
+After quantization, you can evaluate the quantized model with:
+```
+python evaluate.py --use_tflite_model --tfl_file_name=trained_models/strm_ww_int8.tflite
+```
+You should see something like this:
+```
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+Long waveform shape = (19200000,), spectrogram shape = (37499, 1, 40)
+Building dataset with 2796 targets, 1398 silent, and 9786 other.
+Results: false_detections=3, true_detections=40, false_rejections=10,
+```

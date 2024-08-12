@@ -107,4 +107,5 @@ print(f"Results: false_detections={np.sum(ww_false_detects!=0)},",
 
 if not Flags.use_tflite_model:
     print(f"val_loss={val_loss:5.4f}, val_acc={val_acc:5.4f}, val_precision={val_prec:5.4f}, val_recall={val_recl:5.4f}")
-
+else:
+    print("") # We need a newline

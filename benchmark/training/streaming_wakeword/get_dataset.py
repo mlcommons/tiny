@@ -100,7 +100,6 @@ def get_augment_wavs_func(data_config, background_data = []):
     time_shift_padding_placeholder_ = tf.constant([[time_shift_max,time_shift_max]], tf.int32)
     ts_min_val = -1*time_shift_max
     ts_max_val = time_shift_max
-    print(f"time shift should range from {ts_min_val} to {ts_max_val}")
     # time_shift_offset_placeholder_ = tf.constant([2],tf.int32)
     # because of the padding, a shift of 0 => offset for the slice = padding_amount=ts_max_val
     time_shift_offset_placeholder_ = tf.random.uniform([1],minval=0,maxval=2*ts_max_val-1, dtype=tf.int32)
