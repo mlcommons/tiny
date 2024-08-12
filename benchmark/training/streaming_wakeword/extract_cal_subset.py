@@ -5,7 +5,7 @@ import numpy as np
 import str_ww_util as util
 from get_dataset import get_data, get_file_lists, get_data_config
 
-Flags = util.parse_command()
+Flags = util.parse_command("extract_cal_subset")
 rng = np.random.default_rng()
 
 # these flags need to align with the ones in create_cal_idx_list.py

@@ -37,7 +37,7 @@ def add_dataset_args(parser):
         type=float,
         default=0.5,
         help="""\
-        Limits amplitude of noise relative to wakeword
+        Limits amplitude of noise relative to wakeword in test set.
         """)
     parser.add_argument(
         '--fraction_target_training',
@@ -45,8 +45,8 @@ def add_dataset_args(parser):
         default=0.2,
         help="""\
         Fraction (0.0-1.0) of the training set that should be the target wakeword.
-        Target words will be duplicated to reach this fraction, but no words will be discarded,
-        even if that results in the fraction of target words being higher than requested.
+        Target words will be duplicated or discarded to reach this fraction.  
+        Similar arguments _validation and _test apply to those datasets.
         """)
     parser.add_argument(
         '--fraction_target_validation',
