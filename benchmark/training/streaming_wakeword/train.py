@@ -28,12 +28,10 @@ import keras_model as models
 import get_dataset as str_ww_data
 import str_ww_util as util
 
-num_classes = 3 # should probably draw this directly from the dataset.
-
 Flags = util.parse_command("train")
 
 if not os.path.exists(Flags.plot_dir):
-  os.makedirs(plot_dir)
+  os.makedirs(Flags.plot_dir)
 
 
 print("Using speech commands data from {Flags.speech_commands_path} \nand background noise from {Flags.musan_path}")
