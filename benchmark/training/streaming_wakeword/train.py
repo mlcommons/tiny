@@ -34,10 +34,13 @@ if not os.path.exists(Flags.plot_dir):
   os.makedirs(Flags.plot_dir)
 
 
-print("Using speech commands data from {Flags.speech_commands_path} \nand background noise from {Flags.musan_path}")
+print(f"Using speech commands data from {Flags.speech_commands_path} \nand background noise from {Flags.musan_path}")
 print(20*'-')
 
-ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)
+if Flags.saved_datasets_path is None:
+  ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)
+else:
+  ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)
 print("Done getting data")
 
 if Flags.model_init_path is None:

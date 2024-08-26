@@ -7,6 +7,18 @@ from tensorflow import keras
 
 def add_dataset_args(parser):
     parser.add_argument(
+        '--saved_datasets_path',
+        type=str,
+        default=None,
+        help="""\
+            Loads training, validation, test, datasets from the specified directory.  If set, the 
+            given directory should contain sub-directories named 'sww_test', 'sww_train', and 'sww_val', 
+            created by e.g. `ds_train.save("saved_datasets/sww_train")`.  The get_datasets.py script 
+            does this.  Combined with the get_datasets.py script, this flag allows you to re-use the dataset, 
+            without repeating the (time-consuming) pre-preprocssing. If not set, the datasets will be built 
+            prior to training. 
+    """)
+    parser.add_argument(
         '--num_background_clips',
         type=int,
         default=50,
