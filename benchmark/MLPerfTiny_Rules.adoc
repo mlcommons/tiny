@@ -6,14 +6,14 @@
 = MLPerf Tiny Inference Rules
 
 Version 1.2
-Updated February 25th, 2024.
+Updated August 19th, 2024.
 
 This version has been updated, but is not yet final.
 
-Chairs: 
+Chairs (tiny-chairs@mlcommons.org):
 
-* Csaba Kiraly (csaba@mlcommons.org)
 * Jeremy Holleman (jeremy@mlcommons.org)
+* Peter Change (peterchang@mlcommons.org)
 
 Benchmark Owners:
 

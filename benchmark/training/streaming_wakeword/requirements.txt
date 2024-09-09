@@ -1,0 +1,6 @@
+matplotlib==3.8.2
+tensorflow==2.15.0
+tensorflow-model-optimization==0.7.5
+notebook
+seaborn==0.13.1
+scipy==1.11.4

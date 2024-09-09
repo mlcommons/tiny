@@ -1,0 +1,9 @@
+# These files are used in the long test file, so exclude them from training and validation
+# All files are in the MUSAN dataset.  Filenames in MUSAN are all unique and include the 
+# subdirectories, so we'll only list the filename here.
+speech-librivox-0149.wav
+speech-librivox-0150.wav
+speech-librivox-0152.wav
+music-hd-0002.wav
+music-hd-0002.wav
+speech-librivox-0052.wav

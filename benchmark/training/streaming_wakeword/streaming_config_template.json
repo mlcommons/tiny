@@ -1,0 +1,4 @@
+{
+  "speech_commands_path":"/path/to/speech_commands_v2_files",
+  "musan_path":"" # OR /path/to/musan"
+}
