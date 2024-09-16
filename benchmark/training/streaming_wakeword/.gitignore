@@ -1,0 +1,5 @@
+.cache/
+.ipynb_checkpoints/
+streaming_config.json
+plots/
+trained_models/str_ww_model.h5

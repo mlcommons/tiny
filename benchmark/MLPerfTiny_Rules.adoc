@@ -5,15 +5,15 @@
 
 = MLPerf Tiny Inference Rules
 
-Version 0.5
-Updated April 30th, 2021.
+Version 1.2
+Updated August 19th, 2024.
 
 This version has been updated, but is not yet final.
 
-Chairs: 
+Chairs (tiny-chairs@mlcommons.org):
 
-* Csaba Kiraly (csaba@mlcommons.org)
 * Jeremy Holleman (jeremy@mlcommons.org)
+* Peter Change (peterchang@mlcommons.org)
 
 Benchmark Owners:
 
@@ -28,7 +28,7 @@ This document describes how to implement one or more benchmarks in the MLPerf Ti
 Inference Suite and how to use those implementations to measure the performance
 of an ML system performing inference.
 
-There are seperate rules for the submission, review, and publication process for all MLPerf benchmarks https://github.com/mlperf/policies/blob/master/submission_rules.adoc[here].
+There are separate rules for the submission, review, and publication process for all MLPerf benchmarks https://github.com/mlperf/policies/blob/master/submission_rules.adoc[here].
 
 The MLPerf name and logo are trademarks. In order to refer to a result using the
 MLPerf name, the result must conform to the letter and spirit of the rules
@@ -52,7 +52,7 @@ drivers that significantly influences the running time of a benchmark.
 A _reference implementation_ is a specific implementation of a benchmark
 provided by the MLPerf organization.  The reference implementation is the
 canonical implementation of a benchmark. All valid submissions to the closed division
-of a benchmarkmust be *equivalent* to the reference implementation.
+of a benchmark must be *equivalent* to the reference implementation.
 
 A _run_ is a complete execution of a benchmark implementation on a system under
 the control of the load generator that consists of completing a set of inference
@@ -75,12 +75,26 @@ as fairly as possible. Ethics and reputation matter.
 The same system and framework must be used for a suite result or set of
 benchmark results reported in a single context.
 
+=== Several submissions allowed from the same organization
+
+If an organization submits results using different systems and/or frameworks,
+these should be clearly separated in the submission and in the reporting of
+results.
+
+=== Replicability is mandatory
+
+Results that cannot be replicated are not valid results. The submission should
+contain enough information to unequivocally replicate the run, and these should
+lead to the same run results (up to a reasonable margin due to non-determinism and
+variance in hardware manufacturing and environmental conditions).
+
 === Benchmark implementations must be shared
 
-Source code used for the benchmark implementations must be open-sourced under a
-license that permits a commercial entity to freely use the implementation for
-benchmarking. The code must be available as long as the results are actively
-used.
+As part of the submission, benchmark implementation should be documented to a level
+of detail that allows reproduction of the results by a third party. These submissions
+will be shared publicly together with the publication of results under a permissive
+license. For more details on what is accepted as a reproducible submission, see the
+dedicated section later on.
 
 === Non-determinism is restricted
 
@@ -107,18 +121,14 @@ benchmarks.
 The implementation should not encode any information about the content of the
 input dataset in any form.
 
-=== Replicability is mandatory
-
-Results that cannot be replicated are not valid results.
-
 === Audit Process
 
-In depth audits will not be conducted in this version (v0.5) of MLPerf Tiny
+In depth audits will not be conducted in this version (v1.2) of MLPerf Tiny
 
 
 == Scenarios
 
-MLPerf Tiny only supports the Single Stream scenario in this version (v0.5).
+MLPerf Tiny only supports the Single Stream scenario in this version (v1.2).
 
 == Benchmarks
 
@@ -206,7 +216,7 @@ The Open division allows using an arbitrary training dataset, training script, o
 The qualified name “MLPerf Open” must be used when
 referring to an Open Division suite result, e.g. “a MLPerf Open result of 7.2.”
 
-Pre- and Post-processing are not timed in v0.5 of the benchmark and are therefore
+Pre- and Post-processing are not timed in v1.2 of the benchmark and are therefore
 can not be changed.
 
 == Data Sets
@@ -259,7 +269,9 @@ much much smaller than the non-zero weights it produces.
 Calibration is allowed and must only use the calibration data set provided by
 the benchmark owner. Submitters may choose to use only a subset of the calibration data set.
 
-Additionally, MLPerf may provide an INT8 reference for all models.
+Additionally, MLPerf may provide an INT8 reference for all models. This INT8 version is purely
+informational, and serves only to demonstrate post-training quantization in the reference
+implementation.
 
 OPEN: Weights and biases must be initialized to the same values for each run,
 any quantization scheme is allowed that achieves the desired quality.
@@ -337,6 +349,72 @@ The following techniques are disallowed:
 
 * Techniques that only improve performance when there are identical
   samples in a query.
+
+== Reproducibility and Availability
+
+A reproducible submission should unequivocally identify the hardware, the
+software, and any other important part of the test setup to a level that allows
+the reproduction of the test run and verification of the run results.
+
+Systems can be submitted in three categories of "availability", according to
+which different requirements hold:
+
+=== Available Systems
+for the most stringent "available" category both the hardware and the software
+should be available to 3rd parties, freely or commercially. When evaluating
+whether a submission should be in the available category, the submission (source
+code, binaries, documentation), the hardware, and the software stack needed to
+compile the source code and/or load binaries should all be considered.
+
+All source code, binaries, and documentation which are part of the submission
+will be made public on the date of results publication, and thus are considered
+available. (TBC question of license: "the implementation should be submitted
+under a license that permits a commercial entity to freely use the
+implementation for benchmarking.")
+
+An **Available component or system** must (1) have available pricing (either
+publicly advertised or available by request), (2) have been shipped to at least
+one third party, (3) have public evidence of availability (web page saying
+product is available, statement by company, etc), and (4) be “reasonably
+available” for purchase by additional third parties **by the submission date**.
+In addition, submissions for on-premise systems must describe the system and its
+components in sufficient detail to enable third parties to build a similar
+system.
+
+Available systems must use an **Available software stack**. A software stack
+consists of the set of software components that substantially determine ML
+performance **but are not in the uploaded code (as source code or in binary
+form)**. For instance, for training this includes at a minimum any required ML
+framework (e.g. TensorFlow, pyTorch) and ML accelerator library (e.g. cuDNN,
+MKL). An Available software stack consists of only Available software
+components.
+
+An Available software component must be well supported for general use. For open
+source software, the software may be based on any commit in an "official" repo
+plus optionally any PRs to support a particular architecture. For binaries, the
+binary must be made available as release, or as a "beta" release with the
+requirement that optimizations will be included in a future "official" release.
+The beta must be made available to customers as a clear part of the release
+sequence. The software must be available at the time of submission.
+
+An Available software component must be available at least as long as the
+results are expected to be actively used.
+
+For any questions not defined above, please refer to the subsequent FAQ section
+and to the
+https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#731-available-systems[General
+MLPerf Submission Rules]. Ultimately, it is the role of the Review Committee to
+decide in questions of availability as part of the review process.
+
+=== Preview Systems
+
+Please refer to the
+https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#732-preview-systems[General MLPerf Submission Rules].
+
+=== Research, Development, or Internal Systems
+
+Please refer to the
+https://github.com/mlcommons/policies/blob/master/submission_rules.adoc#research-development-or-internal-systems[General MLPerf Submission Rules].
 
 == FAQ
 

@@ -1,4 +1,11 @@
 *.idea*
 *__pycache__*
+*~
+tmp*
+tmp/
+.tmp*
+**/.DS_Store
+**/.ipynb_checkpoints/
 venv
 .python-version
+
