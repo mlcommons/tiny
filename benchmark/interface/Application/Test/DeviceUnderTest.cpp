@@ -40,12 +40,12 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
     SendCommandTask *task = new SendCommandTask(*this, command, queue);
     runner.Submit(task);
   }
+
   /**
    * Send a command to DUT and then forward the response to a queue
    * @param command command to send
    * @param queue The queue to send the response to
    */
-
   void DeviceUnderTest::IndirectSendCommand(const std::string &command, TX_QUEUE *queue)
   {
     const std::string *line = (std::string *)TX_NULL;
