@@ -8,7 +8,15 @@
 extern "C" {
 #endif
 
+/**
+ * Create the menu
+ * @param byte_pool memory to store the response queue
+ * @param huart The host UART
+ */
 void CLI_Init(TX_BYTE_POOL *byte_pool, UART_HandleTypeDef *huart);
+/**
+ * Run the menu
+ */
 void CLI_Run();
 
 #ifdef __cplusplus
