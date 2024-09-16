@@ -37,17 +37,17 @@ void BSP_AUDIO_OUT_HalfTransfer_CallBack(uint32_t instance)
 
 namespace Audio
 {
-  class PlayWaveTask: public Tasks::ITask
+  class PlayWaveTask: public Tasks::IIndirectTask<WaveSink>
   {
   public:
     PlayWaveTask(WaveSink &player, WaveSource &source):
-        ITask(TX_FALSE), player(player), source(source)
+        Tasks::IIndirectTask<WaveSink>(player, TX_FALSE), source(source)
         {
         }
 
     void Run()
     {
-      result = player.AsyncPlay(source);
+      result = actor.IndirectPlay(source);
     }
 
     PlayerResult GetResult()
@@ -56,7 +56,6 @@ namespace Audio
       return result;
     }
   private:
-    WaveSink &player;
     WaveSource &source;
     PlayerResult result;
   };
@@ -83,7 +82,7 @@ namespace Audio
     return result;
   }
 
-  PlayerResult WaveSink::AsyncPlay(WaveSource &source)
+  PlayerResult WaveSink::IndirectPlay(WaveSource &source)
   {
     PlayerState state = GetState();
     if(state == RESET)

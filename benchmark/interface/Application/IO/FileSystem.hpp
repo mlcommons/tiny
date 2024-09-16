@@ -22,8 +22,7 @@ namespace IO
   private:
     Tasks::TaskRunner &runner;
     FX_MEDIA *media;
-    void AsyncListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden);
-    IDataSource *AsyncOpenFile(const std::string &file_name);
+    void IndirectListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden);
     friend class ListDirectoryTask;
     friend class OpenFileTask;
   };

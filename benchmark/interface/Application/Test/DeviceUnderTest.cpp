@@ -11,12 +11,12 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
   {
   public:
     SendCommandTask(DeviceUnderTest &dut, const std::string &command, TX_QUEUE *queue) :
-                        IDUTTask(dut), command(command), queue(queue)
+                    IIndirectTask(dut, TX_TRUE), command(command), queue(queue)
     { }
 
     void Run()
     {
-      dut.AsyncSendCommand(command, queue);
+      actor.IndirectSendCommand(command, queue);
     }
 
   private:
@@ -35,7 +35,7 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
     runner.Submit(task);
   }
 
-  void DeviceUnderTest::AsyncSendCommand(const std::string &command, TX_QUEUE *queue)
+  void DeviceUnderTest::IndirectSendCommand(const std::string &command, TX_QUEUE *queue)
   {
     const std::string *line = (std::string *)TX_NULL;
     uart.SendString(command);

@@ -18,7 +18,7 @@ namespace Test
     friend class SendCommandTask;
     Tasks::TaskRunner &runner;
     IO::Uart &uart;
-    void AsyncSendCommand(const std::string &command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
+    void IndirectSendCommand(const std::string &command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
   };
 }
 
