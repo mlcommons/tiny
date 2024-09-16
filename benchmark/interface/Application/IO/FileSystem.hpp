@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/15/23.
-//
-
 #ifndef FILESYSTEM_HPP
 #define FILESYSTEM_HPP
 
