@@ -6,7 +6,9 @@ extern "C" {
 #endif
 
 /**
- * Start an endless loop that runs submitted tasks
+ * Runs the next task in the queue
+ *
+ * Returns when the task completes
  */
 void PollTasks();
 
