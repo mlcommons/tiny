@@ -33,29 +33,6 @@ namespace IO
     CHAR show_hidden;
   };
 
-  class OpenFileTask : public IFileTask
-  {
-  public:
-    OpenFileTask(FileSystem &fs,
-                 const std::string &file_name) :
-                      IFileTask(fs, TX_FALSE), file_name(file_name)
-    { }
-
-    void Run()
-    {
-      result = fs.AsyncOpenFile(file_name);
-    }
-
-    IDataSource *GetResult()
-    {
-      Wait();
-      return result;
-    }
-  private:
-    std::string file_name;
-    IDataSource *result;
-  };
-
   FileSystem::FileSystem(Tasks::TaskRunner &runner) : runner(runner), media((FX_MEDIA*)TX_NULL)
   {
   }
@@ -73,11 +50,9 @@ namespace IO
 
   IDataSource *FileSystem::OpenFile(const std::string &file_name)
   {
-    OpenFileTask *task = new OpenFileTask(*this, file_name);
-    runner.Submit(task);
-    IDataSource *result = task->GetResult();
-    delete task;
-    return result;
+    return file_name.length() > 0
+           ? (IDataSource *) new IO::FxFile(media, file_name)
+           : (IDataSource *) new IO::MemoryReader(0x08080000, (180 * 1024));
   }
 
   void FileSystem::IndirectListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
@@ -113,12 +88,5 @@ namespace IO
       VOID *tx_msg = TX_NULL;
       tx_queue_send(queue, &tx_msg, TX_WAIT_FOREVER);
     }
-  }
-
-  IDataSource *FileSystem::AsyncOpenFile(const std::string &file_name)
-  {
-    return file_name.length() > 0
-              ? (IDataSource *) new IO::FxFile(media, file_name)
-              : (IDataSource *) new IO::MemoryReader(0x08080000, (180 * 1024));
   }
 }
