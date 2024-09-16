@@ -10,6 +10,12 @@ namespace Test
 class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
   {
   public:
+    /**
+     * Constructor
+     * @param dut The dut to execute the task on
+     * @param command The command to send
+     * @param queue The queue to send the response to
+     */
     SendCommandTask(DeviceUnderTest &dut, const std::string &command, TX_QUEUE *queue) :
                     IIndirectTask(dut, TX_TRUE), command(command), queue(queue)
     { }
@@ -34,6 +40,11 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
     SendCommandTask *task = new SendCommandTask(*this, command, queue);
     runner.Submit(task);
   }
+  /**
+   * Send a command to DUT and then forward the response to a queue
+   * @param command command to send
+   * @param queue The queue to send the response to
+   */
 
   void DeviceUnderTest::IndirectSendCommand(const std::string &command, TX_QUEUE *queue)
   {
