@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/21/23.
-//
-
 #ifndef IDATASOURCE_HPP
 #define IDATASOURCE_HPP
 

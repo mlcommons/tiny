@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/17/23.
-//
-
 #ifndef FXFILE_HPP
 #define FXFILE_HPP
 

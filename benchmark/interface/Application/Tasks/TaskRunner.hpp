@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 1/2/24.
-//
-
 #ifndef BENCHMARK_INTERFACE_TASKRUNNER_HPP
 #define BENCHMARK_INTERFACE_TASKRUNNER_HPP
 

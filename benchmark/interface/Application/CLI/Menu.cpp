@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 1/3/24.
-//
-
 #include "Menu.hpp"
 #include "usart.h"
 

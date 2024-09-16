@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 1/3/24.
-//
-
 #ifndef TASKS_ITASK_HPP
 #define TASKS_ITASK_HPP
 
