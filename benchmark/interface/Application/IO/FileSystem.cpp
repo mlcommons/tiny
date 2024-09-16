@@ -6,9 +6,20 @@
 
 namespace IO
 {
+  /**
+   * List the contents of a directory
+   */
   class ListDirectoryTask : public Tasks::IIndirectTask<FileSystem>
   {
   public:
+    /**
+     * Constructor
+     * @param fs the file system to operate on
+     * @param dir_name Directory path to list the contents of
+     * @param queue The queue to send the response to
+     * @param show_directory Show directories in the output (default TX_FALSE)
+     * @param show_hidden Show hidden files in the output (default TX_FALSE)
+     */
     ListDirectoryTask(FileSystem &fs,
                       const std::string &dir_name,
                       TX_QUEUE *queue,
@@ -55,6 +66,16 @@ namespace IO
            : (IDataSource *) new IO::MemoryReader(0x08080000, (180 * 1024));
   }
 
+  /**
+   * Enumerate the directory and send the results line by line to the queue
+   *
+   * Sends a TX_NULL when the list is complete.
+   *
+   * @param directory Directory path to list the contents of
+   * @param queue The queue to send the response to
+   * @param show_directory Show directories in the output (default TX_FALSE)
+   * @param show_hidden Show hidden files in the output (default TX_FALSE)
+   */
   void FileSystem::IndirectListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
   {
     UINT sd_status = FX_SUCCESS;
