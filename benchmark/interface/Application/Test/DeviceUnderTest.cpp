@@ -4,16 +4,10 @@
 
 namespace Test
 {
-  class IDUTTask : public Tasks::ITask
-  {
-  public:
-    IDUTTask(DeviceUnderTest &dut) : Tasks::ITask(TX_TRUE), dut(dut) {}
-    virtual void Run() = 0;
-  protected:
-    DeviceUnderTest &dut;
-  };
-
-  class SendCommandTask : public IDUTTask
+  /**
+   * Send a command to the DUT
+   */
+class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
   {
   public:
     SendCommandTask(DeviceUnderTest &dut, const std::string &command, TX_QUEUE *queue) :
