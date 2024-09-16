@@ -22,6 +22,7 @@ namespace Test
      * @param uart The UART connected to the DUT
      */
     DeviceUnderTest(Tasks::TaskRunner &runner, IO::Uart *uart);
+
     /**
      * Submit a Task::ITask to send a command to DUT and then forward the response to a queue
      * @param command The command to send
