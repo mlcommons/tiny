@@ -42,7 +42,7 @@ namespace CLI
         return;
       }
     }
-    Default("");
+    Default(buffer);
   }
 
   void Menu::SendString(const std::string &string)
