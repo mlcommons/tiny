@@ -6,16 +6,7 @@
 
 namespace IO
 {
-  class IFileTask : public Tasks::ITask
-  {
-  public:
-    IFileTask(FileSystem &fs, UCHAR self_destruct) : Tasks::ITask(self_destruct), fs(fs) {}
-    virtual void Run() = 0;
-  protected:
-    FileSystem &fs;
-  };
-
-  class ListDirectoryTask : public IFileTask
+  class ListDirectoryTask : public Tasks::IIndirectTask<FileSystem>
   {
   public:
     ListDirectoryTask(FileSystem &fs,
@@ -23,14 +14,16 @@ namespace IO
                       TX_QUEUE *queue,
                       CHAR show_directory,
                       CHAR show_hidden) :
-                        IFileTask(fs, TX_TRUE), dir_name(dir_name), queue(queue),
-                        show_directory(show_directory),
-                        show_hidden(show_hidden)
+                    	  Tasks::IIndirectTask<FileSystem>(fs, TX_TRUE),
+						  dir_name(dir_name),
+						  queue(queue),
+						  show_directory(show_directory),
+						  show_hidden(show_hidden)
     { }
 
     void Run()
     {
-      fs.AsyncListDirectory(dir_name, queue, show_directory, show_hidden);
+      actor.IndirectListDirectory(dir_name, queue, show_directory, show_hidden);
     }
 
   private:
@@ -87,7 +80,7 @@ namespace IO
     return result;
   }
 
-  void FileSystem::AsyncListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
+  void FileSystem::IndirectListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
   {
     UINT sd_status = FX_SUCCESS;
 

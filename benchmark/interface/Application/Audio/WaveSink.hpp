@@ -48,7 +48,7 @@ namespace Audio
     Tasks::TaskRunner &runner;
     UCHAR *play_buffer;
     ULONG size;
-    PlayerResult AsyncPlay(WaveSource &source);
+    PlayerResult IndirectPlay(WaveSource &source);
     friend class PlayWaveTask;
   };
 }
