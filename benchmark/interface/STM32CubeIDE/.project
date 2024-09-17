@@ -35,6 +35,11 @@
 	</natures>
 	<linkedResources>
 		<link>
+			<name>README.md</name>
+			<type>1</type>
+			<locationURI>PARENT-1-PROJECT_LOC/README.md</locationURI>
+		</link>
+		<link>
 			<name>benchmark-interface.ioc</name>
 			<type>1</type>
 			<locationURI>PARENT-1-PROJECT_LOC/benchmark-interface.ioc</locationURI>
