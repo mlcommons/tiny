@@ -8,13 +8,19 @@ from device_manager import DeviceManager
 from device_under_test import DUT
 from script import Script
 
+"""
+Application to execute test scripts to measure power consumption, turn on amd off power, send commands to a device
+under test.
+"""
+
 
 def init_dut(device):
-  with device as dut:
-    time.sleep(2)
-    dut.get_name()
-    dut.get_model()
-    dut.get_profile()
+  if device:
+    with device as dut:
+      time.sleep(2)
+      dut.get_name()
+      dut.get_model()
+      dut.get_profile()
 
 
 def identify_dut(manager):
@@ -31,6 +37,13 @@ def identify_dut(manager):
 
 
 def run_test(devices_config, dut_config, test_script, dataset_path):
+  """Run the test
+
+  :param devices_config:
+  :param dut_config:
+  :param test_script:
+  :param dataset_path:
+  """
   manager = DeviceManager(devices_config)
   manager.scan()
   power = manager.get("power", {}).get("instance")
@@ -41,21 +54,37 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
   dut = manager.get("dut", {}).get("instance")
   io = manager.get("interface", {}).get("instance")
 
+  # with io:
+  #   start_time = time.time()
+  #   io.play_wave("cd16m.wav")
+  #   elapsed = time.time() - start_time
+
   script = Script(test_script.get(dut.get_model()))
   set = DataSet(os.path.join(dataset_path, script.model), script.truth)
 
   return script.run(io, dut, set)
 
 
-def parse_device_config(device_list, device_yaml):
+def parse_device_config(device_list_file, device_yaml):
+  """Parsee the device discovery configuration
+
+  :param device_list: device discovery configuration file
+  :param device_yaml: device description as raw yaml
+  """
   if device_yaml:
     return yaml.load(device_yaml)
   else:
-    with open(device_list) as dev_file:
+    with open(device_list_file) as dev_file:
       return yaml.load(dev_file, Loader=yaml.CLoader)
 
 
-def parse_dut_config(dut, dut_voltage, dut_baud):
+def parse_dut_config(dut_cfg_file, dut_voltage, dut_baud):
+  """ Parse the dut configuration file and override values
+
+  :param dut: path to device config file
+  :param dut_voltage: dut voltage in mV
+  :param dut_baud: dut baud rate
+  """
   config = {}
   if dut:
     with open(dut) as dut_file:
@@ -69,18 +98,22 @@ def parse_dut_config(dut, dut_voltage, dut_baud):
 
 
 def parse_test_script(test_script):
+  """Load the test script
+
+  :param test_script: The path to the test script definition
+  """
   with open(test_script) as test_file:
     return yaml.load(test_file, Loader=yaml.CLoader)
 
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(prog="TestRunner")
-  parser.add_argument("-d", "--device_list", default="devices.yaml")
-  parser.add_argument("-y", "--device_yaml", required=False)
-  parser.add_argument("-u", "--dut", required=False)
-  parser.add_argument("-v", "--dut_voltage", required=False)
-  parser.add_argument("-b", "--dut_baud", required=False)
-  parser.add_argument("-t", "--test_script", default="tests.yaml")
+  parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
+  parser.add_argument("-d", "--device_list", default="devices.yaml", help="Device definition YAML file")
+  parser.add_argument("-y", "--device_yaml", required=False, help="Raw YAML to interpret as the target device")
+  parser.add_argument("-u", "--dut_config", required=False, help="Target device")
+  parser.add_argument("-v", "--dut_voltage", required=False, help="Voltage set during test")
+  parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
+  parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
   parser.add_argument("-s", "--dataset_path", default="datasets")
   args = parser.parse_args()
   config = {
