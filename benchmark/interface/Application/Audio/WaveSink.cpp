@@ -123,7 +123,7 @@ namespace Audio
 // DMA:        while(status == SUCCESS && next_bytes > 0)
 // DMA:          while(next_bytes > 0)
 
-        while(status == SUCCESS && next_bytes > 0)
+        while(result == SUCCESS && next_bytes > 0)
           {
             while(active_buffer == -1) tx_semaphore_get(&buffer_semaphore, 50);
             INT buffer_idx = active_buffer;
