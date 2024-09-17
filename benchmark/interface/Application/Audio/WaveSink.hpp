@@ -5,6 +5,8 @@
 #include "WaveSource.hpp"
 #include "../Tasks/TaskRunner.hpp"
 
+// DMA:#include "linked_list.h"
+
 extern "C"
 {
 void BSP_AUDIO_OUT_TransferComplete_CallBack(uint32_t);
@@ -93,6 +95,8 @@ namespace Audio
     friend void ::BSP_AUDIO_OUT_HalfTransfer_CallBack(uint32_t);
     static INT active_buffer;
     static TX_SEMAPHORE buffer_semaphore;
+// DMA:	  static DMA_NodeTypeDef *nodes[];
+
     Tasks::TaskRunner &runner;
     UCHAR *play_buffer;
     ULONG size;
