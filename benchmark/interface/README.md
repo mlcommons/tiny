@@ -103,4 +103,3 @@ https://app.trinetexpense.com/users/login
 - Add a second thread for the `Task::TaskRunner`
 - I2C playback does not finish the audio clip (need to send the remainder of the buffer after all the blocks are sent)
 - Remove MemoryReader from IO::FileSystem.AsyncOpenFile
-- Does IO::FileSystem.OpenFile need a Task definition or can ?
