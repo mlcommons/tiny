@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 1/3/24.
-//
-
 #include "Menu.hpp"
 #include "usart.h"
 
@@ -46,7 +42,7 @@ namespace CLI
         return;
       }
     }
-    Default("");
+    Default(buffer);
   }
 
   void Menu::SendString(const std::string &string)

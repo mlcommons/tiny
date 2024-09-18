@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/21/23.
-//
-
 #include "MemoryReader.hpp"
 
 namespace IO

@@ -7,6 +7,7 @@ namespace Audio
   HeadphoneWaveSink::HeadphoneWaveSink(Tasks::TaskRunner &runner, TX_BYTE_POOL &byte_pool)
         : WaveSink(runner, byte_pool)
   {
+	  MX_HeadphoneSAIQueue_Config();
   }
 
   PlayerState HeadphoneWaveSink::GetState()
@@ -31,11 +32,14 @@ namespace Audio
     return GetState();
   }
 
-  void HeadphoneWaveSink::Configure(const WaveSource &source)
+  PlayerResult HeadphoneWaveSink::Configure(const WaveSource &source)
   {
-    BSP_AUDIO_OUT_SetBitsPerSample(0, source.GetSampleSize());
-    BSP_AUDIO_OUT_SetChannelsNbr(0, source.GetChannelCount());
-    BSP_AUDIO_OUT_SetSampleRate(0, source.GetFrequency());
+    INT res = BSP_AUDIO_OUT_SetBitsPerSample(0, source.GetSampleSize());
+    if(res == BSP_ERROR_NONE)
+      res = BSP_AUDIO_OUT_SetChannelsNbr(0, source.GetChannelCount());
+    if(res == BSP_ERROR_NONE)
+      res = BSP_AUDIO_OUT_SetSampleRate(0, source.GetFrequency());
+    return res == BSP_ERROR_NONE ? SUCCESS:ERROR;
   }
 
   PlayerResult HeadphoneWaveSink::Play(UCHAR *buffer, ULONG size)

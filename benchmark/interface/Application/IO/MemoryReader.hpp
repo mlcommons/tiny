@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 12/21/23.
-//
-
 #ifndef MEMORY_MEMORYREADER_HPP
 #define MEMORY_MEMORYREADER_HPP
 
