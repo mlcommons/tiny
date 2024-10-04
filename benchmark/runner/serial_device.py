@@ -13,9 +13,10 @@ class SerialDevice:
     self._message_queue = Queue()
     self._read_thread = None
     self._running = False
-    self._echo = False
+    self._echo = True
 
   def __enter__(self):
+    print(f"Entering SerialDevice.__enter(), port={self._port}.")
     self._port.__enter__()
     self._start_read_thread()
     return self
