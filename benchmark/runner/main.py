@@ -21,12 +21,13 @@ def init_dut(device):
       dut.get_name()
       dut.get_model()
       dut.get_profile()
+      print(f"done with init_dut")
 
 
 def identify_dut(manager):
   interface = manager.get("interface", {}).get("instance")
   power = manager.get("power", {}).get("instance")
-  if not manager.get("dut") and interface and power:
+  if not manager.get("dut") and interface: # removed and power:
     dut = DUT(interface, power_manager=power)
     manager["dut"] = {
         "instance": dut
@@ -49,7 +50,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
   power = manager.get("power", {}).get("instance")
   if power and dut_config and dut_config.get("voltage"):
     power.configure_voltage(dut_config["voltage"])
-  identify_dut(manager)
+  identify_dut(manager) # hangs in identify_dut()=>init_dut()=>time.sleep()
 
   dut = manager.get("dut", {}).get("instance")
   io = manager.get("interface", {}).get("instance")
@@ -86,8 +87,8 @@ def parse_dut_config(dut_cfg_file, dut_voltage, dut_baud):
   :param dut_baud: dut baud rate
   """
   config = {}
-  if dut:
-    with open(dut) as dut_file:
+  if dut_cfg_file:
+    with open(dut_cfg_file) as dut_file:
       dut_config = yaml.load(dut_file, Loader=yaml.CLoader)
       config.update(**dut_config)
   if dut_voltage:
@@ -116,9 +117,10 @@ if __name__ == '__main__':
   parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
   parser.add_argument("-s", "--dataset_path", default="datasets")
   args = parser.parse_args()
+  print(args)
   config = {
     "devices_config": parse_device_config(args.device_list, args.device_yaml),
-    "dut_config": parse_dut_config(args.dut, args.dut_voltage, args.dut_baud),
+    "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
     "test_script": parse_test_script(args.test_script),
     "dataset_path": args.dataset_path
   }
