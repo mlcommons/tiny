@@ -14,6 +14,7 @@ class SerialDevice:
     self._read_thread = None
     self._running = False
     self._echo = True
+    self._timeout = 1.0
 
   def __enter__(self):
     print(f"Entering SerialDevice.__enter(), port={self._port}.")
@@ -56,7 +57,12 @@ class SerialDevice:
     self.write(self._delimiter)
 
   def read_line(self, timeout=None):
+    """
+    Read from the serial port.  If nothing is available within timeout seconds, returns None.
+    """
     result = None
+    if timeout is None:
+      timeout = self._timeout
     try:
       result = self._message_queue.get(timeout=timeout)
     except Empty:
@@ -70,6 +76,8 @@ class SerialDevice:
 
     while True:
       resp = self.read_line()
+      if resp is None:
+        raise RuntimeError(f"No response to command {command}")
       end_of_resp = (end if end is not None else self._end_of_response) in resp
       if resp:
         lines.append(resp)
