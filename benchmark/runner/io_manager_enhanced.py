@@ -2,7 +2,7 @@ from io_manager import IOManager
 
 
 class IOManagerEnhanced(IOManager):
-  def __init__(self, port_device, baud_rate=921600):
+  def __init__(self, port_device, baud_rate=115200):
     IOManager.__init__(self, port_device, baud_rate)
 
   def get_files(self):
