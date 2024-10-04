@@ -5,6 +5,13 @@
 - Interacts with the device under test
 - Reads `wav` files from the SD cards and plays them back through the headphone jack or the i2c interface.
 
+## Communication
+- The interface board communicates with the host over a serial connection.  
+
+## Notes on Running with Macs
+- On Mac, you may need to install [picocom](https://github.com/npat-efault/picocom) and run it with the following command: `picocom -b 115200 /dev/tty.usbmodem14301`
+
+
 ## LEDs
 - Blue: SD card inserted and running
 - Green: Toggles state when each task is run
@@ -80,7 +87,16 @@ The application is based on `ThreadX` and `FileX` standard libraries.
 
 The application has two threads.
 #### App_ThreadX thread (`Core/Src/app_threadx.c`):
-Thread to monitor the CLI port and execute commands
+Thread to monitor the CLI port and execute commands.  The main loop in this thread is launched from `tx_app_thread_entry()` in `app_threadx.c`, which calls `CLI_Run()` in `InterfaceMenu.cpp`, which in turn calls `Menu::Run()` in `Menu.cpp`, which repeatedly takes '%'-terminated strings from UART1 and passes them to `HandleCommand()`.  The specific commands are listed in `InterfaceMenu::menu_struct[]` in `InterfaceMenu.cpp`.
+
+### Misc Notes
+* The basic unit of the CLI is the `command`, of the type `menu_command_t` which comprises a string and a function pointer, defined in Menu.hpp.
+* For debugging, it may be useful to add something like this to `FileX/App/app_filex.c`.
+
+    ```
+    #include "usart.h"
+    HAL_UART_Transmit(&huart1, (uint8_t *)"test message\r\n", <num_characters>, HAL_MAX_DELAY);
+    ```
 
 #### MX_FileX thread (`FileX/App/app_filex.c`):
 Thread to monitor the SD card and stand up the filesystem when a card is inserted.
