@@ -61,9 +61,9 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
   #   elapsed = time.time() - start_time
 
   script = Script(test_script.get(dut.get_model()))
-  set = DataSet(os.path.join(dataset_path, script.model), script.truth)
+  data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
 
-  return script.run(io, dut, set)
+  return script.run(io, dut, data_set)
 
 
 def parse_device_config(device_list_file, device_yaml):
