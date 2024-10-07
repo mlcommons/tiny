@@ -29,10 +29,14 @@ class DUT:
       self.power_manager.__exit__(*args)
 
   def _get_name(self):
+    name_retrieved = False
     for l in self._port.send_command("name"):
       match = re.match(r'^m-(name)-dut-\[([^]]+)]$', l)
       if match:
         self.__setattr__(f"_{match.group(1)}", match.group(2))
+        name_retrieved = True
+    if not name_retrieved:
+      print(f"WARNING: Failed to get name.")
 
   def get_name(self):
     if self._name is None:
