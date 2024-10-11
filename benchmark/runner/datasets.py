@@ -18,7 +18,7 @@ class DataSet:
   def get_file_by_index(self, index):
     self._read_truth_file()
     data = []
-    index = index if index is not None else randrange(len(self._truth_data))
+    index = index if index is not None else 0 # was randrange(len(self._truth_data))
     truth = None
     if index < len(self._truth_data):
       truth = self._truth_data[index]
