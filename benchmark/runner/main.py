@@ -59,7 +59,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
   #   start_time = time.time()
   #   io.play_wave("cd16m.wav")
   #   elapsed = time.time() - start_time
-
+  # create a Script object from the dict that was read from the tests yaml file.
   script = Script(test_script.get(dut.get_model()))
   data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
 
@@ -124,4 +124,5 @@ if __name__ == '__main__':
     "test_script": parse_test_script(args.test_script),
     "dataset_path": args.dataset_path
   }
-  print(run_test(**config))
+  result = run_test(**config)
+  print(result)
