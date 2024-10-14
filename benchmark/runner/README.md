@@ -49,3 +49,6 @@ Optionally define `baud` and `voltage`
 - Add start and stop playback to the script
 - fix looping
 - write the data out in the original format
+  - Need to differentiate between accuracy run, performance run, and energy run
+- Verify tests.yaml on AD, IC, VWW benchmarks (only KWS) is tested.
+- Debug file transfer (KWS) has random-level accuracy
