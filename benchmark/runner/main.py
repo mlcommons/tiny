@@ -21,8 +21,6 @@ def init_dut(device):
       dut.get_name()
       dut.get_model()
       dut.get_profile()
-      print(f"done with init_dut")
-
 
 def identify_dut(manager):
   interface = manager.get("interface", {}).get("instance")

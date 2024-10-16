@@ -17,7 +17,6 @@ class SerialDevice:
     self._timeout = 5.0
 
   def __enter__(self):
-    print(f"Entering SerialDevice.__enter(), port={self._port}.")
     self._port.__enter__()
     self._start_read_thread()
     return self
