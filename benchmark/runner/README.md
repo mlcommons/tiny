@@ -148,7 +148,7 @@ RX:[dut]: m-ready
 * **Basic operation**
   - Write the results out in the original format, similar to what the original runner did.
     - Need to differentiate between accuracy run, performance run, and energy run
-  - Verify tests.yaml on AD, IC, VWW benchmarks (only KWS) is tested.
+  - Verify tests.yaml on AD, IC, VWW benchmarks. Currently only KWS is tested.
   - Debug file transfer. KWS has random-level accuracy, and I (JH) suspect it is because the files are not 
     being transferred correctly.
 * **Energy Measurement**
