@@ -115,7 +115,6 @@ if __name__ == '__main__':
   parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
   parser.add_argument("-s", "--dataset_path", default="datasets")
   args = parser.parse_args()
-  print(args)
   config = {
     "devices_config": parse_device_config(args.device_list, args.device_yaml),
     "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
