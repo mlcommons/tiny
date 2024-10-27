@@ -48,7 +48,7 @@ Optionally define `baud` and `voltage`
 ### Contributing -- Getting Started
 If you're interested in helping out, great!  Thank you. The first thing to do is to replicate the current state of what is already working.  Roughly speaking, that includes the runner on the host communicating via USB to the interface board (running the code under ../interface), and the interface board communicating to the reference DUT via UART.  You can run a performance test of the KWS benchmark to verify that your setup is working correctly.
 
-1. Compile the KWS reference code for the reference board and load it onto the reference board.  See instructions [here](https://github.com/mlcommons/tiny/tree/master/benchmark/training/keyword_spotting).
+1. Compile the KWS reference code for the reference board and load it onto the reference board.  See instructions [here](https://github.com/mlcommons/tiny/tree/master/benchmark/training/keyword_spotting).  You can use the pre-trained model, so skip the training step and start at the step "Convert to C++ Code".
 2. Compile the interface code and flash it to the interface board.  You can use the STM32 Cube IDE for this.
 3. Insert a FAT32-formatted micro-SD card into the interface board.  You can load a few wav files onto the card, but that is not strictly necessary at this point.
 4. Inter-board connections.  Leave out the Energy Monitor (LPM01A) for now.  Connect the UART and ground wires between the interface board and the reference DUT, as shown in the figures below.  
@@ -146,23 +146,40 @@ RX:[dut]: m-ready
 
 ## Open Items
 * **Basic operation**
-  - Write the results out in the original format, similar to what the original runner did.
-    - Need to differentiate between accuracy run, performance run, and energy run
-  - Verify tests.yaml on AD, IC, VWW benchmarks. Currently only KWS is tested.
-  - Debug file transfer. KWS has random-level accuracy, and I (JH) suspect it is because the files are not 
-    being transferred correctly.
+  - 
+    - 
+  - 
+  - 
 * **Energy Measurement**
-  - Test with the energy monitor LPM01A.
-  - Add support for the JouleScope.
+ 
 * **Streaming Benchmark**
-  - Add start and stop playback to the script. The runner needs to parse the script and send the command and the interface board needs to accept and act on the commmand.
-  - Add parsing of window files (e.g. `../training/streaming_wakeword/long_wav_ww_windows.json`) on the interface board.  Interface board should read the json file from the micro SD card, 
-  - On the interface board, add detection of strobed GPIO when DUT signals detection, and determination of whether it was a true positive or false positive.
-  - After streaming a wav file to the DUT, the interface board should print out the true detections, false detections, and false negatives with timestamps.  Also calculate FAR (FAs/hour) and FRR (percentage).
-  - Create a DUT reference implementation of the streaming benchmark, using the L4R5ZI reference board.
-    - Probably easist to start from the KWS code and infer on a single static frame of pre-computed features. That input tensor can be included in the code using xxd output, like the TFLite model.
-    - Then implement feature extraction on DUT, operating on a single static audio clip.
-    - Then iterate with multiple inferences through either a longer audio clip, or a longer sequence of feature frames.
-    - Then strobe a GPIO on wakeword detection.
-    - Implement I2S ingestion on the DUT.
-    - Implement streaming detection using the I2S audio input.
+
+  - 
+  - 
+  - 
+
+
+
+
+
+|Task | Component | Functionality | Status | Notes|
+|---|---|---|---|---|
+| Write the results out in the original format, similar to what the original runner did. | Runner | Basic | Open | Need to differentiate between accuracy run, performance run, and energy run |
+| Verify tests.yaml on AD, IC, VWW benchmarks.  | Runner | Basic | Open | Currently only KWS is tested. |
+| Test with the energy monitor LPM01A. | Runner | Energy Measurement | Open |   |
+| Add support for the JouleScope. | Runner | Energy Measurement | Open |   |
+| Add parsing of window files | Interface Board| Streaming | Open | Ex `../training/streaming_wakeword/long_wav_ww_windows.json`. Interface board should read the json file from the micro SD card. |
+|   | Runner | Streaming | Open |   |
+|   | Runner | Streaming | Open |   |
+|   | Interface Board | Streaming | Open |   |
+| Add detection of strobed GPIO when DUT signals detection. | Interface Board | Streaming | Open | And determination of true/false pos. |
+| Print true/false detection summary. | Interface Board | Streaming | Open | **Should this be on the interface board or in the runner?** After streaming a wav file to the DUT, the interface board should print out the true detections, false detections, and false negatives with timestamps.  Also calculate FAR (FAs/hour) and FRR (percentage). |
+| Reference implementation | DUT | Streaming | Open | Use the L4R5ZI reference board to run the streaming benchmark.  Probably easist to start from the KWS code and infer on a single static frame of pre-computed features. That input tensor can be included in the code using xxd output, like the TFLite model. |
+| Feature extraction on DUT,  | DUT | Streaming | Open | Operating on a single static audio clip.  (part of sww ref. impl.)|
+| Iterate with multiple inferences | DUT | Streaming | Open | Either a longer audio clip, or a longer sequence of feature frames. |
+| Strobe a GPIO on wakeword detection. | DUT | Streaming | Open |   |
+| I2S ingestion on the DUT. | DUT | Streaming | Open |   |
+| Streaming detection using the I2S audio input. | DUT | Streaming | Open |   |
+| **Completed Tasks** |  |  |  |   |
+| Debug file transfer.  | Runner | Basic | ✅ | KWS has random-level accuracy, and I (JH) suspect it is because the files are not being transferred correctly.  DUT was running multiple inferences and overwriting its own input buffer.  `infer 1` caused default warmup value of 10 to be used.  Changed to explicit `dut infer 1 0` |
+
