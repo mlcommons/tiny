@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 import yaml
+import numpy as np
 
 from datasets import DataSet
 from device_manager import DeviceManager
@@ -104,6 +105,14 @@ def parse_test_script(test_script):
   with open(test_script) as test_file:
     return yaml.load(test_file, Loader=yaml.CLoader)
 
+def summarize_result(result):
+  num_correct = 0
+  for r in result:
+    if np.argmax(r['infer']['results']) == int(r['class']):
+      num_correct += 1
+  accuracy = num_correct / len(result)
+  print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
@@ -122,4 +131,7 @@ if __name__ == '__main__':
     "dataset_path": args.dataset_path
   }
   result = run_test(**config)
-  print(result)
+  summarize_result(result)
+
+
+
