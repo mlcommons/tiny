@@ -7,7 +7,6 @@ class _ScriptStep:
   def run(self, io, dut, dataset):
     return None
 
-
 class _ScriptDownloadStep(_ScriptStep):
   """Step to download a file to the DUT
   """
@@ -17,9 +16,11 @@ class _ScriptDownloadStep(_ScriptStep):
   def run(self, io, dut, dataset):
     file_truth, data = dataset.get_file_by_index(self._index)
     if data:
+      print(f"Loading file {file_truth.get('file'):30}, true class = {int(file_truth.get('class')):2}")
       dut.load(data)
+    else:
+      print(f"WARNING: No data returned from dataset read.  Script index = {self._index}, Dataset index = {dataset._current_index}")
     return file_truth
-
 
 class _ScriptLoopStep(_ScriptStep):
   """Step that implements a loop of nested steps
@@ -70,6 +71,8 @@ class _ScriptInferStep(_ScriptStep):
                                timestamps=timestamps
                                )
                     )
+    # Indent to connect it visually the preceding 'loading' printout
+    print(f"    Results = {infer_results['results']}, time={infer_results['elapsed_time']} us")
     return result
 
   @staticmethod
