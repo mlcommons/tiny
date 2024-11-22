@@ -10,7 +10,7 @@ ic01:
   model: ic01
   truth_file: y_labels.csv
   script:
-    - loop 10: 
+    - loop 200: 
       - download
       - infer 1 0
 kws01:
@@ -18,7 +18,7 @@ kws01:
   model: kws01
   truth_file: y_labels.csv
   script:
-    - loop 10: 
+    - loop 1000: 
       - download
       - infer 1 0
 vww01:
