@@ -63,6 +63,10 @@ class _ScriptInferStep(_ScriptStep):
 
     infer_results = _ScriptInferStep._gather_infer_results(result)
 
+    if not 'results' in infer_results:
+      print(f"Output of dut.infer:\n{result}")
+      raise RuntimeError("No 'results' found in the inference results.  Likely failure in dut.infer")
+
     result = dict(infer=infer_results)
     if dut.power_manager:
       timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
