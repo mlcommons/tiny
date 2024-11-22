@@ -169,9 +169,6 @@ RX:[dut]: m-ready
 | Test with the energy monitor LPM01A. | Runner | Energy Measurement | Open |   |
 | Add support for the JouleScope. | Runner | Energy Measurement | Open |   |
 | Add parsing of window files | Interface Board| Streaming | Open | Ex `../training/streaming_wakeword/long_wav_ww_windows.json`. Interface board should read the json file from the micro SD card. |
-|   | Runner | Streaming | Open |   |
-|   | Runner | Streaming | Open |   |
-|   | Interface Board | Streaming | Open |   |
 | Add detection of strobed GPIO when DUT signals detection. | Interface Board | Streaming | Open | And determination of true/false pos. |
 | Print true/false detection summary. | Interface Board | Streaming | Open | **Should this be on the interface board or in the runner?** After streaming a wav file to the DUT, the interface board should print out the true detections, false detections, and false negatives with timestamps.  Also calculate FAR (FAs/hour) and FRR (percentage). |
 | Reference implementation | DUT | Streaming | Open | Use the L4R5ZI reference board to run the streaming benchmark.  Probably easist to start from the KWS code and infer on a single static frame of pre-computed features. That input tensor can be included in the code using xxd output, like the TFLite model. |
