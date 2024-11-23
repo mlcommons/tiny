@@ -1,5 +1,5 @@
 import re
-
+import numpy as np
 
 class _ScriptStep:
   """Base class for script steps
@@ -44,7 +44,12 @@ class _ScriptLoopStep(_ScriptStep):
         result.append(loop_res)
       else:
         result = loop_res
-
+      # if the result of this iteration has a label and a result. print whether it's correct
+      if 'class' in loop_res and 'infer' in loop_res and 'results' in loop_res['infer']:
+        true_class = int(loop_res['class'])
+        detected_class = np.argmax(loop_res['infer']['results'])
+        is_correct = "CORRECT" if true_class == detected_class else "WRONG"
+        print(f"True vs Detected: {true_class} vs {detected_class} ({is_correct})")
     return result
 
 
