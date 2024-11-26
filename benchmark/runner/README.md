@@ -145,21 +145,6 @@ RX:[dut]: m-ready
 ```
 
 ## Open Items
-* **Basic operation**
-  - 
-    - 
-  - 
-  - 
-* **Energy Measurement**
- 
-* **Streaming Benchmark**
-
-  - 
-  - 
-  - 
-
-
-
 
 
 |Task | Component | Functionality | Status | Notes|
