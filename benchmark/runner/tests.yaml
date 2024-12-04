@@ -9,17 +9,20 @@ ic01:
   model: ic01
   truth_file: y_labels.csv
   script:
-    - download
-    - infer 10 1
+    - loop 200: 
+      - download
+      - infer 1 0
 kws01:
   name: keyword_spotting
   model: kws01
   script:
-    - download
-    - a
+    - loop 1000: 
+      - download
+      - infer 1 0
 vww01:
   name: person_detection
-  model: vww01
+  model: strww01
   script:
-    - download
-    - a
+    - loop 10: 
+      - download
+      - infer 1 0

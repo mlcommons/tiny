@@ -1,0 +1,13 @@
+{
+    "config": {
+	"main-stack-size": {
+            "value": 65536
+	}
+    },
+    "requires": ["bare-metal"]
+    ,"macros": [
+        "NDEBUG",
+        "TF_LITE_DISABLE_X86_NEON",
+        "TF_LITE_STATIC_MEMORY"
+    ]
+}

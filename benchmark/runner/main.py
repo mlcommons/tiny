@@ -2,6 +2,8 @@ import argparse
 import os
 import time
 import yaml
+import numpy as np
+import numpy as np
 
 from datasets import DataSet
 from device_manager import DeviceManager
@@ -26,7 +28,8 @@ def init_dut(device):
 def identify_dut(manager):
   interface = manager.get("interface", {}).get("instance")
   power = manager.get("power", {}).get("instance")
-  if not manager.get("dut") and interface and power:
+  if not manager.get("dut") and interface: # removed and power:
+  if not manager.get("dut") and interface: # removed and power:
     dut = DUT(interface, power_manager=power)
     manager["dut"] = {
         "instance": dut
@@ -49,7 +52,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
   power = manager.get("power", {}).get("instance")
   if power and dut_config and dut_config.get("voltage"):
     power.configure_voltage(dut_config["voltage"])
-  identify_dut(manager)
+  identify_dut(manager) # hangs in identify_dut()=>init_dut()=>time.sleep()
+  identify_dut(manager) # hangs in identify_dut()=>init_dut()=>time.sleep()
 
   dut = manager.get("dut", {}).get("instance")
   io = manager.get("interface", {}).get("instance")
@@ -58,11 +62,14 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
   #   start_time = time.time()
   #   io.play_wave("cd16m.wav")
   #   elapsed = time.time() - start_time
-
+  # create a Script object from the dict that was read from the tests yaml file.
+  # create a Script object from the dict that was read from the tests yaml file.
   script = Script(test_script.get(dut.get_model()))
-  set = DataSet(os.path.join(dataset_path, script.model), script.truth)
+  data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
+  data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
 
-  return script.run(io, dut, set)
+  return script.run(io, dut, data_set)
+  return script.run(io, dut, data_set)
 
 
 def parse_device_config(device_list_file, device_yaml):
@@ -86,8 +93,10 @@ def parse_dut_config(dut_cfg_file, dut_voltage, dut_baud):
   :param dut_baud: dut baud rate
   """
   config = {}
-  if dut:
-    with open(dut) as dut_file:
+  if dut_cfg_file:
+    with open(dut_cfg_file) as dut_file:
+  if dut_cfg_file:
+    with open(dut_cfg_file) as dut_file:
       dut_config = yaml.load(dut_file, Loader=yaml.CLoader)
       config.update(**dut_config)
   if dut_voltage:
@@ -105,6 +114,22 @@ def parse_test_script(test_script):
   with open(test_script) as test_file:
     return yaml.load(test_file, Loader=yaml.CLoader)
 
+def summarize_result(result):
+  num_correct = 0
+  for r in result:
+    if np.argmax(r['infer']['results']) == int(r['class']):
+      num_correct += 1
+  accuracy = num_correct / len(result)
+  print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")
+
+def summarize_result(result):
+  num_correct = 0
+  for r in result:
+    if np.argmax(r['infer']['results']) == int(r['class']):
+      num_correct += 1
+  accuracy = num_correct / len(result)
+  print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")
+
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
@@ -118,8 +143,17 @@ if __name__ == '__main__':
   args = parser.parse_args()
   config = {
     "devices_config": parse_device_config(args.device_list, args.device_yaml),
-    "dut_config": parse_dut_config(args.dut, args.dut_voltage, args.dut_baud),
+    "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
+    "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
     "test_script": parse_test_script(args.test_script),
     "dataset_path": args.dataset_path
   }
-  print(run_test(**config))
+  result = run_test(**config)
+  summarize_result(result)
+
+
+  result = run_test(**config)
+  summarize_result(result)
+
+
+
