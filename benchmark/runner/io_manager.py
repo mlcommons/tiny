@@ -4,7 +4,7 @@ from serial_device import SerialDevice
 
 class IOManager(InterfaceDevice):
   def __init__(self, port_device, baud_rate=115200):
-    self.port = SerialDevice(port_device, baud_rate, "m-ready", '%', echo=True)
+    self.port = SerialDevice(port_device, baud_rate, "m-ready", '%')
     self.entry_count = 0
 
   def __enter__(self):
