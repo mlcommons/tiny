@@ -21,7 +21,7 @@ kws01:
       - infer 1 0
 vww01:
   name: person_detection
-  model: strww01
+  model: vww01
   script:
     - loop 10: 
       - download

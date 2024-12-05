@@ -152,7 +152,7 @@ void th_serialport_initialize(void) {
 # if EE_CFG_ENERGY_MODE==1
   pc.baud(9600);
 # else
-  pc.baud(115200);
+  pc.baud(76800);
 # endif
 }
 

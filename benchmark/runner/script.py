@@ -1,12 +1,11 @@
 import re
-
+import numpy as np
 
 class _ScriptStep:
   """Base class for script steps
   """
   def run(self, io, dut, dataset):
     return None
-
 
 class _ScriptDownloadStep(_ScriptStep):
   """Step to download a file to the DUT
@@ -17,9 +16,11 @@ class _ScriptDownloadStep(_ScriptStep):
   def run(self, io, dut, dataset):
     file_truth, data = dataset.get_file_by_index(self._index)
     if data:
+      print(f"Loading file {file_truth.get('file'):30}, true class = {int(file_truth.get('class')):2}")
       dut.load(data)
+    else:
+      print(f"WARNING: No data returned from dataset read.  Script index = {self._index}, Dataset index = {dataset._current_index}")
     return file_truth
-
 
 class _ScriptLoopStep(_ScriptStep):
   """Step that implements a loop of nested steps
@@ -43,7 +44,12 @@ class _ScriptLoopStep(_ScriptStep):
         result.append(loop_res)
       else:
         result = loop_res
-
+      # if the result of this iteration has a label and a result. print whether it's correct
+      if 'class' in loop_res and 'infer' in loop_res and 'results' in loop_res['infer']:
+        true_class = int(loop_res['class'])
+        detected_class = np.argmax(loop_res['infer']['results'])
+        is_correct = "CORRECT" if true_class == detected_class else "WRONG"
+        print(f"True vs Detected: {true_class} vs {detected_class} ({is_correct})")
     return result
 
 
@@ -62,6 +68,10 @@ class _ScriptInferStep(_ScriptStep):
 
     infer_results = _ScriptInferStep._gather_infer_results(result)
 
+    if not 'results' in infer_results:
+      print(f"Output of dut.infer:\n{result}")
+      raise RuntimeError("No 'results' found in the inference results.  Likely failure in dut.infer")
+
     result = dict(infer=infer_results)
     if dut.power_manager:
       timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
@@ -70,6 +80,8 @@ class _ScriptInferStep(_ScriptStep):
                                timestamps=timestamps
                                )
                     )
+    # Indent to connect it visually the preceding 'loading' printout
+    print(f"    Results = {infer_results['results']}, time={infer_results['elapsed_time']} us")
     return result
 
   @staticmethod
