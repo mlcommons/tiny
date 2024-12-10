@@ -105,14 +105,16 @@ def parse_test_script(test_script):
     with open(test_script) as test_file:
         return yaml.load(test_file, Loader=yaml.CLoader)
 
-def normalize_probabilities(probabilities): 
-    """Normalize probabilities to ensure they sum to 1.0."""
+def normalize_probabilities(probabilities):
+    """Normalize probabilities to ensure they sum to 1.0, no matter the initial sum."""
     probabilities = np.array(probabilities)
     sum_probs = np.sum(probabilities)
     
-    # Normalize to make sum = 1, without any warnings
-    if not np.isclose(sum_probs, 1.0, atol=0.001):
-        probabilities = probabilities / sum_probs  # Normalize probabilities
+    # Ensure probabilities sum exactly to 1
+    if sum_probs == 0:
+        raise ValueError("Sum of probabilities is zero, cannot normalize.")
+    
+    probabilities = probabilities / sum_probs  # Normalize probabilities to make sum = 1
     
     return probabilities
 
@@ -127,11 +129,7 @@ def summarize_result(result):
         # Normalize the predicted probabilities
         infer_results = r['infer']['results']
         infer_results = normalize_probabilities(infer_results)
-        
-        # Ensure that infer_results contains probabilities for all 10 classes
-        if len(infer_results) != 10:
-            continue  # Skip this sample if it doesn't have probabilities for all 10 classes
-        
+
         # Add to the list for AUC calculation
         true_labels.append(int(r['class']))
         predicted_probabilities.append(infer_results)
@@ -144,27 +142,23 @@ def summarize_result(result):
     true_labels = np.array(true_labels)
     predicted_probabilities = np.array(predicted_probabilities)
 
-    # Check if all classes (0 to 9) are present in true_labels
+    # Dynamically handle the number of classes based on the unique values in true_labels
     unique_classes = np.unique(true_labels)
-    if len(unique_classes) != 10:
-        # Create a mask for the classes that are present in both true_labels and predicted_probabilities
-        mask = np.isin(np.arange(10), unique_classes)
-        predicted_probabilities = predicted_probabilities[:, mask]  # Adjust probabilities to match true labels
-        
-    num_correct = 0
-    for r in result:
-      if np.argmax(r['infer']['results']) == int(r['class']):
-        num_correct += 1
+    num_classes = len(unique_classes)
+
+    # Adjust the probabilities to match the number of classes in true_labels
+    # Slice each sample's predicted probabilities to match the number of classes
+    predicted_probabilities = np.array([prob[:num_classes] for prob in predicted_probabilities])
+    
     accuracy = num_correct / len(result)
     print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")   
-     
+
     # Compute AUC for each class using one-vs-rest (macro-average AUC)
     try:
         auc_score = roc_auc_score(true_labels, predicted_probabilities, multi_class="ovr", average="macro")
         print(f"Macro-average AUC: {auc_score:.4f}")
     except ValueError as e:
         print(f"AUC calculation failed: {e}")
-
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
