@@ -36,33 +36,31 @@ def identify_dut(manager):
     init_dut(dut)
 
 
-def run_test(devices_config, dut_config, test_script, dataset_path):
+def run_test(devices_config, dut_config, test_script, dataset_path, mode):
     """Run the test
 
     :param devices_config:
     :param dut_config:
     :param test_script:
     :param dataset_path:
+    :param mode: Test mode (energy, performance, accuracy)
     """
     manager = DeviceManager(devices_config)
     manager.scan()
     power = manager.get("power", {}).get("instance")
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
-    identify_dut(manager) # hangs in identify_dut()=>init_dut()=>time.sleep()
+    identify_dut(manager)  # hangs in identify_dut()=>init_dut()=>time.sleep()
 
     dut = manager.get("dut", {}).get("instance")
     io = manager.get("interface", {}).get("instance")
 
-    # with io:
-    #   start_time = time.time()
-    #   io.play_wave("cd16m.wav")
-    #   elapsed = time.time() - start_time
-    # create a Script object from the dict that was read from the tests yaml file.
+    # Create a Script object from the dict that was read from the tests yaml file.
     script = Script(test_script.get(dut.get_model()))
-    data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
 
-    return script.run(io, dut, data_set)
+    # Run the test script with the mode passed in
+    data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
+    return script.run(io, dut, data_set, mode)  # Pass mode to the run method
 
 
 def parse_device_config(device_list_file, device_yaml):
@@ -128,7 +126,7 @@ def summarize_result(result):
     for r in result:
         # Normalize the predicted probabilities
         infer_results = r['infer']['results']
-        infer_results = normalize_probabilities(infer_results)
+        infer_results = normalize_probabilities(infer_results)  # Ensure this is a valid probability distribution
 
         # Add to the list for AUC calculation
         true_labels.append(int(r['class']))
@@ -142,24 +140,42 @@ def summarize_result(result):
     true_labels = np.array(true_labels)
     predicted_probabilities = np.array(predicted_probabilities)
 
-    # Dynamically handle the number of classes based on the unique values in true_labels
-    unique_classes = np.unique(true_labels)
-    num_classes = len(unique_classes)
+    # Check if binary classification (i.e., only two unique classes)
+    if len(np.unique(true_labels)) == 2:
+        # For binary classification, use the probability of class 1
+        predicted_probabilities = predicted_probabilities[:, 1].reshape(-1, 1)  # Use class 1 probability
 
-    # Adjust the probabilities to match the number of classes in true_labels
-    # Slice each sample's predicted probabilities to match the number of classes
-    predicted_probabilities = np.array([prob[:num_classes] for prob in predicted_probabilities])
-    
-    accuracy = num_correct / len(result)
-    print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")   
+        # Calculate accuracy
+        accuracy = num_correct / len(result)
+        print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")   
 
-    # Compute AUC for each class using one-vs-rest (macro-average AUC)
-    try:
-        auc_score = roc_auc_score(true_labels, predicted_probabilities, multi_class="ovr", average="macro")
-        print(f"Macro-average AUC: {auc_score:.4f}")
-    except ValueError as e:
-        print(f"AUC calculation failed: {e}")
+        # Compute AUC for binary classification (class 1)
+        try:
+            auc_score = roc_auc_score(true_labels, predicted_probabilities)
+            print(f"AUC: {auc_score:.4f}")
+        except ValueError as e:
+            print(f"AUC calculation failed: {e}")
     
+    else:
+        # For multi-class classification
+        # Dynamically handle the number of classes based on the unique values in true_labels
+        unique_classes = np.unique(true_labels)
+        num_classes = len(unique_classes)
+
+        # Adjust the probabilities to match the number of classes in true_labels
+        predicted_probabilities = np.array([prob[:num_classes] for prob in predicted_probabilities])
+
+        # Calculate accuracy
+        accuracy = num_correct / len(result)
+        print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")   
+
+        # Compute AUC for multi-class classification using one-vs-rest (macro-average AUC)
+        try:
+            auc_score = roc_auc_score(true_labels, predicted_probabilities, multi_class="ovr", average="macro")
+            print(f"Macro-average AUC: {auc_score:.4f}")
+        except ValueError as e:
+            print(f"AUC calculation failed: {e}")
+              
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
     parser.add_argument("-d", "--device_list", default="devices.yaml", help="Device definition YAML file")
@@ -169,12 +185,14 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
     parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
     parser.add_argument("-s", "--dataset_path", default="datasets")
+    parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
     args = parser.parse_args()
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
         "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
         "test_script": parse_test_script(args.test_script),
-        "dataset_path": args.dataset_path
+        "dataset_path": args.dataset_path,
+        "mode": args.mode
     }
     result = run_test(**config)
     summarize_result(result)
