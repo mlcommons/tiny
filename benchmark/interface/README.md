@@ -74,7 +74,8 @@ This class executes submitted tasks in sequence
 
 #### `Audio::WaveSink` and `Audio::HeadphoneWaveSink` and `Audio::RawI2SWaveSink`
 Audio playback destination.  The choice of playback can be chosen at compile time.  `Audio::RawI2SWaveSink` is the
-default, `Audio::RawI2SWaveSink` if `HEADPHONE_PLAYBACK` is defined.
+default, `Audio::HeadphoneWaveSink` if `HEADPHONE_PLAYBACK` is defined.
+When using I2S output, it appears (please verify) that the software uses SAI B of SAI 1, configured as master with master clock out, with SAI1_SD_B on PF6 (CN3.1, CN6.1), SAI1_MCLK_B on PF7 (CN3.4, CN6.4), SAI1_SCK_B on PF8 (CN3.3, CN6.3), and SAI1_FS_B on PF9 (CN3.2, CN6.2). See UM3143 Table 20, Table 21. These connections assume that the solder bridges SB2-SB9 are in their default configuration.  See UM3143 Table 19.  If you look carefully at connector CN3 (CN6), you will see that pins 1,11 (1,7) are marked on the left end of the connector.  CN6.5, CN6.11 (top and bottom second from the left) are both GND.
 
 #### `IO::FileSystem`
 This class reads interacts with the File System on the SD Card
