@@ -86,8 +86,8 @@ def parse_dut_config(dut_cfg_file, dut_voltage, dut_baud):
   :param dut_baud: dut baud rate
   """
   config = {}
-  if dut:
-    with open(dut) as dut_file:
+  if dut_cfg_file:
+    with open(dut_cfg_file) as dut_file:
       dut_config = yaml.load(dut_file, Loader=yaml.CLoader)
       config.update(**dut_config)
   if dut_voltage:
@@ -118,7 +118,7 @@ if __name__ == '__main__':
   args = parser.parse_args()
   config = {
     "devices_config": parse_device_config(args.device_list, args.device_yaml),
-    "dut_config": parse_dut_config(args.dut, args.dut_voltage, args.dut_baud),
+    "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
     "test_script": parse_test_script(args.test_script),
     "dataset_path": args.dataset_path
   }
