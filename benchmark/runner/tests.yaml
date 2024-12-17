@@ -4,7 +4,7 @@ ad01:
   script:
     - loop 10: 
       - download
-      - infer 1 0
+      - infer 6 0
 ic01:
   name: image_classification
   model: ic01
@@ -12,7 +12,7 @@ ic01:
   script:
     - loop 24: 
       - download
-      - infer 1 0
+      - infer 9 0
 kws01:
   name: keyword_spotting
   model: kws01
@@ -20,7 +20,7 @@ kws01:
   script:
     - loop 20: 
       - download
-      - infer 1 0
+      - infer 8 0
 vww01:
   name: person_detection
   model: vww01
@@ -28,4 +28,4 @@ vww01:
   script:
     - loop 2: 
       - download
-      - infer 1 0
+      - infer 5 1

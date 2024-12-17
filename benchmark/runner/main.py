@@ -48,6 +48,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
     manager = DeviceManager(devices_config)
     manager.scan()
     power = manager.get("power", {}).get("instance")
+    print(f"Power instance: {power}")
+    
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
     identify_dut(manager)  # hangs in identify_dut()=>init_dut()=>time.sleep()
@@ -116,7 +118,14 @@ def normalize_probabilities(probabilities):
     
     return probabilities
 
-def summarize_result(result):
+def summarize_result(result, mode="a"):
+    """
+    Summarizes results based on mode:
+    - 'a' : Accuracy and AUC calculations
+    - 'p' : Performance metrics like runtime and throughput
+    - 'e' : Reserved for energy calculations (to be implemented)
+    """
+    # Define the current time for performance mode print statements
     num_correct = 0  # Initialize the counter for correct predictions
     
     # Store true labels and predicted probabilities for AUC calculation
@@ -155,26 +164,7 @@ def summarize_result(result):
             print(f"AUC: {auc_score:.4f}")
         except ValueError as e:
             print(f"AUC calculation failed: {e}")
-    
-    else:
-        # For multi-class classification
-        # Dynamically handle the number of classes based on the unique values in true_labels
-        unique_classes = np.unique(true_labels)
-        num_classes = len(unique_classes)
 
-        # Adjust the probabilities to match the number of classes in true_labels
-        predicted_probabilities = np.array([prob[:num_classes] for prob in predicted_probabilities])
-
-        # Calculate accuracy
-        accuracy = num_correct / len(result)
-        print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")   
-
-        # Compute AUC for multi-class classification using one-vs-rest (macro-average AUC)
-        try:
-            auc_score = roc_auc_score(true_labels, predicted_probabilities, multi_class="ovr", average="macro")
-            print(f"Macro-average AUC: {auc_score:.4f}")
-        except ValueError as e:
-            print(f"AUC calculation failed: {e}")
               
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
