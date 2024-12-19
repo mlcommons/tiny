@@ -118,7 +118,7 @@ def normalize_probabilities(probabilities):
     
     return probabilities
 
-def summarize_result(result, mode="a"):
+def summarize_result(result):
     """
     Summarizes results based on mode:
     - 'a' : Accuracy and AUC calculations
@@ -164,6 +164,22 @@ def summarize_result(result, mode="a"):
             print(f"AUC: {auc_score:.4f}")
         except ValueError as e:
             print(f"AUC calculation failed: {e}")
+    else:
+        # Multiclass AUC calculation
+        try:
+            # Use the one-vs-rest approach for AUC calculation
+            auc_score = roc_auc_score(
+                true_labels, 
+                predicted_probabilities, 
+                multi_class='ovr'
+            )
+            print(f"Multiclass AUC (One-vs-Rest): {auc_score:.4f}")
+        except ValueError as e:
+            print(f"Multiclass AUC calculation failed: {e}")
+
+        # Calculate accuracy
+        accuracy = num_correct / len(result)
+        print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")
 
               
 if __name__ == '__main__':

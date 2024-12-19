@@ -1,10 +1,11 @@
 ad01:
   name: anomoly_detection
   model: ad01
+  truth_file: y_labels.csv
   script:
-    - loop 10: 
+    - loop 4: 
       - download
-      - infer 6 0
+      - infer 1 0
 ic01:
   name: image_classification
   model: ic01
@@ -20,7 +21,7 @@ kws01:
   script:
     - loop 20: 
       - download
-      - infer 8 0
+      - infer 1 0
 vww01:
   name: person_detection
   model: vww01
