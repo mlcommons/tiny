@@ -13,7 +13,7 @@ class DataSet:
   def _read_truth_file(self):
     if not self._truth_data:
       with open(os.path.join(self._dataset_path, self._truth_file)) as file:
-        reader = csv.DictReader(file, fieldnames=["file", "classes", "class"])
+        reader = csv.DictReader(file, fieldnames=["file", "classes", "class", "bytes_to_send","stride"])
         self._truth_data = [f for f in reader]
 
   def get_file_by_index(self, index):

@@ -4,6 +4,7 @@ from datetime import datetime
 from device_under_test import DUT  # Import DUT class
 from power_manager import PowerManager
 
+file_processed = False
 class _ScriptStep:
     """Base class for script steps"""
     def run(self, io, dut, dataset, mode):
@@ -11,35 +12,44 @@ class _ScriptStep:
 
 
 class _ScriptDownloadStep(_ScriptStep):
-    """Step to download a file to the DUT"""
+    """Step to download, segment, and load a file one segment at a time."""
     def __init__(self, index=None):
         self._index = None if index is None else int(index)
+        self._segments = None
+        self._current_segment_index = 0
 
     def run(self, io, dut, dataset, mode):
-        # Fetch the file and data
-        file_truth, data = dataset.get_file_by_index(self._index)
-        
-        # Define the current time for formatted output
-        current_time = datetime.now()
-        formatted_time = current_time.strftime("%m%d.%H%M%S")
+        if self._segments is None:  # Initialize segments on the first run
+            print(f"Initializing the Download Step")
+            file_truth, data = dataset.get_file_by_index(self._index)
+            total_size = len(data)
+            bytes_to_send = int(file_truth.get('bytes_to_send'))
+            stride = int(file_truth.get('stride'))
 
-        # Conditional print statements based on 'mode'
-        if data:
-            if mode == "a":
-                print(f"Loading file {file_truth.get('file'):30}, true class = {int(file_truth.get('class')):2}")
-            elif mode == "p":
-                print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
-            elif mode == "e":
-                pass  # Do nothing for energy mode
-            dut.load(data)
+            if bytes_to_send > total_size:
+                raise ValueError(f"bytes_to_send ({bytes_to_send}) exceeds total data size ({total_size})")
+
+            print(f"Total Size: {total_size}, Bytes to Send: {bytes_to_send}, Stride: {stride}")
+            self._segments = [
+                data[start:min(start + bytes_to_send, total_size)]
+                for start in range(0, total_size, stride)
+            ]
+            self._current_segment_index = 0
+
+        # Load the current segment
+        if self._current_segment_index < len(self._segments):
+            segment = self._segments[self._current_segment_index]
+            dut.load(segment)
+            print(f"Loaded segment {self._current_segment_index + 1} of {len(self._segments)}")
+            self._current_segment_index += 1
+            return {"segment_index": self._current_segment_index, "total_segments": len(self._segments)}
         else:
-            print(f"WARNING: No data returned from dataset read. Script index = {self._index}, Dataset index = {dataset._current_index}")
-        
-        return file_truth
+            print("All segments processed")
+            return {"finished": True}
 
 
 class _ScriptLoopStep(_ScriptStep):
-    """Step that implements a loop of nested steps"""
+    """Step that implements a loop over nested steps."""
     def __init__(self, commands, loop_count=None):
         self._commands = [c for c in commands]
         self._loop_count = None if loop_count is None else int(loop_count)
@@ -49,16 +59,42 @@ class _ScriptLoopStep(_ScriptStep):
         result = None if self._loop_count == 1 else []
 
         while self._loop_count is None or i < self._loop_count:
+            print(f"Starting loop iteration {i + 1}")
             loop_res = {}
-            for cmd in self._commands:
-                r = cmd.run(io, dut, dataset, mode)
-                if r is not None:
-                    loop_res.update(**r)
-            i += 1
+
+            # Process segments one at a time
+            while True:
+                # Run the download step
+                download_step_res = next(
+                    (cmd.run(io, dut, dataset, mode) for cmd in self._commands if isinstance(cmd, _ScriptDownloadStep)),
+                    None
+                )
+                if not download_step_res:
+                    raise ValueError("Download step did not provide a valid response")
+
+                # Check if all segments are finished
+                if download_step_res.get("finished"):
+                    print("All segments processed for this iteration")
+                    break
+
+                # Run other commands for the current segment
+                for cmd in self._commands:
+                    if not isinstance(cmd, _ScriptDownloadStep):  # Skip the download step
+                        try:
+                            r = cmd.run(io, dut, dataset, mode)
+                            if r is not None:
+                                loop_res.update(**r)
+                        except Exception as e:
+                            print(f"Error executing command: {e}")
+                            raise
+
+            # Append results
             if self._loop_count != 1:
                 result.append(loop_res)
             else:
                 result = loop_res
+
+            i += 1  # Increment loop counter after all segments are processed
 
         return result
 
@@ -120,6 +156,7 @@ class _ScriptInferStep(_ScriptStep):
             print("ERROR: Incomplete time data, missing start_time or end_time.")
         result["total_inferences"] = total_inferences
         return result
+
 
     @staticmethod
     def _gather_power_results(power):
