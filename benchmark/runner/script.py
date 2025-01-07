@@ -17,52 +17,59 @@ class _ScriptDownloadStep(_ScriptStep):
         self._index = None if index is None else int(index)
         self._segments = None
         self._current_segment_index = 0
+        self._file_truth = None
+
+    def reset(self):
+        """Reset the segment index to allow reuse in loops."""
+        self._current_segment_index = 0
+        self._segments = None  # Reset segments to avoid reuse
 
     def run(self, io, dut, dataset, mode):
         if self._segments is None:  # Initialize segments on the first run
-            print(f"Initializing the Download Step")
-            file_truth, data = dataset.get_file_by_index(self._index)
-            total_size = len(data)
-            bytes_to_send = int(file_truth.get('bytes_to_send'))
-            stride = int(file_truth.get('stride'))
+            self._file_truth, data = dataset.get_file_by_index(self._index)
+            total_size = 5120
+            bytes_to_send = int(self._file_truth.get('bytes_to_send'))
+            segment_size = 2560  # Segment size is 2560 bytes
+            stride = 512  # Stride is 512 bytes
+            max_size = total_size
 
             if bytes_to_send > total_size:
                 raise ValueError(f"bytes_to_send ({bytes_to_send}) exceeds total data size ({total_size})")
 
-            print(f"Total Size: {total_size}, Bytes to Send: {bytes_to_send}, Stride: {stride}")
-            self._segments = [
-                data[start:min(start + bytes_to_send, total_size)]
-                for start in range(0, total_size, stride)
-            ]
+            # Calculate the number of segments with overlap
+            self._segments = []
+            start = 0
+            while start + segment_size <= max_size:
+                end = start + segment_size
+                self._segments.append(data[start:end])
+                start = start + stride  # Move start by stride to create overlap
+
             self._current_segment_index = 0
 
         # Load the current segment
         if self._current_segment_index < len(self._segments):
             segment = self._segments[self._current_segment_index]
             dut.load(segment)
-            print(f"Loaded segment {self._current_segment_index + 1} of {len(self._segments)}")
             self._current_segment_index += 1
-            return {"segment_index": self._current_segment_index, "total_segments": len(self._segments)}
+            return {"segment_index": self._current_segment_index, "total_segments": len(self._segments), "file_truth": self._file_truth}
+
         else:
-            print("All segments processed")
-            return {"finished": True}
+            # Return file_truth along with the "finished" status
+            return {"finished": True, "file_truth": self._file_truth}
 
 
 class _ScriptLoopStep(_ScriptStep):
-    """Step that implements a loop over nested steps."""
+    """Step that implements a loop of nested steps."""
+
     def __init__(self, commands, loop_count=None):
         self._commands = [c for c in commands]
         self._loop_count = None if loop_count is None else int(loop_count)
 
     def run(self, io, dut, dataset, mode):
         i = 0
-        result = None if self._loop_count == 1 else []
+        result = [] if self._loop_count != 1 else None
 
         while self._loop_count is None or i < self._loop_count:
-            print(f"Starting loop iteration {i + 1}")
-            loop_res = {}
-
-            # Process segments one at a time
             while True:
                 # Run the download step
                 download_step_res = next(
@@ -72,10 +79,17 @@ class _ScriptLoopStep(_ScriptStep):
                 if not download_step_res:
                     raise ValueError("Download step did not provide a valid response")
 
-                # Check if all segments are finished
+                # Check for 'finished' to skip unnecessary runs
                 if download_step_res.get("finished"):
-                    print("All segments processed for this iteration")
-                    break
+                    break  # Exit loop on the last segment
+
+                # Extract file_truth and initialize loop_res
+                file_truth = download_step_res.get('file_truth', {})
+                if not isinstance(file_truth, dict):
+                    raise ValueError("Expected file_truth to be a dictionary.")
+
+                # Initialize loop_res with file_truth
+                loop_res = {**file_truth}  # Use unpacking to include file_truth's data directly
 
                 # Run other commands for the current segment
                 for cmd in self._commands:
@@ -85,18 +99,30 @@ class _ScriptLoopStep(_ScriptStep):
                             if r is not None:
                                 loop_res.update(**r)
                         except Exception as e:
-                            print(f"Error executing command: {e}")
-                            raise
+                            raise RuntimeError(f"Error while executing command: {e}")
 
-            # Append results
-            if self._loop_count != 1:
-                result.append(loop_res)
-            else:
-                result = loop_res
+                # Automatically classify based on the 'results' value in the 'infer' part
+                if "infer" in loop_res and "results" in loop_res["infer"]:
+                    result_value = loop_res["infer"]["results"][0]  # Assuming results is a list with a numeric value
+
+                # Append loop_res to result
+                if self._loop_count != 1:
+                    result.append(loop_res)
+                elif self._loop_count == 1:  # Single loop case
+                    result = loop_res
+
+            # Reset download step for the next iteration
+            download_step = next(
+                (cmd for cmd in self._commands if isinstance(cmd, _ScriptDownloadStep)),
+                None
+            )
+            if download_step:
+                download_step.reset()
 
             i += 1  # Increment loop counter after all segments are processed
 
         return result
+
 
 
 class _ScriptInferStep(_ScriptStep):

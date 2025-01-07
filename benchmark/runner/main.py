@@ -135,8 +135,13 @@ def summarize_result(result):
     for r in result:
         # Normalize the predicted probabilities
         infer_results = r['infer']['results']
-        infer_results = normalize_probabilities(infer_results)  # Ensure this is a valid probability distribution
-
+        if len(infer_results) == 1:
+            segment_result = infer_results[0]
+            class_label = 0 if segment_result > 10 else 1
+            infer_results = [class_label, 1 - class_label]  # Two-class probability setup
+        else:
+            infer_results = normalize_probabilities(infer_results)
+            
         # Add to the list for AUC calculation
         true_labels.append(int(r['class']))
         predicted_probabilities.append(infer_results)
