@@ -27,7 +27,7 @@ class _ScriptDownloadStep(_ScriptStep):
     def run(self, io, dut, dataset, mode):
         if self._segments is None:  # Initialize segments on the first run
             self._file_truth, data = dataset.get_file_by_index(self._index)
-            total_size = 5120
+            total_size = len(data)
             bytes_to_send = int(self._file_truth.get('bytes_to_send'))
             segment_size = 2560  # Segment size is 2560 bytes
             stride = 512  # Stride is 512 bytes
