@@ -28,13 +28,12 @@ class _ScriptDownloadStep(_ScriptStep):
         if self._segments is None:  # Initialize segments on the first run
             self._file_truth, data = dataset.get_file_by_index(self._index)
             total_size = len(data)
-            bytes_to_send = int(self._file_truth.get('bytes_to_send'))
-            segment_size = 2560  # Segment size is 2560 bytes
-            stride = 512  # Stride is 512 bytes
+            segment_size = int(self._file_truth.get('bytes_to_send'))  # Unified variable
+            stride = int(self._file_truth.get('stride'))
             max_size = total_size
 
-            if bytes_to_send > total_size:
-                raise ValueError(f"bytes_to_send ({bytes_to_send}) exceeds total data size ({total_size})")
+            if segment_size > total_size:
+                raise ValueError(f"segment_size ({segment_size}) exceeds total data size ({total_size})")
 
             # Calculate the number of segments with overlap
             self._segments = []
@@ -45,6 +44,16 @@ class _ScriptDownloadStep(_ScriptStep):
                 start = start + stride  # Move start by stride to create overlap
 
             self._current_segment_index = 0
+            current_time = datetime.now()
+            formatted_time = current_time.strftime("%m%d.%H%M%S")
+            
+            if data:
+                if mode == "a":
+                    print(f"Loading file {self._file_truth.get('file'):30}, true class = {int(self._file_truth.get('class')):2}")
+                elif mode == "p":
+                    print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
+                elif mode == "e":
+                    pass  # Do nothing for energy mode
 
         # Load the current segment
         if self._current_segment_index < len(self._segments):
