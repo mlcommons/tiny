@@ -10,129 +10,93 @@ class _ScriptStep:
     def run(self, io, dut, dataset, mode):
         return None
 
-
 class _ScriptDownloadStep(_ScriptStep):
-    """Step to download, segment, and load a file one segment at a time."""
-    def __init__(self, index=None):
+    """Step to download a file to the DUT"""
+    def __init__(self, index=None, model=None):
         self._index = None if index is None else int(index)
+        self.model = model
         self._segments = None
+        self._current_index = 0
         self._current_segment_index = 0
-        self._file_truth = None
-
-    def reset(self):
-        """Reset the segment index to allow reuse in loops."""
-        self._current_segment_index = 0
-        self._segments = None  # Reset segments to avoid reuse
+        self.total_length = 0
 
     def run(self, io, dut, dataset, mode):
-        if self._segments is None:  # Initialize segments on the first run
-            self._file_truth, data = dataset.get_file_by_index(self._index)
-            total_size = len(data)
-            segment_size = int(self._file_truth.get('bytes_to_send'))  # Unified variable
-            stride = int(self._file_truth.get('stride'))
+        # Fetch the file and data
+        if(self.model == "ad01" and self.total_length != 0):
+            if (self._current_segment_index == self.total_length): 
+                self._current_index += 1
+                self._current_segment_index = 0
+                self._segments = None
+            file_truth, data = dataset.get_file_by_index(self._current_index)
+        else:
+            file_truth, data = dataset.get_file_by_index(self._index)
+        
+        # Define the current time for formatted output
+        current_time = datetime.now()
+        formatted_time = current_time.strftime("%m%d.%H%M%S")
+        
+        if self._segments is None and self.model == "ad01":  
+            total_size = 5120
+            segment_size = int(file_truth.get('bytes_to_send'))  # Unified variable
+            stride = int(file_truth.get('stride'))
             max_size = total_size
-
-            if segment_size > total_size:
-                raise ValueError(f"segment_size ({segment_size}) exceeds total data size ({total_size})")
-
-            # Calculate the number of segments with overlap
             self._segments = []
             start = 0
             while start + segment_size <= max_size:
                 end = start + segment_size
                 self._segments.append(data[start:end])
                 start = start + stride  # Move start by stride to create overlap
-
+                self.total_length = len(self._segments)
             self._current_segment_index = 0
-            current_time = datetime.now()
-            formatted_time = current_time.strftime("%m%d.%H%M%S")
             
-            if data:
-                if mode == "a":
-                    print(f"Loading file {self._file_truth.get('file'):30}, true class = {int(self._file_truth.get('class')):2}")
-                elif mode == "p":
-                    print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
-                elif mode == "e":
-                    pass  # Do nothing for energy mode
-
-        # Load the current segment
-        if self._current_segment_index < len(self._segments):
-            segment = self._segments[self._current_segment_index]
-            dut.load(segment)
-            self._current_segment_index += 1
-            return {"segment_index": self._current_segment_index, "total_segments": len(self._segments), "file_truth": self._file_truth}
-
+        # Conditional print statements based on 'mode'
+        if data:
+            if mode == "a":
+                print(f"Loading file {file_truth.get('file'):30}, true class = {int(file_truth.get('class')):2}")
+            elif mode == "p":
+                print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
+            elif mode == "e":
+                pass  # Do nothing for energy mode
+            if(self.model == "ad01"):
+                segment = self._segments[self._current_segment_index]
+                dut.load(segment)
+                self._current_segment_index += 1
+            else:
+                dut.load(data)
         else:
-            # Return file_truth along with the "finished" status
-            return {"finished": True, "file_truth": self._file_truth}
+            print(f"WARNING: No data returned from dataset read. Script index = {self._index}, Dataset index = {dataset._current_index}")
+        file_truth['total_length'] = self.total_length if self.model == "ad01" else None
+        return file_truth
 
 
 class _ScriptLoopStep(_ScriptStep):
-    """Step that implements a loop of nested steps."""
-
-    def __init__(self, commands, loop_count=None):
+    """Step that implements a loop of nested steps"""
+    def __init__(self, commands, loop_count=None, model=None, ):
         self._commands = [c for c in commands]
         self._loop_count = None if loop_count is None else int(loop_count)
+        self.model = model
 
     def run(self, io, dut, dataset, mode):
+        
         i = 0
-        result = [] if self._loop_count != 1 else None
+        result = None if self._loop_count == 1 else []
 
         while self._loop_count is None or i < self._loop_count:
-            while True:
-                # Run the download step
-                download_step_res = next(
-                    (cmd.run(io, dut, dataset, mode) for cmd in self._commands if isinstance(cmd, _ScriptDownloadStep)),
-                    None
-                )
-                if not download_step_res:
-                    raise ValueError("Download step did not provide a valid response")
-
-                # Check for 'finished' to skip unnecessary runs
-                if download_step_res.get("finished"):
-                    break  # Exit loop on the last segment
-
-                # Extract file_truth and initialize loop_res
-                file_truth = download_step_res.get('file_truth', {})
-                if not isinstance(file_truth, dict):
-                    raise ValueError("Expected file_truth to be a dictionary.")
-
-                # Initialize loop_res with file_truth
-                loop_res = {**file_truth}  # Use unpacking to include file_truth's data directly
-
-                # Run other commands for the current segment
-                for cmd in self._commands:
-                    if not isinstance(cmd, _ScriptDownloadStep):  # Skip the download step
-                        try:
-                            r = cmd.run(io, dut, dataset, mode)
-                            if r is not None:
-                                loop_res.update(**r)
-                        except Exception as e:
-                            raise RuntimeError(f"Error while executing command: {e}")
-
-                # Automatically classify based on the 'results' value in the 'infer' part
-                if "infer" in loop_res and "results" in loop_res["infer"]:
-                    result_value = loop_res["infer"]["results"][0]  # Assuming results is a list with a numeric value
-
-                # Append loop_res to result
-                if self._loop_count != 1:
-                    result.append(loop_res)
-                elif self._loop_count == 1:  # Single loop case
-                    result = loop_res
-
-            # Reset download step for the next iteration
-            download_step = next(
-                (cmd for cmd in self._commands if isinstance(cmd, _ScriptDownloadStep)),
-                None
-            )
-            if download_step:
-                download_step.reset()
-
-            i += 1  # Increment loop counter after all segments are processed
+            loop_res = {}
+            for cmd in self._commands:
+                r = cmd.run(io, dut, dataset, mode)
+                if r is not None:
+                    loop_res.update(**r)
+            total_length = loop_res.get('total_length', None)
+            if total_length is not None and i == 0:
+                self._loop_count *= total_length
+            i += 1
+            if self._loop_count != 1:
+                result.append(loop_res)
+            else:
+                result = loop_res
 
         return result
-
-
 
 class _ScriptInferStep(_ScriptStep):
     """Step to execute infer on the DUT"""
@@ -339,22 +303,23 @@ class Script:
         cmd = parts[0]
         args = parts[1:]
         if cmd == 'download':
-            return _ScriptDownloadStep(*args)
+            # Pass the model into the download step
+            return _ScriptDownloadStep(*args, model=self.model)
         if cmd == 'loop':
-            # Pass the loop_count to the loop step and its commands
+            # Pass the model into the loop step and its commands
             loop_count = int(args[0]) if args else None
-            return _ScriptLoopStep(self._parse_steps(contents), loop_count)
+            return _ScriptLoopStep(self._parse_steps(contents), loop_count, model=self.model)
         if cmd == 'infer':
             # Pass the loop_count to the infer step
             loop_count = args[-1] if args else None  # Assuming loop_count is passed as last argument
             return _ScriptInferStep(*args, loop_count=loop_count)
 
-    def run(self, io, dut, dataset, mode):  # Pass mode to all steps
+    def run(self, io, dut, dataset, mode):
         with io:
             with dut:
                 result = None
                 for cmd in self._commands:
-                    r = cmd.run(io, dut, dataset, mode)  # Pass mode here
+                    r = cmd.run(io, dut, dataset, mode)
                     if result is None:
                         result = r
                     elif isinstance(r, dict):

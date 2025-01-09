@@ -118,6 +118,10 @@ def normalize_probabilities(probabilities):
     
     return probabilities
 
+from collections import Counter
+import numpy as np
+from sklearn.metrics import roc_auc_score
+
 def summarize_result(result):
     """
     Summarizes results based on mode:
@@ -125,43 +129,69 @@ def summarize_result(result):
     - 'p' : Performance metrics like runtime and throughput
     - 'e' : Reserved for energy calculations (to be implemented)
     """
-    # Define the current time for performance mode print statements
-    num_correct = 0  # Initialize the counter for correct predictions
-    
-    # Store true labels and predicted probabilities for AUC calculation
+    # Initialize counters and storage for results
+    num_correct_files = 0  # Correct files (not individual predictions)
+    total_files = 0  # Total number of files processed
     true_labels = []
     predicted_probabilities = []
+    file_names = []
+
+    # Create a dictionary to aggregate results by file name
+    file_infer_results = {}
 
     for r in result:
-        # Normalize the predicted probabilities
         infer_results = r['infer']['results']
+        file_name = r['file']
+        true_class = int(r['class'])
+
+        if file_name not in file_infer_results:
+            file_infer_results[file_name] = {'true_class': true_class, 'results': []}
+        
+        # If there is only one inference result, we'll collect them for majority voting
         if len(infer_results) == 1:
-            segment_result = infer_results[0]
-            class_label = 0 if segment_result > 10 else 1
+            class_label = 0 if infer_results[0] > 10 else 1
             infer_results = [class_label, 1 - class_label]  # Two-class probability setup
+            # Add to the dictionary under the file name key
+            file_infer_results[file_name]['results'].append(infer_results)
         else:
             infer_results = normalize_probabilities(infer_results)
-            
-        # Add to the list for AUC calculation
-        true_labels.append(int(r['class']))
-        predicted_probabilities.append(infer_results)
+            # Add to the list for AUC calculation
+            file_infer_results[file_name]['results'].append(infer_results)
 
-        # Compare predicted class with the true class
-        if np.argmax(infer_results) == int(r['class']):
-            num_correct += 1  # Increment if the prediction matches
-    
-    # Convert lists to numpy arrays
+    # Process the aggregated results and determine the class for each file
+    for file_name, data in file_infer_results.items():
+        true_class = data['true_class']
+        results = data['results']
+
+        # Count occurrences of class predictions
+        class_counts = Counter([np.argmax(res) for res in results])
+        
+        # Determine the majority class
+        majority_class = class_counts.most_common(1)[0][0]  # Get the most frequent class
+        
+        # Increment num_correct_files if the majority class matches the true class
+        if majority_class == true_class:
+            num_correct_files += 1
+        
+        # Store true label and predicted probabilities for AUC calculation
+        true_labels.append(true_class)
+        predicted_probabilities.append(results[0])  # Use the first probability set for AUC
+
+        # Increment total_files processed
+        total_files += 1
+
+    # Convert lists to numpy arrays for AUC calculation
     true_labels = np.array(true_labels)
     predicted_probabilities = np.array(predicted_probabilities)
+
+    # Accuracy calculation based on files, not individual results
+    accuracy = num_correct_files / total_files
+    print(f"Accuracy = {num_correct_files}/{total_files} = {100*accuracy:4.2f}%")   
 
     # Check if binary classification (i.e., only two unique classes)
     if len(np.unique(true_labels)) == 2:
         # For binary classification, use the probability of class 1
         predicted_probabilities = predicted_probabilities[:, 1].reshape(-1, 1)  # Use class 1 probability
-
-        # Calculate accuracy
-        accuracy = num_correct / len(result)
-        print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")   
 
         # Compute AUC for binary classification (class 1)
         try:
@@ -181,10 +211,6 @@ def summarize_result(result):
             print(f"Multiclass AUC (One-vs-Rest): {auc_score:.4f}")
         except ValueError as e:
             print(f"Multiclass AUC calculation failed: {e}")
-
-        # Calculate accuracy
-        accuracy = num_correct / len(result)
-        print(f"Accuracy = {num_correct}/{len(result)} = {100*accuracy:4.2f}%")
 
               
 if __name__ == '__main__':
