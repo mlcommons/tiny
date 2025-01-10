@@ -36,7 +36,7 @@ class _ScriptDownloadStep(_ScriptStep):
         formatted_time = current_time.strftime("%m%d.%H%M%S")
         
         if self._segments is None and self.model == "ad01":  
-            total_size = 5120
+            total_size = len(data)
             segment_size = int(file_truth.get('bytes_to_send'))  # Unified variable
             stride = int(file_truth.get('stride'))
             max_size = total_size
@@ -71,7 +71,7 @@ class _ScriptDownloadStep(_ScriptStep):
 
 class _ScriptLoopStep(_ScriptStep):
     """Step that implements a loop of nested steps"""
-    def __init__(self, commands, loop_count=None, model=None, ):
+    def __init__(self, commands, loop_count=None, model=None):
         self._commands = [c for c in commands]
         self._loop_count = None if loop_count is None else int(loop_count)
         self.model = model
@@ -87,9 +87,10 @@ class _ScriptLoopStep(_ScriptStep):
                 r = cmd.run(io, dut, dataset, mode)
                 if r is not None:
                     loop_res.update(**r)
-            total_length = loop_res.get('total_length', None)
-            if total_length is not None and i == 0:
-                self._loop_count *= total_length
+            if self.model == "ad01":
+                total_length = loop_res.get('total_length', None)
+                if total_length is not None and i == 0:
+                    self._loop_count *= total_length
             i += 1
             if self._loop_count != 1:
                 result.append(loop_res)
