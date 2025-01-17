@@ -60,7 +60,10 @@ If you run this command in your terminal
 ```bash
 python -m data_acquisition.py
 ```
-You can collect data from your board in certain intervals then (change the csv name) you can run
+This will collect data until a keyboard interrupt (ctrl+c for windows) is enacted
+
+Below will plot the data, remove the -s and -e to plot the fully collected data
+
 ```bash
 # Calculates average current consumption between 1ms and 4ms and plots data
 ./data_analysis.py csv_folder_name/your.csv -s 1_000_000 -e 4_000_000 -p 
