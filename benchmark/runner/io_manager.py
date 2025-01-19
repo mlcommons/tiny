@@ -35,7 +35,7 @@ class IOManager(InterfaceDevice):
   def read_line(self):
     resp = self.port.read_line()
     resp = resp.replace("[dut]: ", "")
-    return resp;
+    return resp
 
   def send_command(self, command, end=None, echo=False):
     resp = self.port.send_command(f"dut {command}")

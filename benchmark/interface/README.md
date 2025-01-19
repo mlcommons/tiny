@@ -5,13 +5,12 @@
 - Interacts with the device under test
 - Reads `wav` files from the SD cards and plays them back through the headphone jack or the i2c interface.
 
+
 ## Communication
 - The interface board communicates with the host over a serial connection.  
 
 ## Notes on Running with Macs
 - On Mac, you may need to install [picocom](https://github.com/npat-efault/picocom) and run it with the following command: `picocom -b 115200 /dev/tty.usbmodem14301`
-
-
 ## LEDs
 - Blue: SD card inserted and running
 - Green: Toggles state when each task is run
@@ -98,6 +97,7 @@ Thread to monitor the CLI port and execute commands.  The main loop in this thre
     #include "usart.h"
     HAL_UART_Transmit(&huart1, (uint8_t *)"test message\r\n", <num_characters>, HAL_MAX_DELAY);
     ```
+
 
 #### MX_FileX thread (`FileX/App/app_filex.c`):
 Thread to monitor the SD card and stand up the filesystem when a card is inserted.
