@@ -4,25 +4,25 @@
 
 namespace Test
 {
-  class IDUTTask : public Tasks::ITask
+  /**
+   * Send a command to the DUT
+   */
+class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
   {
   public:
-    IDUTTask(DeviceUnderTest &dut) : Tasks::ITask(TX_TRUE), dut(dut) {}
-    virtual void Run() = 0;
-  protected:
-    DeviceUnderTest &dut;
-  };
-
-  class SendCommandTask : public IDUTTask
-  {
-  public:
+    /**
+     * Constructor
+     * @param dut The dut to execute the task on
+     * @param command The command to send
+     * @param queue The queue to send the response to
+     */
     SendCommandTask(DeviceUnderTest &dut, const std::string &command, TX_QUEUE *queue) :
-                        IDUTTask(dut), command(command), queue(queue)
+                    IIndirectTask(dut, TX_TRUE), command(command), queue(queue)
     { }
 
     void Run()
     {
-      dut.AsyncSendCommand(command, queue);
+      actor.IndirectSendCommand(command, queue);
     }
 
   private:
@@ -41,7 +41,12 @@ namespace Test
     runner.Submit(task);
   }
 
-  void DeviceUnderTest::AsyncSendCommand(const std::string &command, TX_QUEUE *queue)
+  /**
+   * Send a command to DUT and then forward the response to a queue
+   * @param command command to send
+   * @param queue The queue to send the response to
+   */
+  void DeviceUnderTest::IndirectSendCommand(const std::string &command, TX_QUEUE *queue)
   {
     const std::string *line = (std::string *)TX_NULL;
     uart.SendString(command);

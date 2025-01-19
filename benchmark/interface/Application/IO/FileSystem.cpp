@@ -6,31 +6,35 @@
 
 namespace IO
 {
-  class IFileTask : public Tasks::ITask
+  /**
+   * List the contents of a directory
+   */
+  class ListDirectoryTask : public Tasks::IIndirectTask<FileSystem>
   {
   public:
-    IFileTask(FileSystem &fs, UCHAR self_destruct) : Tasks::ITask(self_destruct), fs(fs) {}
-    virtual void Run() = 0;
-  protected:
-    FileSystem &fs;
-  };
-
-  class ListDirectoryTask : public IFileTask
-  {
-  public:
+    /**
+     * Constructor
+     * @param fs the file system to operate on
+     * @param dir_name Directory path to list the contents of
+     * @param queue The queue to send the response to
+     * @param show_directory Show directories in the output (default TX_FALSE)
+     * @param show_hidden Show hidden files in the output (default TX_FALSE)
+     */
     ListDirectoryTask(FileSystem &fs,
                       const std::string &dir_name,
                       TX_QUEUE *queue,
                       CHAR show_directory,
                       CHAR show_hidden) :
-                        IFileTask(fs, TX_TRUE), dir_name(dir_name), queue(queue),
-                        show_directory(show_directory),
-                        show_hidden(show_hidden)
+                    	  Tasks::IIndirectTask<FileSystem>(fs, TX_TRUE),
+						  dir_name(dir_name),
+						  queue(queue),
+						  show_directory(show_directory),
+						  show_hidden(show_hidden)
     { }
 
     void Run()
     {
-      fs.AsyncListDirectory(dir_name, queue, show_directory, show_hidden);
+      actor.IndirectListDirectory(dir_name, queue, show_directory, show_hidden);
     }
 
   private:
@@ -38,29 +42,6 @@ namespace IO
     TX_QUEUE *queue;
     CHAR show_directory;
     CHAR show_hidden;
-  };
-
-  class OpenFileTask : public IFileTask
-  {
-  public:
-    OpenFileTask(FileSystem &fs,
-                 const std::string &file_name) :
-                      IFileTask(fs, TX_FALSE), file_name(file_name)
-    { }
-
-    void Run()
-    {
-      result = fs.AsyncOpenFile(file_name);
-    }
-
-    IDataSource *GetResult()
-    {
-      Wait();
-      return result;
-    }
-  private:
-    std::string file_name;
-    IDataSource *result;
   };
 
   FileSystem::FileSystem(Tasks::TaskRunner &runner) : runner(runner), media((FX_MEDIA*)TX_NULL)
@@ -80,14 +61,22 @@ namespace IO
 
   IDataSource *FileSystem::OpenFile(const std::string &file_name)
   {
-    OpenFileTask *task = new OpenFileTask(*this, file_name);
-    runner.Submit(task);
-    IDataSource *result = task->GetResult();
-    delete task;
-    return result;
+    return file_name.length() > 0
+           ? (IDataSource *) new IO::FxFile(media, file_name)
+           : (IDataSource *) new IO::MemoryReader(0x08080000, (180 * 1024));
   }
 
-  void FileSystem::AsyncListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
+  /**
+   * Enumerate the directory and send the results line by line to the queue
+   *
+   * Sends a TX_NULL when the list is complete.
+   *
+   * @param directory Directory path to list the contents of
+   * @param queue The queue to send the response to
+   * @param show_directory Show directories in the output (default TX_FALSE)
+   * @param show_hidden Show hidden files in the output (default TX_FALSE)
+   */
+  void FileSystem::IndirectListDirectory(const std::string &directory, TX_QUEUE *queue, bool show_directory, bool show_hidden)
   {
     UINT sd_status = FX_SUCCESS;
 
@@ -120,12 +109,5 @@ namespace IO
       VOID *tx_msg = TX_NULL;
       tx_queue_send(queue, &tx_msg, TX_WAIT_FOREVER);
     }
-  }
-
-  IDataSource *FileSystem::AsyncOpenFile(const std::string &file_name)
-  {
-    return file_name.length() > 0
-              ? (IDataSource *) new IO::FxFile(media, file_name)
-              : (IDataSource *) new IO::MemoryReader(0x08080000, (180 * 1024));
   }
 }
