@@ -12,7 +12,6 @@ if __name__ == '__main__':
   print(f"Converting trained model {Flags.saved_model_path} to TFL model at {Flags.tfl_file_name}")
   model = tf.keras.models.load_model(Flags.saved_model_path)
   converter = tf.lite.TFLiteConverter.from_keras_model(model)
-  converter.optimizations = [tf.lite.Optimize.DEFAULT]
   
   fp32_tfl_file_name = Flags.tfl_file_name[:Flags.tfl_file_name.rfind('.')] + '_float32.tflite'
   tflite_float_model = converter.convert()
