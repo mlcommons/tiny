@@ -12,7 +12,7 @@ import numpy as np
 import train
 from test import model_name
 
-tfmodel_path = 'trained_models/' + model_name
+tfmodel_path = 'trained_models/' + model_name + '.h5'
 tfmodel = tf.keras.models.load_model(tfmodel_path)
 cifar_10_dir = 'cifar-10-batches-py'
 model_name = model_name[:-3]

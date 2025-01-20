@@ -24,8 +24,8 @@ def get_model_name():
         return "pretrainedResnet"
 
 def get_quant_model_name():
-    if os.path.exists("trained_models/trainedResnet.h5"):
-        return "trainedResnet"
+    if os.path.exists("trained_models/trainedRes_quant.tflite"):
+        return "trainedRes"
     else:
         return "pretrainedResnet"
 
