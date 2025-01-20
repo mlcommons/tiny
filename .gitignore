@@ -9,3 +9,4 @@ tmp/
 venv
 .python-version
 
+**/.metadata
