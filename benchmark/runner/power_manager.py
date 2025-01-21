@@ -7,7 +7,7 @@ from threading import Thread
 class PowerManager(SerialDevice):
   PROMPT = "PowerShield > "
 
-  def __init__(self, port_device, baud_rate=115200):
+  def __init__(self, port_device, baud_rate=3686400):
     self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n")
     self._voltage = "3000m"
     self._board_id = None

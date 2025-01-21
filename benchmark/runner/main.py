@@ -122,12 +122,23 @@ from collections import Counter
 import numpy as np
 from sklearn.metrics import roc_auc_score
 
+import numpy as np
+from sklearn.metrics import roc_auc_score
+from collections import Counter
+
+from collections import Counter
+import numpy as np
+
+
 def summarize_result(result):
     """
     Summarizes results based on mode:
-    - 'a' : Accuracy and AUC calculations
-    - 'p' : Performance metrics like runtime and throughput
-    - 'e' : Reserved for energy calculations (to be implemented)
+    - Automatically selects AUC calculation method based on data:
+      If any result point is greater than 1, uses trapezoidal AUC.
+      Otherwise, uses standard sklearn AUC.
+
+    Parameters:
+    - result: List of inference results.
     """
     # Initialize counters and storage for results
     num_correct_files = 0  # Correct files (not individual predictions)
@@ -146,71 +157,102 @@ def summarize_result(result):
 
         if file_name not in file_infer_results:
             file_infer_results[file_name] = {'true_class': true_class, 'results': []}
-        
-        # If there is only one inference result, we'll collect them for majority voting
+
+        # Add results to the dictionary
         if len(infer_results) == 1:
-            class_label = 0 if infer_results[0] > 10 else 1
-            infer_results = [class_label, 1 - class_label]  # Two-class probability setup
-            # Add to the dictionary under the file name key
             file_infer_results[file_name]['results'].append(infer_results)
         else:
             infer_results = normalize_probabilities(infer_results)
-            # Add to the list for AUC calculation
             file_infer_results[file_name]['results'].append(infer_results)
 
     # Process the aggregated results and determine the class for each file
+    all_scores = []
+    all_labels = []
+    averaged_scores = []
+    averaged_labels = []
+
     for file_name, data in file_infer_results.items():
         true_class = data['true_class']
         results = data['results']
 
         # Count occurrences of class predictions
         class_counts = Counter([np.argmax(res) for res in results])
-        
+
         # Determine the majority class
         majority_class = class_counts.most_common(1)[0][0]  # Get the most frequent class
-        
+
         # Increment num_correct_files if the majority class matches the true class
         if majority_class == true_class:
             num_correct_files += 1
-        
-        # Store true label and predicted probabilities for AUC calculation
-        true_labels.append(true_class)
-        predicted_probabilities.append(results[0])  # Use the first probability set for AUC
+
+        if any(score > 1 for score in all_scores):
+            averaged_result = np.mean(results, axis=0)
+            # Store averaged score and corresponding true label
+            averaged_scores.append(averaged_result[0])  # Assuming single-class probabilities
+            averaged_labels.append(true_class)
+        else:
+            # Store true label and predicted probabilities for AUC calculation
+            true_labels.append(true_class)
+            predicted_probabilities.append(results[0])  # Use the first probability set for AUC
+
+        # Flatten results for trapezoidal AUC
+        for res in results:
+            all_scores.append(res[0])  # Assuming results are a list of lists
+            all_labels.append(true_class)
 
         # Increment total_files processed
         total_files += 1
 
-    # Convert lists to numpy arrays for AUC calculation
-    true_labels = np.array(true_labels)
-    predicted_probabilities = np.array(predicted_probabilities)
-
     # Accuracy calculation based on files, not individual results
     accuracy = num_correct_files / total_files
-    print(f"Accuracy = {num_correct_files}/{total_files} = {100*accuracy:4.2f}%")   
+    print(f"Accuracy = {num_correct_files}/{total_files} = {100*accuracy:4.2f}%")
 
-    # Check if binary classification (i.e., only two unique classes)
-    if len(np.unique(true_labels)) == 2:
-        # For binary classification, use the probability of class 1
-        predicted_probabilities = predicted_probabilities[:, 1].reshape(-1, 1)  # Use class 1 probability
+    # Check if any score exceeds 1 to decide AUC method
+    if any(score > 1 for score in all_scores):
+        # Sort scores and labels
+        sorted_indices = np.argsort(all_scores)
+        sorted_scores = np.array(all_scores)[sorted_indices]
+        sorted_labels = np.array(all_labels)[sorted_indices]
 
-        # Compute AUC for binary classification (class 1)
-        try:
-            auc_score = roc_auc_score(true_labels, predicted_probabilities)
-            print(f"AUC: {auc_score:.4f}")
-        except ValueError as e:
-            print(f"AUC calculation failed: {e}")
+        # Calculate TPR and FPR
+        tpr = []
+        fpr = []
+        positives = sum(sorted_labels)
+        negatives = len(sorted_labels) - positives
+
+        tp = 0
+        fp = 0
+
+        for label in sorted_labels:
+            if label == 1:
+                tp += 1
+            else:
+                fp += 1
+            tpr.append(tp / positives)
+            fpr.append(fp / negatives)
+
+        # Use trapezoidal rule to compute AUC
+        auc_score = np.trapz(tpr, fpr)
+        print(f"AUC: {auc_score:.4f}")
     else:
-        # Multiclass AUC calculation
-        try:
-            # Use the one-vs-rest approach for AUC calculation
-            auc_score = roc_auc_score(
-                true_labels, 
-                predicted_probabilities, 
-                multi_class='ovr'
-            )
-            print(f"Multiclass AUC (One-vs-Rest): {auc_score:.4f}")
-        except ValueError as e:
-            print(f"Multiclass AUC calculation failed: {e}")
+        # Convert lists to numpy arrays for AUC calculation
+        true_labels = np.array(true_labels)
+        predicted_probabilities = np.array(predicted_probabilities)
+
+        if len(np.unique(true_labels)) == 2:
+            predicted_probabilities = predicted_probabilities[:, 1].reshape(-1, 1)
+
+            try:
+                auc_score = roc_auc_score(true_labels, predicted_probabilities)
+                print(f"AUC: {auc_score:.4f}")
+            except ValueError as e:
+                print(f"AUC calculation failed: {e}")
+        else:
+            try:
+                auc_score = roc_auc_score(true_labels, predicted_probabilities, multi_class='ovr')
+                print(f"Multiclass AUC (One-vs-Rest): {auc_score:.4f}")
+            except ValueError as e:
+                print(f"Multiclass AUC calculation failed: {e}")
 
               
 if __name__ == '__main__':
