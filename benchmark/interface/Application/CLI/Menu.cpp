@@ -28,15 +28,17 @@ namespace CLI
     UINT buf_len = buffer.length();
     for(int i = 0; buf_len > 0 && commands[i].command.length() != 0; i++)
     {
-      if(buffer.rfind(commands[i].command.c_str(), 0) == 0)
+      if(buffer.rfind(commands[i].command.c_str(), 0) == 0) // buffer matches the i'th command
       {
         if(buf_len == commands[i].command.length())
         {
+          // command in the buffer has no arguments
           commands[i].action("");
         }
         else if(buf_len > commands[i].command.length() + 1
                 && buffer[commands[i].command.length()] == ' ')
         {
+          // command in the buffer has additional text beyond just the command
           commands[i].action(&buffer[commands[i].command.length() + 1]);
         }
         return;

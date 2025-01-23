@@ -1,0 +1,15 @@
+api/internally*
+.mbed
+main.cpp
+util
+tensorflow-master.zip
+tensorflow
+mbed-os
+mbed_settings*
+master*
+tensorflow-master
+BUILD
+third_party
+__pycache__
+tensorflow-*
+tensorflow/lite/micro/examples/hello_world
