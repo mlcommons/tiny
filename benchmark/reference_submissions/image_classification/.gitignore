@@ -1,9 +1,0 @@
-.mbed
-BUILD
-LICENSE
-image_classification.bin
-mbed-os
-mbed_settings.py
-tensorflow
-third_party
-util/submission_checker.py

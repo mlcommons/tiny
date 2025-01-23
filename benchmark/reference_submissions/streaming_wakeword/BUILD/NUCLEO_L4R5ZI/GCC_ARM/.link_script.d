@@ -1,3 +1,0 @@
-stm32l4r5xx.o: \
- mbed-os/targets/TARGET_STM/TARGET_STM32L4/TARGET_STM32L4R5xI/device/TOOLCHAIN_GCC_ARM/stm32l4r5xx.ld \
- BUILD/NUCLEO_L4R5ZI/GCC_ARM/mbed_config.h
