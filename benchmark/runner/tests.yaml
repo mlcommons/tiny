@@ -3,7 +3,7 @@ ad01:
   model: ad01
   truth_file: y_labels.csv
   script:
-    - loop 30: 
+    - loop 5: 
       - download
       - infer 1 0
 ic01:

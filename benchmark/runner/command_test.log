@@ -1,0 +1,11 @@
+2025-01-22 12:24:09,247 - INFO - Testing commands for PowerManager...
+2025-01-22 12:24:09,248 - INFO - Board ID: 540554545-1430736921-1900587
+2025-01-22 12:24:09,248 - INFO - Version: 1.0.7
+2025-01-22 12:24:09,251 - INFO - Status: ['pwr', 'on no']
+2025-01-22 12:24:09,322 - INFO - LCD set successfully: ['Test Line 1', 'Test Line 2']
+2025-01-22 12:24:09,345 - INFO - Power off command executed successfully.
+2025-01-22 12:24:09,395 - INFO - Power on command executed successfully.
+2025-01-22 12:24:10,659 - INFO - Voltage configured successfully.
+2025-01-22 12:24:10,795 - INFO - Acquisition and output configured successfully.
+2025-01-22 12:24:10,822 - INFO - Data acquisition started.
+2025-01-22 12:24:10,822 - INFO - Acquired results: []
