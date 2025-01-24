@@ -36,7 +36,7 @@ class _ScriptDownloadStep(_ScriptStep):
         formatted_time = current_time.strftime("%m%d.%H%M%S")
         
         if self._segments is None and self.model == "ad01":  
-            total_size = 5120
+            total_size = len(data)
             segment_size = int(file_truth.get('bytes_to_send'))  # Unified variable
             stride = int(file_truth.get('stride'))
             max_size = total_size
