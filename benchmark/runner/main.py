@@ -113,19 +113,26 @@ def normalize_probabilities(scores):
 
 # Function to calculate accuracy
 def calculate_accuracy(y_pred, labels):
-    y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
-    y_pred = np.array([[value, 1- value] for value in y_pred])
+    # Normalize y_pred
+    # Check if y_pred has only one value per instance and transform it
+    if y_pred.shape[1] == 1:
+        y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
+        y_pred = np.array([[value[0], 1 - value[0]] for value in y_pred])
+
+    # Get predicted labels and calculate accuracy
     y_pred_label = np.argmax(y_pred, axis=1)
     correct = np.sum(labels == y_pred_label)
     accuracy = 100 * correct / len(y_pred)
+
     print(f"Overall accuracy = {accuracy:2.1f}")
     return accuracy
 
 # Function to calculate AUC
 def calculate_auc(y_pred, labels, n_classes):
     # Normalize y_pred for each class
-    y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
-    y_pred = np.array([[value, 1- value] for value in y_pred])
+    if y_pred.shape[1] == 1:
+        y_pred = np.array([[value, 1- value] for value in y_pred])
+        y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
     thresholds = np.arange(0.0, 1.01, 0.01)
     fpr = np.zeros([n_classes, len(thresholds)])
     tpr = np.zeros([n_classes, len(thresholds)])
