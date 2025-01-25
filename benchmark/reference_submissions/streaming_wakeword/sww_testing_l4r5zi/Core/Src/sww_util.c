@@ -10,8 +10,11 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <math.h>
 
 #include "stm32l4xx_hal.h"
+#include "arm_math.h"
+
 
 #include "sww_util.h"
 #include "feature_extraction.h"
@@ -52,7 +55,7 @@ void setup_i2s_buffers() {
 	g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
 }
 
-void print_vals_int16(int16_t *buffer, uint32_t num_vals)
+void print_vals_int16(const int16_t *buffer, uint32_t num_vals)
 {
 	const int vals_per_line = 16;
 	printf("[");
@@ -71,7 +74,7 @@ void print_vals_int16(int16_t *buffer, uint32_t num_vals)
 	printf("]\r\n==== Done ====\r\n");
 }
 
-void print_bytes(uint8_t *buffer, uint32_t num_bytes)
+void print_bytes(const uint8_t *buffer, uint32_t num_bytes)
 {
 	const int vals_per_line = 16;
 	printf("[");
@@ -91,7 +94,7 @@ void print_bytes(uint8_t *buffer, uint32_t num_bytes)
 }
 
 
-void print_vals_float(float *buffer, uint32_t num_vals)
+void print_vals_float(const float *buffer, uint32_t num_vals)
 {
 	const int vals_per_line = 8;
 	printf("[");
@@ -103,7 +106,7 @@ void print_vals_float(float *buffer, uint32_t num_vals)
 			{
 				break;
 			}
-			printf("%3.4f, ", buffer[i+j]);
+			printf("%3.5e, ", buffer[i+j]);
 		}
 		printf("\r\n");
 	}
@@ -260,10 +263,18 @@ void run_model(char *cmd_args[]) {
 void run_extraction(char *cmd_args[]) {
 
 	// Feature extraction work
-	printf("About to run FFT on 7992 Hz signal.\r\n");
-	test_extraction(sine_fs16k_7992);
-	printf("About to run FFT on 200 Hz signal.\r\n");
-	test_extraction(sine_fs16k_200);
+//	printf("About to run FFT on 7992 Hz signal.\r\n");
+//	test_extraction(sine_fs16k_7992);
+//	printf("About to run FFT on 200 Hz signal.\r\n");
+//	test_extraction(sine_fs16k_200);
+	float32_t test_out[1024] = {0.0};
+	float32_t dsp_buff[1024] = {0.0};
+	// this will only operate on the first block_size (1024) elements of the input wav
+	compute_lfbe_f32(test_wav_marvin, test_out, dsp_buff);
+	printf("Input: ");
+	print_vals_int16(test_wav_marvin, 32);
+	printf("Output: ");
+	print_vals_float(test_out, 1024);
 }
 
 
@@ -397,6 +408,103 @@ void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai) {
     }
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
     log_printf(&g_log, "<end>w0=%d\r\n", g_wav_record[0]);
+}
+
+void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
+{
+	const uint32_t block_length=1024;
+	const float32_t inv_block_length=1.0/1024;
+	const uint32_t spec_len = block_length/2+1;
+	const float32_t preemphasis_coef = 0.96875; // 1.0 - 2.0 ** -5;
+	const float32_t power_offset = 52.0;
+	const uint32_t num_filters = 40;
+	int i; // for looping
+
+	arm_status op_result = ARM_MATH_SUCCESS;
+
+	// convert int16_t pSrc to float32_t.  range [-32768:32767] => [-1.0,1.0)
+    for(i=0;i<block_length;i++){
+    	pDst[i] = ((float32_t)pSrc[i])/32768.0;
+    }
+
+	// Apply pre-emphasis:  zero-pad input by 1, then x' = x[1:]-x[:-1], so len(x')==len(x)
+	// Start by scaling w/ coeff; pTmp = preemphasis_coef * input
+	arm_scale_f32(pDst, preemphasis_coef, pTmp, block_length);
+	// use pDst as a 2nd temp buffer
+	arm_sub_f32 (pDst+1, pTmp, pDst+1, block_length-1);
+	// pDst[0] is unchanged by the pre-emphasis. now pDst has pre-emphasized segment
+
+
+	// apply hamming window to pDst and put results in pTmp.
+	arm_mult_f32(pDst, hamm_win_1024, pTmp, block_length);
+
+
+	/* RFFT based implementation */
+	arm_rfft_fast_instance_f32 rfft_s;
+	op_result = arm_rfft_fast_init_f32(&rfft_s, block_length);
+	if (op_result != ARM_MATH_SUCCESS) {
+		printf("Error %d in arm_rfft_fast_init_f32", op_result);
+	}
+	arm_rfft_fast_f32(&rfft_s,pTmp,pDst,0); // use config rfft_s; FFT(pTmp) => pDst, ifft=0
+
+	// Now we need to take the magnitude of the spectrum.  For block_length=1024, it will be 513 elements
+	// we'll use pTmp as an array of block_length/2+1 real values.
+	// the N/2th element is real and stuck in pDst[1] (where fft[0].imag should be)
+	// move that to pTmp[block_length/2]
+	pTmp[block_length/2] = pDst[1]; // real value corresponding to fsamp/2
+	pDst[1] = 0; // so now pDst[0,1] = real,imag elements at f=0 (always real, so imag=0)
+	arm_cmplx_mag_f32(pDst,pTmp,block_length/2); // mag(pDst) => pTmp.  pTmp[512] already set.
+
+	//    powspec = (1 / data_config['window_size_samples']) * tf.square(magspec)
+	arm_mult_f32(pTmp, pTmp,pDst, spec_len); // pDst[1:513] = pTmp[1:513]^2
+	arm_scale_f32(pDst, inv_block_length, pTmp, spec_len);
+
+	//    powspec_max = tf.reduce_max(input_tensor=powspec)
+	//    powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
+
+	for(i=0;i<spec_len;i++){
+		pTmp[i] = (pTmp[i] > 1e-30) ? pTmp[i] : 1e-30;
+	}
+
+	// now copy pTmp back into pDst (just for debug)
+	//	arm_scale_f32(pTmp, 1.0, pDst, block_length);
+
+	// The original lin2mel matrix is spec_len x num_filters, where each column holds one mel filter,
+	// lin2mel_packed_<X>x<Y> has all the non-zero elements packed together in one 1D array
+	// _filter_starts are the locations in each *original* column where the non-zero elements start
+	// _filter_lens is how many non-zero elements are in each original column
+	// So the i_th filter start in lin2mel_packed at sum(_filter_lens[:i])
+	// And the corresponding spectrum segment starts at linear_spectrum[_filter_starts[i]]
+	int lin2mel_coeff_idx = 0;
+	/* Apply MEL filters; linear spectrum is now in pTmp[0:spec_len], put mel spectrum in pDst[0:num_filters] */
+	for(i=0; i<num_filters; i++)
+	{
+		arm_dot_prod_f32 (pTmp+lin2mel_513x40_filter_starts[i],
+				lin2mel_packed_513x40+lin2mel_coeff_idx,
+				lin2mel_513x40_filter_lens[i],
+				pDst+i);
+
+		lin2mel_coeff_idx += lin2mel_513x40_filter_lens[i];
+	}
+
+	for(i=0; i<num_filters; i++){
+		pDst[i] = 10*log10(pDst[i]);
+	}
+
+	//log_mel_spec = (log_mel_spec + power_offset - 32 + 32.0) / 64.0
+	arm_offset_f32 (pDst, power_offset, pDst, num_filters);
+	arm_scale_f32(pDst, (1.0/64.0), pTmp, num_filters);
+
+
+	//log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
+	for(i=0;i<spec_len;i++){
+		pDst[i] = (pTmp[i] < 0.0) ? 0.0 : ((pTmp[i] > 1.0) ? 1.0 : pTmp[i]);
+	}
+
+	printf(" **** Scaled and clipped Mel Filter outputs\r\n");
+	print_vals_float(pDst, num_filters);
+	printf(" **** \r\n");
+
 }
 
 
