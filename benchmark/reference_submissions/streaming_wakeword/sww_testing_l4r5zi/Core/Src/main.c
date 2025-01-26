@@ -139,6 +139,8 @@ int main(void)
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
   setup_i2s_buffers(); // allocate memory for I2S reception
+  HAL_TIM_Base_Start(&htim16); // start timer
+
   /* USER CODE END 2 */
 
   /* Infinite loop */

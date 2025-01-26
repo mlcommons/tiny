@@ -233,6 +233,7 @@ int aiRun(const void *in_data, void *out_data) {
 void run_model(char *cmd_args[]) {
 //	acquire_and_process_data(in_data);
 	const int8_t *input_source=NULL;
+	int32_t timer_start, timer_stop;
 
 	printf("In run_model. about to run model\r\n");
 	if (strcmp(cmd_args[1], "class0") == 0) {
@@ -251,23 +252,18 @@ void run_model(char *cmd_args[]) {
 	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
 		in_data[i] = (ai_i8)input_source[i];
 	}
+
+	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
 	/*  Call inference engine */
 	aiRun(in_data, out_data);
+	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
+	printf("TIM16: aiRun took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
+
 	printf("Output = [");
 	for(int i=0;i<AI_SWW_MODEL_OUT_1_SIZE;i++){
 		printf("%02d, ", out_data[i]);
 	}
 	printf("]\r\n");
-}
-
-
-// Enable DWT cycle counter
-void enable_dwt() {
-    if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)) {
-        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-    }
-    DWT->CYCCNT = 0; // Reset cycle counter
-    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; // Enable cycle counter
 }
 
 void run_extraction(char *cmd_args[]) {
@@ -277,17 +273,12 @@ void run_extraction(char *cmd_args[]) {
 	float32_t dsp_buff[1024] = {0.0};
 	// this will only operate on the first block_size (1024) elements of the input wav
 
-	uint32_t start_cycles, stop_cycles, timer_start, timer_stop;
-	enable_dwt();
-	HAL_TIM_Base_Start(&htim16);
+	uint32_t timer_start, timer_stop;
 
-	start_cycles = DWT->CYCCNT;
 	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
 	compute_lfbe_f32(test_wav_marvin, test_out, dsp_buff);
-	stop_cycles = DWT->CYCCNT;
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
 
-	printf("DWT: compute_lfbe_f32 took (%lu : %lu) = %lu DWT cycles\r\n", start_cycles, stop_cycles, stop_cycles-start_cycles);
 	printf("TIM16: compute_lfbe_f32 took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
 	printf("Input: ");
 	print_vals_int16(test_wav_marvin, 32);
