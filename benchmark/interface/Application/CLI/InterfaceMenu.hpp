@@ -14,8 +14,15 @@ namespace CLI
   class InterfaceMenu: public Menu
   {
   public:
+    /**
+     * The application singleton
+     * @return the menu instance
+     */
     static InterfaceMenu &GetSingleton();
   private:
+    /**
+     * Allow CLI_Init access to private constructor to create the singleton.
+     */
     friend void ::CLI_Init(TX_BYTE_POOL *byte_pool, UART_HandleTypeDef *huart);
     static const menu_command_t menu_struct[];
     static TX_MUTEX singleton_mutex;

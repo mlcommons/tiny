@@ -32,9 +32,9 @@ namespace IO
     HAL_UART_UnRegisterCallback(handle, HAL_UART_RX_COMPLETE_CB_ID);
   }
 
-  void Uart::SendString(std::string command)
+  void Uart::SendString(std::string text)
   {
-    UART_SendString(handle, command.c_str());
+    UART_SendString(handle, text.c_str());
   }
 
   const std::string *Uart::ReadUntil(const std::string &end)

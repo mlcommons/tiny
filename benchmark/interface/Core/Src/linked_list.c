@@ -27,6 +27,7 @@
 
 DMA_NodeTypeDef NodeTx;
 DMA_QListTypeDef HeadphoneSAIQueue;
+DMA_NodeTypeDef NodeTx2;
 DMA_QListTypeDef RawSAIQueue;
 
 /* Private typedef -----------------------------------------------------------*/
@@ -67,7 +68,7 @@ HAL_StatusTypeDef MX_HeadphoneSAIQueue_Config(void)
   pNodeConfig.Init.SrcBurstLength = 1;
   pNodeConfig.Init.DestBurstLength = 1;
   pNodeConfig.Init.TransferAllocatedPort = DMA_SRC_ALLOCATED_PORT0|DMA_DEST_ALLOCATED_PORT0;
-  pNodeConfig.Init.TransferEventMode = DMA_TCEM_BLOCK_TRANSFER;
+  pNodeConfig.Init.TransferEventMode = DMA_TCEM_EACH_LL_ITEM_TRANSFER;
   pNodeConfig.Init.Mode = DMA_NORMAL;
   pNodeConfig.TriggerConfig.TriggerPolarity = DMA_TRIG_POLARITY_MASKED;
   pNodeConfig.DataHandlingConfig.DataExchange = DMA_EXCHANGE_NONE;
@@ -81,6 +82,14 @@ HAL_StatusTypeDef MX_HeadphoneSAIQueue_Config(void)
 
   /* Insert NodeTx to Queue */
   ret |= HAL_DMAEx_List_InsertNode_Tail(&HeadphoneSAIQueue, &NodeTx);
+
+  /* Set node configuration ################################################*/
+
+  /* Build NodeTx2 Node */
+  ret |= HAL_DMAEx_List_BuildNode(&pNodeConfig, &NodeTx2);
+
+  /* Insert NodeTx2 to Queue */
+  ret |= HAL_DMAEx_List_InsertNode_Tail(&HeadphoneSAIQueue, &NodeTx2);
 
    return ret;
 }

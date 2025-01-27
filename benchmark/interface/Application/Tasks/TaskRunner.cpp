@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 1/2/24.
-//
-
 #include "../ResourceManager.hpp"
 #include "TaskRunner.hpp"
 #include "TaskRunner.h"

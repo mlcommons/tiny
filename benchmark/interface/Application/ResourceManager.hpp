@@ -1,7 +1,3 @@
-//
-// Created by Steve Reckamp on 1/2/24.
-//
-
 #ifndef RESOURCEMANAGER_HPP
 #define RESOURCEMANAGER_HPP
 

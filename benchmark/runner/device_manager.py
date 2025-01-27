@@ -9,8 +9,11 @@ from power_manager import PowerManager
 
 
 class DeviceManager:
-  def __init__(self, devices):
-    self._device_defs = devices
+  """Detects and identifis available devices attached to the host.
+  """
+
+  def __init__(self, device_defs):
+    self._device_defs = device_defs
 
   def __getitem__(self, item):
     return self.__dict__[item]

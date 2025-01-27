@@ -5,6 +5,10 @@
 
 #define PLAY_BUFFER_BYTES   8 * 1024
 
+// DMA: Need to do  variable-sized DMA transfers
+// DMA: extern DMA_NodeTypeDef NodeTx;
+// DMA: extern DMA_NodeTypeDef NodeTx2;
+
 /**
   * @brief Tx Transfer completed callbacks.
   * @param  hsai : pointer to a SAI_HandleTypeDef structure that contains
@@ -37,17 +41,17 @@ void BSP_AUDIO_OUT_HalfTransfer_CallBack(uint32_t instance)
 
 namespace Audio
 {
-  class PlayWaveTask: public Tasks::ITask
+  class PlayWaveTask: public Tasks::IIndirectTask<WaveSink>
   {
   public:
     PlayWaveTask(WaveSink &player, WaveSource &source):
-        ITask(TX_FALSE), player(player), source(source)
+        Tasks::IIndirectTask<WaveSink>(player, TX_FALSE), source(source)
         {
         }
 
     void Run()
     {
-      result = player.AsyncPlay(source);
+      result = actor.IndirectPlay(source);
     }
 
     PlayerResult GetResult()
@@ -56,13 +60,13 @@ namespace Audio
       return result;
     }
   private:
-    WaveSink &player;
     WaveSource &source;
     PlayerResult result;
   };
 
   INT WaveSink::active_buffer = -1;
   TX_SEMAPHORE WaveSink::buffer_semaphore;
+// DMA:  DMA_NodeTypeDef *WaveSink::nodes[] = {&NodeTx, &NodeTx2};
 
   WaveSink::WaveSink(Tasks::TaskRunner &runner, TX_BYTE_POOL &byte_pool): runner(runner), size(PLAY_BUFFER_BYTES)
   {
@@ -83,7 +87,7 @@ namespace Audio
     return result;
   }
 
-  PlayerResult WaveSink::AsyncPlay(WaveSource &source)
+  PlayerResult WaveSink::IndirectPlay(WaveSource &source)
   {
     PlayerState state = GetState();
     if(state == RESET)
@@ -95,28 +99,48 @@ namespace Audio
       return ERROR;
     }
 
+    PlayerResult result = ERROR;
+
     if(source.Open() == TX_TRUE)
     {
-      Configure(source);
-      source.Seek(0);
-
-      ULONG next_bytes = source.ReadData(play_buffer, size);
-      active_buffer = -1;
-
-      PlayerResult status = Play((UCHAR *)play_buffer, size);
-
-      while(status == SUCCESS && next_bytes > 0)
+      result = Configure(source);
+      if(result == SUCCESS)
       {
-        while(active_buffer == -1) tx_semaphore_get(&buffer_semaphore, 50);
-        INT buffer_idx = active_buffer;
+        source.Seek(0);
+
+        ULONG next_bytes = source.ReadData(play_buffer, size);
         active_buffer = -1;
 
-        next_bytes = source.ReadData(&play_buffer[buffer_idx * size/2], size / 2);
+        result = Play((UCHAR *)play_buffer, size);
+// DMA:        result = Play((UCHAR *)play_buffer, next_bytes);
+// DMA:        DMA_NodeConfTypeDef node1c, node0c;
+// DMA:        HAL_DMAEx_List_GetNodeConfig(&node0c, nodes[0]);
+// DMA:        HAL_DMAEx_List_GetNodeConfig(&node1c, nodes[1]);
+// DMA:        if(result == SUCCESS)
+// DMA:        {
+// DMA:          state = PLAYING;
+// DMA:          printf ("Playing %s!\r\n", source.GetName().c_str());
+// DMA:        while(status == SUCCESS && next_bytes > 0)
+// DMA:          while(next_bytes > 0)
+
+        while(result == SUCCESS && next_bytes > 0)
+          {
+            while(active_buffer == -1) tx_semaphore_get(&buffer_semaphore, 50);
+            INT buffer_idx = active_buffer;
+            active_buffer = -1;
+
+// DMA:            HAL_DMAEx_List_GetNodeConfig(&node0c, nodes[0]);
+// DMA:            HAL_DMAEx_List_GetNodeConfig(&node1c, nodes[1]);
+            next_bytes = source.ReadData(&play_buffer[buffer_idx * size/2], size / 2);
+// DMA:            printf ("Prepared %ld bytes\r\n", next_bytes);
+          }
+// DMA:          printf ("Stop\r\n");
+          Stop();
+// DMA:        }
       }
-      Stop();
       source.Close();
     }
 
-    return SUCCESS;
+    return result;
   }
 }

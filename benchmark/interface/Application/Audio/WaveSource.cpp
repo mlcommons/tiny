@@ -14,8 +14,7 @@ namespace Audio
     block_alignment(0),
     bits_per_sample(0),
     data_size(0),
-    data_offset(0),
-    data_index(0)
+    data_offset(0)
   { }
 
   /**
@@ -113,21 +112,14 @@ namespace Audio
 
   UCHAR WaveSource::Seek(ULONG position)
   {
-    if(position < data_size)
-    {
-      data_index = position;
-      return TX_TRUE;
-    }
-    return TX_FALSE;
+    return source.Seek(data_offset + position);
   }
 
   ULONG WaveSource::ReadData(void *dest, ULONG length)
   {
     if(is_opened == TX_FALSE) return 0;
 
-    length = data_size > data_index + length ? length : data_size - data_index;
     ULONG actual_bytes = source.ReadData(dest, length);
-    data_index = source.GetPosition();
     return actual_bytes;
   }
 
