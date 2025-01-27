@@ -117,7 +117,7 @@
         }
     },
     "activations_alignment": 4,
-    "arguments": "generate --target stm32l4 --name sww_model -m /Users/jeremy/dev/tiny_mlperf/tiny_jhsyn/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite --compression none --verbosity 1 --allocate-inputs --allocate-outputs --workspace /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace27583291741674848973423960786911 --output /Users/jeremy/.stm32cubemx/sww_model_output",
+    "arguments": "generate --target stm32l4 --name sww_model -m /Users/jeremy/dev/tiny_mlperf/tiny_jhsyn/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite --compression none --verbosity 1 --allocate-inputs --allocate-outputs --workspace /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace24355334083687513744078338381940740 --output /Users/jeremy/.stm32cubemx/sww_model_output",
     "c_activations_count": 1,
     "c_arrays": [
         {
@@ -2685,7 +2685,7 @@
         ]
     },
     "data_alignment": 4,
-    "date_time": "2025-01-19T06:26:52-0500",
+    "date_time": "2025-01-26T06:23:32-0500",
     "inputs": [
         "serving_default_input_10_output"
     ],
