@@ -13,7 +13,7 @@ ic01:
   script:
     - loop 24: 
       - download
-      - infer 3 0
+      - infer 1 0
 kws01:
   name: keyword_spotting
   model: kws01

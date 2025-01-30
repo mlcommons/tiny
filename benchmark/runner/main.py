@@ -6,6 +6,7 @@ import numpy as np
 from sklearn.metrics import roc_auc_score
 from collections import Counter
 
+from power_manager import PowerManager
 from datasets import DataSet
 from device_manager import DeviceManager
 from device_under_test import DUT
@@ -38,14 +39,13 @@ def identify_dut(manager):
 
 
 def run_test(devices_config, dut_config, test_script, dataset_path, mode):
-    """Run the test
+    lpm = None
+    if mode == 'e':
+        lpm = PowerManager(port="COM19", baud_rate=3864000, print_info_every_ms=1_000)
+        lpm.init_device(mode="ascii", voltage=3300, freq=1000, duration=0)
+        lpm.start_capture()
+        lpm.start_background_parsing()  # Start parsing in the background
 
-    :param devices_config:
-    :param dut_config:
-    :param test_script:
-    :param dataset_path:
-    :param mode: Test mode (energy, performance, accuracy)
-    """
     manager = DeviceManager(devices_config)
     manager.scan()
     power = manager.get("power", {}).get("instance")
@@ -53,17 +53,18 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
     
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
-    identify_dut(manager)  # hangs in identify_dut()=>init_dut()=>time.sleep()
+    identify_dut(manager)
 
     dut = manager.get("dut", {}).get("instance")
     io = manager.get("interface", {}).get("instance")
 
-    # Create a Script object from the dict that was read from the tests yaml file.
+    # Pass PowerManager instance to Script
     script = Script(test_script.get(dut.get_model()))
 
-    # Run the test script with the mode passed in
     data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
-    return script.run(io, dut, data_set, mode)  # Pass mode to the run method
+    result = script.run(io, dut, data_set, mode)
+
+    return result, lpm
 
 
 def parse_device_config(device_list_file, device_yaml):
@@ -167,11 +168,11 @@ def calculate_auc(y_pred, labels, n_classes):
 
 
 # Summarize results
-def summarize_result(result):
+def summarize_result(result, mode, lpm=None):
     num_correct_files = 0
     total_files = 0
-    true_labels = []
-    predicted_probabilities = []
+    y_pred = []
+    y_true = []
 
     file_infer_results = {}
 
@@ -193,34 +194,33 @@ def summarize_result(result):
             infer_results = normalize_probabilities(infer_results)
             file_infer_results[file_name]['results'].append(infer_results)
 
-    y_pred = []
-    y_true = []
+    if mode != 'e':
+        for file_name, data in file_infer_results.items():
+            true_class = data['true_class']
+            results = data['results']
 
-    for file_name, data in file_infer_results.items():
-        true_class = data['true_class']
-        results = data['results']
+            class_counts = Counter([np.argmax(res) for res in results])
+            majority_class = class_counts.most_common(1)[0][0]
 
-        class_counts = Counter([np.argmax(res) for res in results])
-        majority_class = class_counts.most_common(1)[0][0]
+            if majority_class == true_class:
+                num_correct_files += 1
 
-        if majority_class == true_class:
-            num_correct_files += 1
+            averaged_result = np.mean(results, axis=0)
+            y_pred.append(averaged_result)
+            y_true.append(true_class)
 
-        averaged_result = np.mean(results, axis=0)
-        y_pred.append(averaged_result)
-        y_true.append(true_class)
+            total_files += 1
 
-        total_files += 1
+        calculate_accuracy(np.array(y_pred), np.array(y_true))
+        calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
+    else:
+        # Stop the PowerManager if provided
+        if lpm:
+            lpm.stop_capture()
+            print("Power measurement stopped.")
 
-    accuracy = calculate_accuracy(np.array(y_pred), np.array(y_true))
-    auc = calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
+    return
 
-    print(f"File-based accuracy = {accuracy:.2f}")
-    print(f"AUC = {auc}")
-
-    return accuracy, auc
-
-              
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
     parser.add_argument("-d", "--device_list", default="devices.yaml", help="Device definition YAML file")
@@ -239,5 +239,5 @@ if __name__ == '__main__':
         "dataset_path": args.dataset_path,
         "mode": args.mode
     }
-    result = run_test(**config)
-    summarize_result(result)
+    result, lpm = run_test(**config)
+    summarize_result(result, args.mode, lpm=lpm)
