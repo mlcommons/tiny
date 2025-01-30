@@ -2,8 +2,9 @@ import re
 import numpy as np
 from datetime import datetime
 from device_under_test import DUT  # Import DUT class
-
+global_loop_count = None  # This will store the loop count globally
 file_processed = False
+
 class _ScriptStep:
     """Base class for script steps"""
     def run(self, io, dut, dataset, mode):
@@ -76,7 +77,7 @@ class _ScriptLoopStep(_ScriptStep):
         self.model = model
 
     def run(self, io, dut, dataset, mode):
-        
+        global global_loop_count
         i = 0
         result = None if self._loop_count == 1 else []
 
@@ -90,6 +91,7 @@ class _ScriptLoopStep(_ScriptStep):
                 total_length = loop_res.get('total_length', None)
                 if total_length is not None and i == 0:
                     self._loop_count *= total_length
+            global_loop_count = self._loop_count  # Store in global variable
             i += 1
             if self._loop_count != 1:
                 result.append(loop_res)
@@ -179,6 +181,7 @@ class _ScriptInferStep(_ScriptStep):
         Calculates and prints energy metrics from metrics_log.txt
         for the given start_time and end_time in microseconds.
         """
+        global global_loop_count
         start_time = infer_results.get('start_time')
         end_time = infer_results.get('end_time')
 
@@ -231,12 +234,12 @@ class _ScriptInferStep(_ScriptStep):
                 print(f"{formatted_time} ulp-ml: Energy        : {total_energy:.3f} uJ")
                 print(f"{formatted_time} ulp-ml: Power         : {average_power:.3f} µW")
                 print(f"{formatted_time} ulp-ml: Energy/Inf.   : {average_energy:.3f} uJ/inf.")
-
                 # If this is the last loop, calculate and print the median energy
-                if len(self.throughput_values) == self._loop_count:
+                if len(self.throughput_values) == global_loop_count:
                     median_energy = np.median(energy_values)
                     print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
                     print(f"{formatted_time} ulp-ml: Median energy cost is {median_energy:.3f} uJ/inf.")
+                    print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
             else:
                 print("No data points found between the specified timestamps.")
         except FileNotFoundError:
@@ -250,6 +253,7 @@ class _ScriptInferStep(_ScriptStep):
         Accumulates throughput values for all loop iterations and calculates median throughput 
         at the end of all iterations.
         """
+        global global_loop_count
         # Use the total_inferences from _gather_infer_results results
         num_inferences = self._iterations
         
@@ -277,9 +281,8 @@ class _ScriptInferStep(_ScriptStep):
         print(f"{formatted_time} ulp-mlperf:   Runtime      : {elapsed_time_sec:>10.3f} sec.")
         print(f"{formatted_time} ulp-mlperf:   Throughput   : {throughput:>10.3f} inf./sec.")
         print(f"{formatted_time} ulp-mlperf:   m-results    : {infer_results['results']}")
-
         # Check if we've completed all loop iterations
-        if len(self.throughput_values) == self._loop_count:
+        if len(self.throughput_values) == global_loop_count:
             # Calculate the median throughput after all loop iterations
             total_median_throughput = np.median(self.throughput_values)
 
@@ -331,7 +334,6 @@ class Script:
         if cmd == 'infer':
             # Pass the loop_count to the infer step
             loop_count = args[-1] if args else None  # Assuming loop_count is passed as last argument
-            print(loop_count)
             return _ScriptInferStep(*args, loop_count=loop_count)
 
     def run(self, io, dut, dataset, mode):
