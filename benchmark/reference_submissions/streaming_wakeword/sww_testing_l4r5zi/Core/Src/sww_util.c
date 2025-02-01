@@ -189,7 +189,7 @@ static ai_buffer *ai_output;
 /*
  * Bootstrap inference framework
  */
-int aiInit(void) {
+ai_error aiInit(void) {
   ai_error err;
 
   /* Create and initialize the c-model */
@@ -204,7 +204,7 @@ int aiInit(void) {
   ai_input = ai_sww_model_inputs_get(sww_model, NULL);
   ai_output = ai_sww_model_outputs_get(sww_model, NULL);
 
-  return 0;
+  return err;
 }
 
 
@@ -212,7 +212,7 @@ int aiInit(void) {
 /*
  * Run inference
  */
-int aiRun(const void *in_data, void *out_data) {
+ai_error aiRun(const void *in_data, void *out_data) {
   ai_i32 n_batch;
   ai_error err;
 
@@ -227,7 +227,7 @@ int aiRun(const void *in_data, void *out_data) {
 
   };
 
-  return 0;
+  return err;
 }
 
 void run_model(char *cmd_args[]) {

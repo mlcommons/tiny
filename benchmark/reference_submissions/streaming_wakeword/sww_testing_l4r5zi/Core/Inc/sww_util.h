@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
-
+#include "sww_model.h"
 
 #define EE_CMD_SIZE 80u
 #define EE_CMD_DELIMITER " "
@@ -44,7 +44,7 @@ void log_printf(LogBuffer *log, const char *format, ...);
 void process_command(char *full_command);
 void ee_serial_callback(char c);
 
-int aiInit(void);
+ai_error aiInit(void);
 void setup_i2s_buffers();
 void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp);
 
