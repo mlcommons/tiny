@@ -46,7 +46,7 @@ int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 uint32_t g_i2s_wav_len = 32*512; // length in (16b) samples
 int g_i2s_rx_in_progess = 0;
 LogBuffer g_log = { .buffer = {0}, .current_pos = 0 };
-
+i2s_mode_t i2s_mode;
 
 void setup_i2s_buffers() {
 	// set up variables for I2S receiving
@@ -308,6 +308,20 @@ void i2s_capture(char *cmd_args[]) {
 	}
 }
 
+void print_help(char *cmd_args[]) {
+	char help_message[] =
+"name        -- print out an identifying message\r\n"
+"run_model   -- run the NN model. An optional  argument class0, class1, or class2 runs the model\r\n"
+"               on a selected input that is expected to return 0 (WW), 1 (silent), or 2(other)\r\n"
+"extract     -- run the feature extractor on the first block of a predefined wav form (test_wav_marvin)\r\n"
+"i2scap      -- Captures about 1s of stereo audio over an I2S link\r\n"
+"log         -- The I2S capture function can write debug messages to a log. Prints and clears that log.\r\n"
+"help        -- Print this help message\r\n%"
+;
+
+printf(help_message);
+}
+
 void print_and_clear_log(char *cmd_args[]) {
 	printf("Log contents[cp=%u]:\r\n<%s>\r\n", g_log.current_pos, g_log.buffer);
 	memset(g_log.buffer, 0, LOG_BUFFER_SIZE);
@@ -320,14 +334,18 @@ void process_command(char *full_command) {
 
     printf("Full command: %s\r\n", full_command);
 
+    // Split the command on spaces, so cmd_args[0] is the command itself
     char* token = strtok(full_command, " ");
     cmd_args[0] = token;
 
+    // and cmd_args[1:] are the arguments
     for(int i=1;i<MAX_CMD_TOKENS;i++) {
         cmd_args[i] = strtok(NULL, " ");
         if(cmd_args[i] == NULL)
             break;
     }
+
+    // print out the command and args 1 by 1 (for debug; remove later)
     for(int i=0;i<MAX_CMD_TOKENS && cmd_args[i] != NULL;i++) {
         printf("[%d]: %p=>%s\r\n", i, (void *)cmd_args[i], cmd_args[i]);
     }
@@ -349,8 +367,14 @@ void process_command(char *full_command) {
 	else if(strcmp(cmd_args[0], "log") == 0) {
 		print_and_clear_log(cmd_args);
 	}
+	else if(strcmp(cmd_args[0], "help") == 0) {
+		print_help(cmd_args);
+	}
+	else if(cmd_args[0] == 0) {
+		printf("Empty command (only a %% read).  Type 'help%%' for help\r\n");
+	}
 	else {
-		printf("Unrecognized command %s, with arguments %s\r\n", cmd_args[0], full_command);
+		printf("Unrecognized command %s\r\n", full_command);
 	}
 }
 

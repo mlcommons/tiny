@@ -27,6 +27,15 @@ typedef struct {
 } LogBuffer;
 
 
+
+typedef enum {
+	FileCapture, // capture a block of a pre-determined size, then stop
+	Streaming    // continually capture blocks of "window_step" size, then
+	             // extract features and run NN
+
+} i2s_mode_t;
+
+
 void print_vals_int16(const int16_t *buffer, uint32_t num_vals);
 void print_bytes(const uint8_t *buffer, uint32_t num_bytes);
 void print_vals_float(const float *buffer, uint32_t num_vals);
