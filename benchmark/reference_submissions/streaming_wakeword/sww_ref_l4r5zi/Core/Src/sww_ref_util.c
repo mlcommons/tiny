@@ -39,9 +39,9 @@ uint32_t g_int16s_read = 0;
 uint32_t g_i2s_chunk_size_bytes = 1024;
 uint32_t g_i2s_status = HAL_OK;
 // two ping-pong byte buffers for DMA transfers from I2S port.
-uint8_t *g_i2s_buffer0 = NULL;
-uint8_t *g_i2s_buffer1 = NULL;
-uint8_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buffer1
+int16_t *g_i2s_buffer0 = NULL;
+int16_t *g_i2s_buffer1 = NULL;
+int16_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buffer1
 int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 int8_t *g_model_input;
@@ -53,8 +53,8 @@ i2s_state_t g_i2s_state = Idle;
 
 void setup_i2s_buffers() {
 	// set up variables for I2S receiving
-	g_i2s_buffer0 = malloc(g_i2s_chunk_size_bytes);
-	g_i2s_buffer1 = malloc(g_i2s_chunk_size_bytes);
+	g_i2s_buffer0 = (int16_t *)malloc(g_i2s_chunk_size_bytes);
+	g_i2s_buffer1 = (int16_t *)malloc(g_i2s_chunk_size_bytes);
 	g_i2s_current_buff = g_i2s_buffer0;
 	g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
 	g_wav_block_buff =(int16_t *)malloc(SWW_WINLEN_SAMPLES * sizeof(int16_t));
@@ -327,7 +327,7 @@ void start_detection(char *cmd_args[]) {
 		 memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
 		 memset(g_i2s_buffer1, 0xFF, g_i2s_chunk_size_bytes);
 
-		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
+		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 		 // you can also check hsai->State
 		 printf("DMA receive initiated. status=%lu, state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
 		 printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
@@ -348,7 +348,7 @@ void i2s_capture(char *cmd_args[]) {
 		 memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
 		 memset(g_i2s_buffer1, 0xFF, g_i2s_chunk_size_bytes);
 
-		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
+		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 		 // you can also check hsai->State
 		 printf("DMA receive initiated. status=%lu, state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
 		 printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
@@ -437,13 +437,13 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
 	g_int16s_read += g_i2s_chunk_size_bytes/2;
 
 	// idle_buffer is the one that will be idle after we switch
-	uint8_t* idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
+	int16_t* idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
 	g_i2s_buff_sel = g_i2s_buff_sel ^ 1; // toggle between 0/1 => g_i2s_buffer0/1
     g_i2s_current_buff = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
 
 	if(g_int16s_read + g_i2s_chunk_size_bytes/2 <= g_i2s_wav_len){
 		// there is space left for a full chunk
-		g_i2s_status = HAL_SAI_Receive_DMA(hsai, g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
+		g_i2s_status = HAL_SAI_Receive_DMA(hsai, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 	}
 	else {
 		// if there is only space for a partial read
@@ -470,13 +470,11 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 
 	// idle_buffer is the one that will be idle after we switch
-	uint8_t* idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
+	int16_t *idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
 	g_i2s_buff_sel = g_i2s_buff_sel ^ 1; // toggle between 0/1 => g_i2s_buffer0/1
     g_i2s_current_buff = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
 
-	g_i2s_status = HAL_SAI_Receive_DMA(hsai, g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
-
-
+	g_i2s_status = HAL_SAI_Receive_DMA(hsai, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
     // g_wav_block_buff[SWW_WINSTRIDE_SAMPLES:<end>]  are old samples to be
