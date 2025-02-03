@@ -22,6 +22,7 @@
 #define SWW_WINLEN_SAMPLES 1024
 #define SWW_WINSTRIDE_SAMPLES 512
 #define SWW_MODEL_INPUT_SIZE 1200
+#define NUM_MEL_FILTERS 40
 
 // struct for a log we can write to without the delay of printing to UART
 #define LOG_BUFFER_SIZE 4096

@@ -36,7 +36,8 @@ size_t g_cmd_pos = 0u;
 // variables for I2S receive
 uint32_t g_int16s_read = 0;
 // chunk should be a 'window-stride' long = 32ms stride * 16kS/s * 2B/sample = 1024
-uint32_t g_i2s_chunk_size_bytes = 1024;
+// then double because we receive stereo (2 samples per time point)
+uint32_t g_i2s_chunk_size_bytes = 2048;
 uint32_t g_i2s_status = HAL_OK;
 // two ping-pong byte buffers for DMA transfers from I2S port.
 int16_t *g_i2s_buffer0 = NULL;
@@ -45,7 +46,8 @@ int16_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buf
 int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 int8_t *g_model_input;
-uint32_t g_i2s_wav_len = 32*512; // length in (16b) samples
+// length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
+uint32_t g_i2s_wav_len = 24*2048;
 
 int16_t *g_wav_block_buff = NULL; // hold most recent SWW_WINLEN_SAMPLES for feature extraction
 LogBuffer g_log = { .buffer = {0}, .current_pos = 0 };
@@ -64,20 +66,48 @@ void setup_i2s_buffers() {
 void print_vals_int16(const int16_t *buffer, uint32_t num_vals)
 {
 	const int vals_per_line = 16;
+	char end_char;
+
 	printf("[");
 	for(uint32_t i=0;i<num_vals;i+= vals_per_line)
 	{
 		for(int j=0;j<vals_per_line;j++)
 		{
+			end_char = (i+j==num_vals-1) ? ' ' : ',';
 			if(i+j >= num_vals)
 			{
 				break;
 			}
-			printf("%d, ", buffer[i+j]);
+			printf("%d%c ", buffer[i+j], end_char);
 		}
 		printf("\r\n");
 	}
-	printf("]\r\n==== Done ====\r\n");
+	printf("]\r\n");
+	// printf("]\r\n==== Done ====\r\n");
+}
+
+
+void print_vals_int8(const int8_t *buffer, uint32_t num_vals)
+{
+	const int vals_per_line = 16;
+	char end_char;
+
+	printf("[");
+	for(uint32_t i=0;i<num_vals;i+= vals_per_line)
+	{
+		for(int j=0;j<vals_per_line;j++)
+		{
+			end_char = (i+j==num_vals-1) ? ' ' : ',';
+			if(i+j >= num_vals)
+			{
+				break;
+			}
+			printf("%d%c ", buffer[i+j], end_char);
+		}
+		printf("\r\n");
+	}
+	printf("]\r\n");
+	//	printf("]\r\n==== Done ====\r\n");
 }
 
 void print_bytes(const uint8_t *buffer, uint32_t num_bytes)
@@ -103,20 +133,22 @@ void print_bytes(const uint8_t *buffer, uint32_t num_bytes)
 void print_vals_float(const float *buffer, uint32_t num_vals)
 {
 	const int vals_per_line = 8;
+	char end_char; // don't add a ',' after the last value, because it breaks JSON
 	printf("[");
 	for(uint32_t i=0;i<num_vals;i+= vals_per_line)
 	{
 		for(int j=0;j<vals_per_line;j++)
 		{
+			end_char = (i+j==num_vals-1) ? ' ' : ',';
 			if(i+j >= num_vals)
 			{
 				break;
 			}
-			printf("%3.5e, ", buffer[i+j]);
+			printf("%3.5e%c ", buffer[i+j], end_char);
 		}
 		printf("\r\n");
 	}
-	printf("]\r\n==== Done ====\r\n");
+	// printf("]\r\n==== Done ====\r\n");
 }
 void log_printf(LogBuffer *log, const char *format, ...) {
     va_list args;
@@ -319,6 +351,7 @@ void start_detection(char *cmd_args[]) {
 	}
 	else {
 		 g_i2s_state = Streaming;
+		 g_int16s_read = 0; // jhdbg -- only needed when we're capturing the waveform in addition to detecting
 
 		 printf("Listening for I2S data ... \r\n");
 
@@ -326,6 +359,10 @@ void start_detection(char *cmd_args[]) {
 		 // if the write never happened.
 		 memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
 		 memset(g_i2s_buffer1, 0xFF, g_i2s_chunk_size_bytes);
+
+		 // first several cycles won't fully populate g_model_input, so initialize
+		 // it with 0s to avoid unpredictable detections at the beginning
+		 memset(g_model_input, 0x00, SWW_MODEL_INPUT_SIZE*sizeof(int8_t));
 
 		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 		 // you can also check hsai->State
@@ -357,14 +394,14 @@ void i2s_capture(char *cmd_args[]) {
 
 void print_help(char *cmd_args[]) {
 	char help_message[] =
-"name        -- print out an identifying message\r\n"
-"run_model   -- run the NN model. An optional  argument class0, class1, or class2 runs the model\r\n"
-"               on a selected input that is expected to return 0 (WW), 1 (silent), or 2(other)\r\n"
-"extract     -- run the feature extractor on the first block of a predefined wav form (test_wav_marvin)\r\n"
-"i2scap      -- Captures about 1s of stereo audio over an I2S link\r\n"
-"log         -- The I2S capture function can write debug messages to a log. Prints and clears that log.\r\n"
-"help        -- Print this help message\r\n%"
-;
+	"name        -- print out an identifying message\r\n"
+	"run_model   -- run the NN model. An optional  argument class0, class1, or class2 runs the model\r\n"
+	"               on a selected input that is expected to return 0 (WW), 1 (silent), or 2(other)\r\n"
+	"extract     -- run the feature extractor on the first block of a predefined wav form (test_wav_marvin)\r\n"
+	"i2scap      -- Captures about 1s of stereo audio over an I2S link\r\n"
+	"log         -- The I2S capture function can write debug messages to a log. Prints and clears that log.\r\n"
+	"help        -- Print this help message\r\n%"
+	;
 
 	printf(help_message);
 }
@@ -375,8 +412,13 @@ void print_and_clear_log(char *cmd_args[]) {
 	g_log.current_pos = 0;
 }
 
-void process_command(char *full_command) {
+void print_state(char *cmd_args[]) {
+	 printf("g_i2s_status=%lu, SAI state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
+	 printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
+	 printf("g_i2s_state = %d, g_int16s_read=%lu\r\n", g_i2s_state, g_int16s_read);
+}
 
+void process_command(char *full_command) {
 	char *cmd_args[MAX_CMD_TOKENS] = {NULL};
 
     printf("Full command: %s\r\n", full_command);
@@ -414,11 +456,14 @@ void process_command(char *full_command) {
 	else if(strcmp(cmd_args[0], "log") == 0) {
 		print_and_clear_log(cmd_args);
 	}
-	else if(strcmp(cmd_args[0], "start_detection") == 0) {
+	else if(strcmp(cmd_args[0], "start") == 0) {
 		start_detection(cmd_args);
 	}
-	else if(strcmp(cmd_args[0], "stop_detection") == 0) {
+	else if(strcmp(cmd_args[0], "stop") == 0) {
 		stop_detection(cmd_args);
+	}
+	else if(strcmp(cmd_args[0], "state") == 0) {
+		print_state(cmd_args);
 	}
 	else if(strcmp(cmd_args[0], "help") == 0) {
 		print_help(cmd_args);
@@ -469,6 +514,11 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
 
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 
+	static float32_t feature_buff[NUM_MEL_FILTERS];
+	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
+	static int num_calls = 0;  // jhdbg
+    log_printf(&g_log, "process_chunk:%d\r\n", num_calls);
+
 	// idle_buffer is the one that will be idle after we switch
 	int16_t *idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
 	g_i2s_buff_sel = g_i2s_buff_sel ^ 1; // toggle between 0/1 => g_i2s_buffer0/1
@@ -476,22 +526,48 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 
 	g_i2s_status = HAL_SAI_Receive_DMA(hsai, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 
+	/*******  Also capturing for test  (jhdbg) ******/
+	g_int16s_read += g_i2s_chunk_size_bytes/2;
+	memcpy((uint8_t*)(g_wav_record+g_int16s_read-g_i2s_chunk_size_bytes/2), idle_buffer, g_i2s_chunk_size_bytes);
+	/*******  End test capture code  (jhdbg)   ******/
+
+
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
     // g_wav_block_buff[SWW_WINSTRIDE_SAMPLES:<end>]  are old samples to be
     // shifted to the beginning of the clip. After this block,
     // g_wav_block_buff[0:(winlen-winstride)] is populated
     for(int i=SWW_WINSTRIDE_SAMPLES;i<SWW_WINLEN_SAMPLES;i++) {
-    	g_wav_block_buff[i-SWW_WINSTRIDE_SAMPLES] = g_wav_block_buff[SWW_WINSTRIDE_SAMPLES];
+    	g_wav_block_buff[i-SWW_WINSTRIDE_SAMPLES] = g_wav_block_buff[i];
     }
 
     // Now fill in g_wav_block_buff[(winlen-winstride):] with winstride new samples
-    // for(int i=SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES;i<SWW_WINLEN_SAMPLES;i++) {
-    // 	g_wav_block_buff[i]
-    // }
+	for(int i=SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES;i<SWW_WINLEN_SAMPLES;i++) {
+		// 2* is because the I2S buffer is in stereo
+		g_wav_block_buff[i] = idle_buffer[2*(i-(SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES))];
+	}
 
+	compute_lfbe_f32(g_wav_block_buff, feature_buff, dsp_buff);
+
+	// shift current features in g_model_input[] and add new ones.
+	for(int i=NUM_MEL_FILTERS;i<SWW_MODEL_INPUT_SIZE;i++) {
+		g_model_input[i-NUM_MEL_FILTERS] = g_model_input[i];
+	}
+	for(int i=0;i<NUM_MEL_FILTERS;i++) {
+			g_model_input[i] = (int8_t)(128*feature_buff[i]);
+	}
 
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
 
+    if( ++num_calls == 23){
+    	printf("{"); // this part can be snipped out and read in as JSON
+    	printf("\"wav_cap\": ");
+		print_vals_int16(g_wav_record, g_int16s_read);
+		printf(", \r\n \"model_input\": ");
+		print_vals_int8(g_model_input, SWW_MODEL_INPUT_SIZE);
+		printf("}");
+		g_i2s_state = Stopping;
+		// print_vals_float(model_output, 40);
+    }
 }
 
 void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai) {
@@ -520,6 +596,8 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	arm_status op_result = ARM_MATH_SUCCESS;
 
 	// convert int16_t pSrc to float32_t.  range [-32768:32767] => [-1.0,1.0)
+	// WINLEN - WINSTRIDE of these have already been converted once, so a little speedup
+	// could probably be gained by factoring this out into process_chunk_and_continue_streaming
     for(i=0;i<block_length;i++){
     	pDst[i] = ((float32_t)pSrc[i])/32768.0;
     }
