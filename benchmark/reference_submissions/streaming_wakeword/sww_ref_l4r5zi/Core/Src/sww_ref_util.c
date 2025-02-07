@@ -149,6 +149,7 @@ void print_vals_float(const float *buffer, uint32_t num_vals)
 		printf("\r\n");
 	}
 	// printf("]\r\n==== Done ====\r\n");
+	 printf("]\r\n\r\n");
 }
 void log_printf(LogBuffer *log, const char *format, ...) {
     va_list args;
@@ -311,16 +312,27 @@ void run_extraction(char *cmd_args[]) {
 	// this will only operate on the first block_size (1024) elements of the input wav
 
 	uint32_t timer_start, timer_stop;
+	char *endptr;
+	uint32_t offset;
 
+    // Optional offset arg.  "extract 1024", if cmd_arg[1] is present, convert to long
+    if (cmd_args[1] != NULL && *cmd_args[1] != '\0') {
+    	offset = strtol(cmd_args[1], &endptr, 10);
+    }
+    else {
+    	offset = 0;
+    }
 	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
-	compute_lfbe_f32(test_wav_marvin, test_out, dsp_buff);
+	compute_lfbe_f32(test_wav_marvin+offset, test_out, dsp_buff);
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
 
 	printf("TIM16: compute_lfbe_f32 took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
-	printf("Input: ");
-	print_vals_int16(test_wav_marvin, 32);
-	printf("Output: ");
+	printf("\r\n{\r\n");
+	printf("\"Input\": ");
+	print_vals_int16(test_wav_marvin+offset, 1024);
+	printf(",\r\n \"Output\": ");
 	print_vals_float(test_out, 40);
+	printf("}\r\n");
 }
 
 void stop_detection(char *cmd_args[]) {
@@ -363,6 +375,9 @@ void start_detection(char *cmd_args[]) {
 		 // first several cycles won't fully populate g_model_input, so initialize
 		 // it with 0s to avoid unpredictable detections at the beginning
 		 memset(g_model_input, 0x00, SWW_MODEL_INPUT_SIZE*sizeof(int8_t));
+		 memset(g_wav_block_buff, 0x00, SWW_WINLEN_SAMPLES*sizeof(int16_t));
+
+
 
 		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 		 // you can also check hsai->State
@@ -514,7 +529,11 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
 
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 
-	static float32_t feature_buff[NUM_MEL_FILTERS];
+	// feature_buff is used internally as a 2nd internal scratch space,
+	// in the FFT domain, so it needs to be winlen_samples long, even though
+	// ultimately it will only hold NUM_MEL_FILTERS values.  This can probably
+	// be improved with a refactored compute_lfbe_f32().
+	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
     log_printf(&g_log, "process_chunk:%d\r\n", num_calls);
@@ -549,25 +568,31 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	compute_lfbe_f32(g_wav_block_buff, feature_buff, dsp_buff);
 
 	// shift current features in g_model_input[] and add new ones.
-	for(int i=NUM_MEL_FILTERS;i<SWW_MODEL_INPUT_SIZE;i++) {
-		g_model_input[i-NUM_MEL_FILTERS] = g_model_input[i];
+	for(int i=0;i<SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS;i++) {
+		g_model_input[i] = g_model_input[i+NUM_MEL_FILTERS];
 	}
 	for(int i=0;i<NUM_MEL_FILTERS;i++) {
-			g_model_input[i] = (int8_t)(128*feature_buff[i]);
+		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(255*feature_buff[i]-128);
 	}
 
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
 
-    if( ++num_calls == 23){
+    if( num_calls == 29){
     	printf("{"); // this part can be snipped out and read in as JSON
     	printf("\"wav_cap\": ");
-		print_vals_int16(g_wav_record, g_int16s_read);
+		// print_vals_int16(g_wav_record, g_int16s_read);
+    	print_vals_int16(g_wav_block_buff, SWW_WINLEN_SAMPLES);
+
+    	printf(",\r\n \"features_out\": ");
+    	print_vals_float(feature_buff, NUM_MEL_FILTERS);
+
 		printf(", \r\n \"model_input\": ");
 		print_vals_int8(g_model_input, SWW_MODEL_INPUT_SIZE);
-		printf("}");
+		printf("} \r\n");
 		g_i2s_state = Stopping;
 		// print_vals_float(model_output, 40);
     }
+    num_calls++;
 }
 
 void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai) {
@@ -624,14 +649,14 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 
 	// Now we need to take the magnitude of the spectrum.  For block_length=1024, it will be 513 elements
 	// we'll use pTmp as an array of block_length/2+1 real values.
-	// the N/2th element is real and stuck in pDst[1] (where fft[0].imag should be)
+	// the N/2th element is real and stuck in pDst[1] (where fft[0].imag=0 should be)
 	// move that to pTmp[block_length/2]
 	pTmp[block_length/2] = pDst[1]; // real value corresponding to fsamp/2
 	pDst[1] = 0; // so now pDst[0,1] = real,imag elements at f=0 (always real, so imag=0)
 	arm_cmplx_mag_f32(pDst,pTmp,block_length/2); // mag(pDst) => pTmp.  pTmp[512] already set.
 
 	//    powspec = (1 / data_config['window_size_samples']) * tf.square(magspec)
-	arm_mult_f32(pTmp, pTmp,pDst, spec_len); // pDst[1:513] = pTmp[1:513]^2
+	arm_mult_f32(pTmp, pTmp,pDst, spec_len); // pDst[0:513] = pTmp[0:513]^2
 	arm_scale_f32(pDst, inv_block_length, pTmp, spec_len);
 
 	//    powspec_max = tf.reduce_max(input_tensor=powspec)
