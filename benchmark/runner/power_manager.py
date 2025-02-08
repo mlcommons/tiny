@@ -1,409 +1,246 @@
 import re
 import sys
 from queue import Queue
-from serial_device import SerialDevice
 from threading import Thread
+from time import time
+from SerialCommunication import SerialCommunication
 
-class PowerManager(SerialDevice):
-  PROMPT = "PowerShield > "
+class UnitConversions:
+    """
+    A utility class for performing unit conversions used in the PowerManager.
+    """
 
-  def __init__(self, port_device, baud_rate=115200):
-    self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n")
-    self._voltage = "3000m"
-    self._board_id = None
-    self._version = None
-    self._lcd = [None, None]
-    self._in_prograss = False
-    self._data_queue = Queue()
-    self._message_queue = Queue()
-    self._read_thread = None
-    self._running = False
+    @staticmethod
+    def A_to_uA(current_in_A: int) -> float:
+        return current_in_A * 1e6  # 1 A = 1,000,000 µA
 
-  def __enter__(self):
-    self._port.__enter__()
-    self._start_read_thread()
-    self._setup()
-    return self
+    @staticmethod
+    def s_to_us(seconds: float) -> int:
+        return int(seconds * 1e6)  # 1 second = 1,000,000 microseconds
 
-  def __exit__(self, *args):
-    self._tear_down()
-    self._stop_read_thread()
-    self._port.__exit__(*args)
+    @staticmethod
+    def us_to_ms(microseconds: int) -> int:
+        return microseconds // 1000  # 1 millisecond = 1,000 microseconds
 
-  def _read_loop(self):
-    while self._running:
-      line = self._port.read_line(timeout=0.250)
-      if not line:
-        continue
-      if line.startswith("TimeStamp"):
-        self._data_queue.put(line)
-      elif re.match("\d\d\d\d[+-]\d\d", line):
-        line = line.replace('+', 'e').replace('-', "e-")
-        line = line[:1] + "." + line[1:]
-        value = float(line)
-        self._data_queue.put(value)
-      else:
-        self._message_queue.put(line)
+class PowerManager:
+    def __init__(
+        self, port: str, baud_rate: int, print_info_every_ms: int = 10_000
+    ) -> None:
+        """
+        Initializes the LPM01A device with the given port and baud rate.
 
-  def _start_read_thread(self):
-    self._running = True
-    self._read_thread = Thread(target=self._read_loop)
-    self._read_thread.start()
+        Args:
+            port (str): The port where the LPM01A device is connected.
+            baud_rate (int): The baud rate for the serial communication.
+            print_info_every_ms (int): The interval in ms to print the info.
+        """
+        self.serial_comm = SerialCommunication(port, baud_rate)
+        self.serial_comm.open_serial()
 
-  def _stop_read_thread(self):
-    self._running = False
-    self._read_thread.join()
+        self.data_storage = []  # Local storage for captured data
 
-  def _setup(self):
-    # verify board
-    self._claim_remote_control()
-    print(f"LPM01A Power Monitor Board", file=sys.stderr)
-    print(f"BoardID: {self.get_board_id()}", file=sys.stderr)
-    print(f"Version: {self.get_version()}", file=sys.stderr)
-    print(f"Status: {self.get_status()}", file=sys.stderr)
-    self.set_lcd("     mlperf     ", "     monitor    ")
-    self.power_off()
-    # Acquire infinitely
-    self.configure_trigger('inf', 0, 'd7')
-    self.configure_output('energy', 'ascii_dec', '1k')
-    self.set_voltage(self._voltage)
-    self.power_on()
-    # self.start()
+        self.uc = UnitConversions()
 
-  def _tear_down(self):
-    # self.stop()
-    self._release_remote_control()
+        self.print_info_every_ms = print_info_every_ms
 
-  def _claim_remote_control(self):
-    self._send_command("htc")
+        self.mode = None
 
-  def _release_remote_control(self):
-    self._send_command("hrc")
+        self.board_timestamp_ms = 0
+        self.capture_start_us = 0
+        self.num_of_captured_values = 0
+        self.last_print_timestamp_ms = 0
+        self.board_buffer_usage_percentage = 0
 
-  def get_board_id(self):
-    if not self._board_id:
-      result, output = self._send_command("powershield", err_message="Error getting BoardId")
-      self._board_id = output if result else None
-    return self._board_id
+        self.sum_current_values_ua = 0
+        self.number_of_current_values = 0
 
-  def get_version(self):
-    if not self._version:
-      result, output = self._send_command("version", err_message="Error getting version")
-      self._version = output[1] if result else None
-    return self._version
+    def _read_and_parse_ascii(self) -> None:
+        """
+        Reads and parses the data from the LPM01A device in ASCII mode.
+        """
+        while True:
+            response = self.serial_comm.receive_data()
+            if not response:
+                continue
 
-  def get_lcd(self):
-    return self._lcd
+            if "TimeStamp:" in response:
+                try:
+                    match = re.search(
+                        "TimeStamp: (\d+)s (\d+)ms, buff (\d+)%", response
+                    )
+                    if match:
+                        self.board_timestamp_ms = (
+                            int(match.group(2)) + int(match.group(1)) * 1000
+                        )
+                        self.board_buffer_usage_percentage = int(match.group(3))
 
-  def set_lcd(self, *args):
-    for i in range(len(args)):
-      if args[i] and args[i] != self._lcd[i]:
-        result, _ = self._send_command(f'lcd {i+1} "{args[i]}"',
-                                       err_message=f"Error setting LCD line {i+1} to \"{args[i]}\"")
-        self._lcd[i] = args[i] if result else self._lcd[i]
-    return self._lcd
+                except:
+                    print(f"Error parsing timestamp: {response}")
+                continue
 
-  def configure_trigger(self, acquisition_time, trigger_delay, trigger_source):
-    self._send_command(f"acqtime {acquisition_time}",
-                       err_message=f"Error setting acquisition_time to {acquisition_time}")
-    self._send_command(f"trigdelay {trigger_delay}",
-                       err_message="Error setting trigger_delay to {trigger_delay}")
-    self._send_command(f"trigsrc {trigger_source}",
-                       err_message=f"Error setting trigger_source to {trigger_source}")
+            if "-" in response:
+                exponent_sign = "-"
+            elif "+" in response:
+                exponent_sign = "+"
 
-  def configure_output(self, output_type, output_format, samples_per_second):
-    self._send_command(f"output {output_type}", err_message=f"Error setting output_type to {output_type}")
-    self._send_command(f"format {output_format}", err_message=f"Error setting output_format to {output_format}")
-    self._send_command(f"freq {samples_per_second}",
-                       err_message=f"Error setting samples_per_second to {samples_per_second}")
+            try:
+                split_response = response.split("-")
+                try:
+                    current = int(split_response[0])  # Extract the raw current value
+                except ValueError:
+                    # When the TimeStamp is received,
+                    # the next current values has \x00 in the beginning so I need to strip it
+                    current = int(split_response[0][1:])
 
-  def power_on(self, show_status=False):
-    self.set_lcd(None, f"{self._voltage : >14}V ")
-    self._send_command(f"pwr on {'' if show_status else 'no'}status", err_message=f"Error turning on power")
+                exponent = int(split_response[1])  # Extract the exponent value
 
-  def power_off(self):
-    self._send_command("pwr off", err_message=f"Error turning off power")
+                # Apply the exponent with the correct sign
+                if exponent_sign == "+":
+                    current = current * pow(10, exponent)
+                else:
+                    current = current * pow(10, ((-1) * exponent))
 
-  def configure_voltage(self, voltage):
-    self._voltage = voltage
+                current = round(self.uc.A_to_uA(current), 4)
 
-  def set_voltage(self, voltage):
-    self._send_command(f"volt {voltage}", err_message=f"Error setting voltage to {voltage}V")
+                local_timestamp_us = (
+                    int(self.uc.s_to_us(time())) - self.capture_start_us
+                )
+                
+                # Store data locally
+                self.data_storage.append(
+                    {
+                        "current_uA": current,
+                        "local_timestamp_us": local_timestamp_us,
+                        "board_timestamp_ms": self.board_timestamp_ms
+                    }
+                )
 
-  def start(self):
-    return self._send_command("start")
+                self.num_of_captured_values += 1
 
-  def stop(self):
-    # stop does not ack
-    print("stop")
-    self._port.write_line("stop")
-    lines = []
-    line = None
-    while not line or "Acquisition completed" not in line:
-      line = self._message_queue.get()
-      if line:
-        lines.append(line)
-    return lines
+                self.sum_current_values_ua += current
+                self.number_of_current_values += 1
 
-  def get_results(self):
-    while not self._data_queue.empty():
-      yield self._data_queue.get()
+                if (
+                    self.uc.us_to_ms(local_timestamp_us) - self.last_print_timestamp_ms
+                    > self.print_info_every_ms
+                ):
+                    average_current = (
+                        self.sum_current_values_ua / self.number_of_current_values
+                    )
+                    average_current = round(average_current, 4)
+                    self.sum_current_values_ua = 0
+                    self.number_of_current_values = 0
+                    print(
+                        f"Average current for previous {self.print_info_every_ms} ms: {average_current} uA\n"
+                        f"Local timestamp: {self.uc.us_to_ms(local_timestamp_us)} ms\n"
+                        f"Num of received values: {self.num_of_captured_values}\n"
+                        f"LPM01A buffer usage: {self.board_buffer_usage_percentage}%\n"
+                    )
+                    self.last_print_timestamp_ms = self.uc.us_to_ms(local_timestamp_us)
+            except:
+                print(f"Error parsing data: {response}")
 
-  def get_status(self):
-    result, output = self._send_command("status", err_message="Error getting status")
-    return output if result else None
+    def send_command_wait_for_response(
+        self, command: str, expected_response: str = None, timeout_s: int = 5
+    ) -> bool:
+        """
+        Sends a command to the LPM01A device and waits for a response.
 
-  def get_help(self):
-    result, output = self._send_command("help", True, err_message="Error getting help")
-    return output if result else None
+        Args:
+            command (str): The command to send to the LPM01A device.
+            expected_response (str): The expected response from the LPM01A device.
+            timeout_s (int): The timeout in seconds to wait for a response.
 
-  def _read_response(self, command):
-    out_lines = []
-    while True:
-      line = self._message_queue.get()
-      temp = line.replace(PowerManager.PROMPT, "").strip()
-      if temp and command in temp and (temp.startswith('ack') or temp.startswith('error')):
-        out_lines.extend(r for r in temp.replace(command, "").split(" ", 2) if r)
-        break
-      elif temp and not temp.startswith("ack") and not temp.startswith("error"):
-        out_lines.append(temp)
-    return out_lines
+        Returns:
+            bool: True if the command was successful, False otherwise.
+        """
+        tick_start = time()
+        self.serial_comm.send_data(command)
+        while time() - tick_start < timeout_s:
+            response = self.serial_comm.receive_data()
+            if response == "":
+                continue
 
-  def _read_error_output(self):
-    while True:
-      line = self._message_queue.get()
-      line = line.replace(PowerManager.PROMPT, "").strip()
-      if line.startswith("Error detail"):
-        return [line.replace("Error detail:", "").strip()]
+            if expected_response:
+                if response == expected_response:
+                    return True
+                else:
+                    return False
 
-  def _read_output(self):
-    while True:
-      line = self._message_queue.get()
-      # print(f"OUT: {line}")
-      if line == PowerManager.PROMPT:
-        return
-      line = line.replace(PowerManager.PROMPT, "").strip()
-      if line:
-        yield line
+            response = response.split("PowerShield > ack ")
+            try:
+                if response[1] == command:
+                    return True
+            except IndexError:
+                return False
 
-  def _purge_messages(self):
-    while not self._message_queue.empty():
-      line = self._message_queue.get()
-      if line:
-        print(f"Dropping message: {line}", file=sys.stderr)
+        return False
 
-  def _send_command(self, command, expect_output=False, err_message=None):
-    self._purge_messages()
-    print(f"pwr {command}")
-    self._port.write_line(command)
-    lines = self._read_response(command)
-    result = lines and lines[0] == 'ack'
-    output = lines[1:] if lines and len(lines) > 1 else []
-    if not result:
-      output = self._read_error_output()
-      if err_message is not None:
-        print(f"{err_message}: {output[0]}", file=sys.stderr)
-    elif expect_output:
-      output = [l for l in self._read_output()]
-    return result, output if not output or len(output) != 1 else output[0]
+    def init_device(
+        self,
+        mode: str = "ascii",
+        voltage: int = 3300,
+        freq: int = 5000,
+        duration: int = 0,
+    ) -> None:
+        """
+        Initializes the LPM01A device with the given mode, voltage, frequency, and duration.
 
-  """
-  ################################################################################
-  #                             PowerShield commands                             #
-  ################################################################################
-  #   Command    #                          Description                          #
-  ################################################################################
-  # Common operation                                                             #
-  ################################################################################
-  # help         # Displays list of commands.                                    #
-  #              #                                                               #
-  # echo <arg1>  # Loopback to check functionality of communication Rx and Tx.   #
-  #              # <arg1>: String of characters                                  #
-  #              #                                                               #
-  # powershield  # Check PowerShield device availability, can be used to scan    #
-  #              # on which serial port is connected the PowerShield.            #
-  #              # Response: 'PowerShield present' with board unique ID          #
-  #              #                                                               #
-  # version      # Get PowerShield FW revision.                                  #
-  #              # Response: '<main>.<sub1>.<sub2>'                              #
-  #              #                                                               #
-  # range        # Get PowerShield current measurement range.                    #
-  #              # Response: <current min> <current max>                         #
-  #              #                                                               #
-  # status       # Get PowerShield status.                                       #
-  #              # Response: 'ok' or 'error: <error description>'                #
-  #              #                                                               #
-  # htc          # Host take control (go from mode 'standalone'                  #
-  #              # to mode 'controlled by host')                                 #
-  # hrc          # Host release control (go from mode 'controlled by host'       #
-  #              # to mode 'standalone')                                         #
-  #              #                                                               #
-  # lcd          # Display a custom string on LCD display when PowerShield is    #
-  # <arg1>       # controlled by host.                                           #
-  # <arg2>       # <arg1>: LCD line. Numerical value among list: {1, 2}          #
-  #              # <arg2>: String to be displayed, surrounded by double quotes   #
-  #              #         and with 16 characters maximum.                       #
-  #              # Example: lcd 1 "  custom display"                             #
-  #              #                                                               #
-  # psrst        # Reset PowerShield (hardware reset,                            #
-  #              # host communication will have to be restored).                 #
-  #              #                                                               #
-  ################################################################################
-  # Measurement acquisition configuration                                        #
-  ################################################################################
-  # volt <arg1>  # Set or get power supply voltage level, unit: V.               #
-  #              # <arg1>: Set voltage: Numerical value in range [1800m; 3300m]  #
-  #              #                      Default value: 3300m                     #
-  #              #         Get voltage: String 'get'                             #
-  #              #                                                               #
-  # freq <arg1>  # Set sampling frequency, unit: Hz.                             #
-  #              # <arg1>: Numerical value among list:                           #
-  #              #         {100k, 50k, 20k, 10k, 5k, 2k, 1k, 500, 200            #
-  #              #          100, 50, 20, 10, 5, 2, 1}                            #
-  #              #         Default value: 100Hz                                  #
-  #              #                                                               #
-  # acqtime      # Set acquisition time, unit: s.                                #
-  # <arg1>       # <arg1>: For limited acquisition duration:                     #
-  #              #           Numerical value in range: [100u; 100]               #
-  #              #         For infinite acquisition duration:                    #
-  #              #           Numerical value '0' or string 'inf'                 #
-  #              #         Caution: Maximum acquisition time depends on other    #
-  #              #                  parameters. Refer to table below.            #
-  #              #         Default value: 10s                                    #
-  #              #                                                               #
-  # acqmode      # Set acquisition mode: dynamic or static.                      #
-  # <arg1>       #   dynamic: current can vary, range [100nA; 10mA]              #
-  #              #   static: current must be constant, range [2nA; 200mA]        #
-  #              # <arg1>: String among list: {'dyn', 'stat'}                    #
-  #              #         Default value: 'dyn'                                  #
-  #              #                                                               #
-  # funcmode     # Set optimization of acquisition mode dynamic (applicable      #
-  # <arg1>       # only with command 'output' set to parameter 'current'):       #
-  #              #   optim: priority on current resolution (100nA-10mA),         #
-  #              #          max sampling frequency at 100KHz.                    #
-  #              #   high:  high current (30uA-10mA), high sampling frequency    #
-  #              #          (50-100KHz), high resolution.                        #
-  #              # <arg1>: String among list: {'optim', 'high'}                  #
-  #              #         Default value: 'optim'                                #
-  #              #                                                               #
-  # output       # Set output type.                                              #
-  # <arg1>       #   current: instantaneous current                              #
-  #              #   energy:  integrated energy, reset after each sample sent    #
-  #              #            (integration time set by param 'freq',             #
-  #              #            limited at 10kHz max (<=> 100us min)).             #
-  #              # <arg1>: String among list: {'current', 'energy'}              #
-  #              #         Default value: 'current'                              #
-  #              #                                                               #
-  # format <arg1># Set measurement data format.                                  #
-  #              # Data format 1: ASCII, decimal basis.                          #
-  #              #                Format readable directly, but sampling         #
-  #              #                frequency limited to 10kHz.                    #
-  #              #                Decoding: 6409-07 <=> 6409 x 10^-7 = 640.9uA   #
-  #              # Data format 2: Binary, hexadecimal basis.                     #
-  #              #                Format optimized data stream size.             #
-  #              #                Decoding: 52A0 <=> (2A0)16 x 16^-5 = 640.9uA   #
-  #              # <arg1>: String among list: {'ascii_dec', 'bin_hexa'}          #
-  #              #         Caution: Data format depends on other                 #
-  #              #                  parameters. Refer to table below.            #
-  #              #         Default value: 'ascii_dec'                            #
-  #              #                                                               #
-  # trigsrc      # Set trigger source to start measurement acquisition:          #
-  # <arg1>       # trigger source SW (immediate trig after SW start),            #
-  #              # trigger from external signal rising or falling edge on        #
-  #              # Arduino connector D7 (via solder bridge).                     #
-  #              # <arg1>: String among list: {'sw', 'd7'}                       #
-  #              #         Default value: 'sw'                                   #
-  #              #                                                               #
-  # trigdelay    # Set trigger delay between target power-up and start           #
-  # <arg1>       # measurement acquisition, unit: s, resolution: 1ms.            #
-  #              # <arg1>: Numerical value in range [0; 30]                      #
-  #              #         Default value: 1m                                     #
-  #              #                                                               #
-  # currthres    # Set current threshold to trig an event, unit: A.              #
-  # <arg1>       # Event triggered when threshold exceeded: signal generated     #
-  #              # on Arduino connector D2 or D3 (via solder bridge)             #
-  #              # and LED4 (blue) turned on.                                    #
-  #              # <arg1>: Numerical value in range [100n; 50m]                  #
-  #              #         or value '0' for threshold disable                    #
-  #              #         Default value: 1m                                     #
-  #              #                                                               #
-  # pwr          # Set target power supply connection.                           #
-  # <arg1>       # Automatic: On first run, power-on when acquisition start.     #
-  #(<arg2>)      #            Then, power state depends on command 'pwrend'.     #
-  #              # Manual: Force power state.                                    #
-  #              #         Note: Can be used during acquisition. To perform      #
-  #              #               successive power off and on, it is preferable   #
-  #              #               to use command 'targrst'.                       #
-  #              # Optionally, connection status can be sent at the beginning    #
-  #              # and end of acquisition data stream.                           #
-  #              # <arg1>: Set pwr: String among list: {'auto', 'on', 'off'}     #
-  #              #                  Default value: 'auto'                        #
-  #              #         Get pwr: String 'get' (response: state 'on' or 'off') #
-  #              # <arg2>: Optional, string among list: {'nostatus', 'status'}   #
-  #              #         Default value: 'nostatus'                             #
-  #              #                                                               #
-  # pwrend       # Set target power supply connection to be applied after        #
-  # <arg1>       # acquisition: power-on or power-off.                           #
-  #              # <arg1>: String among list: {on, off}                          #
-  #              #         Default value: 'on'                                   #
-  #              #                                                               #
-  #              #                                                               #
-  ################################################################################
-  # Measurement acquisition operation                                            #
-  ################################################################################
-  # start        # Start acquisition (measurement of current or energy           #
-  #              # depending on configuration).                                  #
-  #              #                                                               #
-  # stop         # Stop acquisition. If acquisition is set to a finite duration, #
-  #              # it will stop when reaching the target duration.               #
-  #              #                                                               #
-  # targrst      # Reset target by disconnecting power supply during             #
-  # <arg1>       # a configurable duration, unit: s.                             #
-  #              # Note: Can be performed during acquisition to monitor target   #
-  #              #       transient current consumption during its power-up.      #
-  #              # <arg1>: Numerical value in range [10m; 1]                     #
-  #              #         or value '0' to let target powered-down               #
-  #              #                                                               #
-  # temp         # Get temperature from temperature sensor on PowerShield board, #
-  # <arg1>       # on unit: Degree Celsius or Fahrenheit.                        #
-  #              # <arg1>: String among list: {degc, degf}                       #
-  #              #         Default value: 'degc'                                 #
-  #              #                                                               #
-  ################################################################################
-  # Board state operation                                                        #
-  ################################################################################
-  # autotest     # Perform board autotest and display autotest results.          #
-  #(<arg1>)      # Note: Autotest is done at PowerShield power-up.               #
-  #(<arg2>)      # <arg1>: Optional: string among list: {start, status}          #
-  #              #                   or no argument equivalent to value: 'start' #
-  #              # <arg2>: Optional: results status all or minimal (ok - not ok) #
-  #              #                   string among list: {stat_all, stat_min}     #
-  #              #                                                               #
-  # calib        # Perform board self-calibration.                               #
-  #              # Note: New calibration should be performed when temperature    #
-  #              #       shifts of more than 5 degC since the previous           #
-  #              #       calibration.                                            #
-  #              # Note: Calibration is done at PowerShield power-up             #
-  #              #       and after each update of power supply voltage level.    #
-  #              #                                                               #
-  ################################################################################
-  # Note: Numerical values of arguments can be formatted either:                 #
-  #       - Numerical characters only (possible when numbers are >= 1)           #
-  #       - Numerical characters with unit characters 'u', 'm', 'k', 'm'         #
-  #       - Numerical characters with power of ten '-xx' or '+xx'                #
-  #         (xx: number on 2 digits maximum)                                     #
-  #       Example: Value '2 milliseconds' can be entered with: '2m' or '2-3'     #
-  ################################################################################
-  # Table of maximum acquisition time possible in function of                    #
-  # sampling frequency and data format,                                          #
-  # for a baudrate of 3686400 bauds:                                             #
-  #    ______________________________________________________________________    #
-  #    |  format        freq    |   acqtime max    (corresp. nb of samples) |    #
-  #    |____________________________________________________________________|    #
-  #    | ascii_dec  | <=  5k    |    unlimited     (unlimited)              |    #
-  #    | ascii_dec  |    10k    |        1s        (   10 000)              |    #
-  #    | ascii_dec  |    20k    |      500ms       (    5 000)              |    #
-  #    | bin_hexa   | <=100k    |    unlimited     (unlimited)              |    #
-  #    |____________________________________________________________________|    #
-  ################################################################################
-  """
+        Args:
+            mode (str): The mode for the LPM01A device. Currently only supports "ascii".
+            voltage (int): The voltage for the LPM01A device.
+            freq (int): The frequency for the LPM01A device.
+            duration (int): The duration for the LPM01A device.
+        """
+
+        self.mode = mode
+        self.send_command_wait_for_response("htc")
+
+        if self.mode == "ascii":
+            self.send_command_wait_for_response(f"format ascii_dec")
+        else:
+            raise NotImplementedError
+            self.send_command_wait_for_response(f"format bin_hexa")
+
+        self.send_command_wait_for_response(f"volt {voltage}m")
+        self.send_command_wait_for_response(f"freq {freq}")
+        self.send_command_wait_for_response(f"acqtime {duration}")
+
+    def start_capture(self) -> None:
+        """
+        Starts the capture of the LPM01A device.
+        """
+        print(f"Starting capture, printing info every {self.print_info_every_ms} ms")
+        self.send_command_wait_for_response("start")
+
+    def stop_capture(self) -> None:
+        """
+        Stops the capture of the LPM01A device.
+        """
+        self.send_command_wait_for_response(
+            "stop", expected_response="PowerShield > Acquisition completed"
+        )
+        self.send_command_wait_for_response("hrc")
+
+    def deinit_capture(self) -> None:
+        """
+        Deinitializes the capture of the LPM01A device.
+        """
+        # Optionally save collected data to a file
+        with open("captured_data.txt", "w") as file:
+            file.write("Current (uA),rx timestamp (us),board timestamps (ms)\n")
+            for entry in self.data_storage:
+                file.write(
+                    f"{entry['current_uA']},{entry['local_timestamp_us']},{entry['board_timestamp_ms']}\n"
+                )
+        self.serial_comm.close_serial()
+
+    def read_and_parse_data(self) -> None:
+        """
+        Reads and parses the data from the LPM01A device.
+        """
+        self.capture_start_us = int(self.uc.s_to_us(time()))
+        if self.mode == "ascii":
+            self._read_and_parse_ascii()
+        else:
+            raise NotImplementedError

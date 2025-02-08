@@ -1,0 +1,487 @@
+{
+    "_allocate_inputs": 4,
+    "_allocate_outputs": 4,
+    "cli_parameters": "generate --target stm32l4 --name sww_model -m /Users/jeremy/dev/tiny_mlperf/tiny_jhsyn/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite --compression none --verbosity 1 --allocate-inputs --allocate-outputs --workspace /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace2751951177129584645880868303822648 --output /Users/jeremy/.stm32cubemx/sww_model_output",
+    "cli_version": {
+        "extra": "19899",
+        "major": 1,
+        "micro": 0,
+        "minor": 0
+    },
+    "cli_version_str": "1.0.0-19899",
+    "code_size": 0,
+    "compression": [],
+    "date_time": "2025-01-27T11:39:10-0500",
+    "error": 0,
+    "error_str": [],
+    "exec_cmd": "generate",
+    "exec_duration": 0.0,
+    "hash": "0x11c3f8bb3c26578a427b600d2c3795e0",
+    "inputs": [
+        "serving_default_input_10"
+    ],
+    "layers": [
+        {
+            "c_id": [
+                0
+            ],
+            "extras": {
+                "n_macc": 0,
+                "n_params": 0,
+                "psize": 0,
+                "rom_output": {
+                    "c_size": 1200,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        40,
+                        30
+                    ]
+                },
+                "rom_size": 280
+            },
+            "id": 0,
+            "inputs": [],
+            "name": "serving_default_input_10",
+            "original": "",
+            "type": "Input"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 3400,
+                "n_params": 160,
+                "psize": 280,
+                "rom_output": {
+                    "c_size": 1120,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        40,
+                        28
+                    ]
+                },
+                "rom_size": 0
+            },
+            "id": 0,
+            "inputs": [
+                "serving_default_input_10"
+            ],
+            "name": "conv2d_0",
+            "original": "DEPTHWISE_CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [
+                1
+            ],
+            "extras": {
+                "n_macc": 143488,
+                "n_params": 5248,
+                "psize": 5632,
+                "rom_output": {
+                    "c_size": 3024,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        108,
+                        28
+                    ]
+                },
+                "rom_size": 4752
+            },
+            "id": 1,
+            "inputs": [
+                "conv2d_0"
+            ],
+            "name": "conv2d_1",
+            "original": "CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 3584,
+                "n_params": 0,
+                "psize": 0,
+                "rom_size": 0
+            },
+            "id": 1,
+            "inputs": [
+                "conv2d_1"
+            ],
+            "name": "nl_1_nl",
+            "original": "CONV_2D",
+            "type": "Nonlinearity"
+        },
+        {
+            "c_id": [
+                2
+            ],
+            "extras": {
+                "n_macc": 15488,
+                "n_params": 768,
+                "psize": 1152,
+                "rom_output": {
+                    "c_size": 2592,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        108,
+                        24
+                    ]
+                },
+                "rom_size": 972
+            },
+            "id": 2,
+            "inputs": [
+                "nl_1_nl"
+            ],
+            "name": "conv2d_2",
+            "original": "DEPTHWISE_CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [
+                3
+            ],
+            "extras": {
+                "n_macc": 393344,
+                "n_params": 16512,
+                "psize": 16896,
+                "rom_output": {
+                    "c_size": 1944,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        81,
+                        24
+                    ]
+                },
+                "rom_size": 9072
+            },
+            "id": 3,
+            "inputs": [
+                "conv2d_2"
+            ],
+            "name": "conv2d_3",
+            "original": "CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 3072,
+                "n_params": 0,
+                "psize": 0,
+                "rom_size": 0
+            },
+            "id": 3,
+            "inputs": [
+                "conv2d_3"
+            ],
+            "name": "nl_3_nl",
+            "original": "CONV_2D",
+            "type": "Nonlinearity"
+        },
+        {
+            "c_id": [
+                4
+            ],
+            "extras": {
+                "n_macc": 19328,
+                "n_params": 1408,
+                "psize": 1792,
+                "rom_output": {
+                    "c_size": 1215,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        81,
+                        15
+                    ]
+                },
+                "rom_size": 1134
+            },
+            "id": 4,
+            "inputs": [
+                "nl_3_nl"
+            ],
+            "name": "conv2d_4",
+            "original": "DEPTHWISE_CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [
+                5
+            ],
+            "extras": {
+                "n_macc": 245888,
+                "n_params": 16512,
+                "psize": 16896,
+                "rom_output": {
+                    "c_size": 780,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        52,
+                        15
+                    ]
+                },
+                "rom_size": 4420
+            },
+            "id": 5,
+            "inputs": [
+                "conv2d_4"
+            ],
+            "name": "conv2d_5",
+            "original": "CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 1920,
+                "n_params": 0,
+                "psize": 0,
+                "rom_size": 0
+            },
+            "id": 5,
+            "inputs": [
+                "conv2d_5"
+            ],
+            "name": "nl_5_nl",
+            "original": "CONV_2D",
+            "type": "Nonlinearity"
+        },
+        {
+            "c_id": [
+                6
+            ],
+            "extras": {
+                "n_macc": 2048,
+                "n_params": 2048,
+                "psize": 2432,
+                "rom_output": {
+                    "c_size": 52,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        52,
+                        1
+                    ]
+                },
+                "rom_size": 988
+            },
+            "id": 6,
+            "inputs": [
+                "nl_5_nl"
+            ],
+            "name": "conv2d_6",
+            "original": "DEPTHWISE_CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [
+                7
+            ],
+            "extras": {
+                "n_macc": 4128,
+                "n_params": 4128,
+                "psize": 4224,
+                "rom_output": {
+                    "c_size": 32,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        1,
+                        32,
+                        1
+                    ]
+                },
+                "rom_size": 1792
+            },
+            "id": 7,
+            "inputs": [
+                "conv2d_6"
+            ],
+            "name": "conv2d_7",
+            "original": "CONV_2D",
+            "type": "Conv2D"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 32,
+                "n_params": 0,
+                "psize": 0,
+                "rom_size": 0
+            },
+            "id": 7,
+            "inputs": [
+                "conv2d_7"
+            ],
+            "name": "nl_7_nl",
+            "original": "CONV_2D",
+            "type": "Nonlinearity"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 0,
+                "n_params": 0,
+                "psize": 0,
+                "rom_size": 0
+            },
+            "id": 8,
+            "inputs": [
+                "nl_7_nl"
+            ],
+            "name": "reshape_8",
+            "original": "RESHAPE",
+            "type": "Reshape"
+        },
+        {
+            "c_id": [
+                8
+            ],
+            "extras": {
+                "n_macc": 0,
+                "n_params": 96,
+                "psize": 96,
+                "rom_size": 108
+            },
+            "id": 9,
+            "inputs": [],
+            "name": "model_dense_MatMul",
+            "original": "",
+            "type": "Placeholder"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 0,
+                "n_params": 3,
+                "psize": 12,
+                "rom_size": 0
+            },
+            "id": 9,
+            "inputs": [],
+            "name": "model_dense_BiasAdd_ReadVariableOp",
+            "original": "",
+            "type": "Placeholder"
+        },
+        {
+            "c_id": [],
+            "extras": {
+                "n_macc": 99,
+                "n_params": 0,
+                "psize": 0,
+                "rom_output": {
+                    "c_size": 3,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        3
+                    ]
+                },
+                "rom_size": 0
+            },
+            "id": 9,
+            "inputs": [
+                "reshape_8",
+                "model_dense_MatMul",
+                "model_dense_BiasAdd_ReadVariableOp"
+            ],
+            "name": "gemm_9",
+            "original": "FULLY_CONNECTED",
+            "type": "Gemm"
+        },
+        {
+            "c_id": [
+                9
+            ],
+            "extras": {
+                "n_macc": 45,
+                "n_params": 0,
+                "psize": 0,
+                "rom_output": {
+                    "c_size": 3,
+                    "fmt": {
+                        "format": "s8"
+                    },
+                    "shape": [
+                        3
+                    ]
+                },
+                "rom_size": 0
+            },
+            "id": 10,
+            "inputs": [
+                "gemm_9"
+            ],
+            "name": "nl_10",
+            "original": "SOFTMAX",
+            "type": "Nonlinearity"
+        }
+    ],
+    "model_files": [
+        "/Users/jeremy/dev/tiny_mlperf/tiny_jhsyn/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite"
+    ],
+    "model_n_params": 46883,
+    "model_name": "strm_ww_int8",
+    "model_size": 49412,
+    "model_type": "tflite",
+    "name": "sww_model",
+    "outputs": [
+        "nl_10"
+    ],
+    "ram_io_size": [
+        0,
+        0
+    ],
+    "ram_size": 5836,
+    "report_version": 1.1,
+    "rom_cfact": 1.0,
+    "rom_heap_inspector": 2048,
+    "rom_inputs": [
+        {
+            "c_size": 1200,
+            "c_type": "s8",
+            "name": "serving_default_input_10"
+        }
+    ],
+    "rom_n_macc": 652551,
+    "rom_outputs": [
+        {
+            "c_size": 3,
+            "c_type": "s8",
+            "name": "nl_10"
+        }
+    ],
+    "rom_size": 23520,
+    "strategy": "",
+    "tools_api_version": "1.0.0-19899",
+    "tools_version": "1.0.0-19899",
+    "val_error": -1.0,
+    "val_error_desc": "None (None) #-1",
+    "val_metrics": []
+}

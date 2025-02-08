@@ -461,6 +461,14 @@ def get_file_lists(data_dir):
 
 def get_all_datasets(Flags):
 
+  if Flags.saved_datasets_path:
+    # specified a path to load pre-built datasets from
+    ds_val = tf.data.Dataset.load(os.path.join(Flags.saved_datasets_path, 'sww_val'))
+    ds_train = tf.data.Dataset.load(os.path.join(Flags.saved_datasets_path, 'sww_train'))
+    ds_test = tf.data.Dataset.load(os.path.join(Flags.saved_datasets_path, 'sww_test'))
+    return ds_train, ds_test, ds_val
+
+  # Otherwise, build the datasets now
   flags_training = get_data_config(Flags, 'training')
   flags_validation = get_data_config(Flags, 'validation')
   flags_test = get_data_config(Flags, 'test')
@@ -689,3 +697,8 @@ if __name__ == '__main__':
     print(f"Input tensor shape: {dat[0].shape}")
     print(f"Label shape: {dat[1].shape}")
   print(f"Number of each class in training set:\n {count_labels(ds_train, label_index=1)}")
+
+  os.makedirs("saved_datasets", exist_ok=True)
+  ds_train.save("saved_datasets/sww_train")
+  ds_val.save("saved_datasets/sww_val")
+  ds_test.save("saved_datasets/sww_test")
