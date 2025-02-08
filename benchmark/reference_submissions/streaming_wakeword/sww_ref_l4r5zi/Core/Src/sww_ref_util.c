@@ -18,6 +18,7 @@
 
 #include "sww_ref_util.h"
 #include "feature_extraction.h"
+#include "main.h"
 
 // needed for running the model and/or initializing inference setup
 #include "sww_model.h"
@@ -268,7 +269,7 @@ ai_error aiRun(const void *in_data, void *out_data) {
   return err;
 }
 
-void run_model(char *cmd_args[]) {
+void run_model_on_test_data(char *cmd_args[]) {
 //	acquire_and_process_data(in_data);
 	const int8_t *input_source=NULL;
 	int32_t timer_start, timer_stop;
@@ -337,13 +338,20 @@ void run_extraction(char *cmd_args[]) {
 
 void stop_detection(char *cmd_args[]) {
 	switch(g_i2s_state) {
+	// the stopping/idle combination may not be necessary, but it was originally set up
+	// to go to Stopping then wait for the current transaction to complete before Idle.
+	// But sometimes the current transaction never completes, leaving the program hung.
 	case Streaming:
 		g_i2s_state = Stopping;
-		printf("Stop requested. Streaming detection will end after current I2S chunk completes.\r\n");
+		g_i2s_status = HAL_SAI_DMAStop(&hsai_BlockA1);
+		g_i2s_state = Idle;
+		printf("Streaming stopped.\r\n");
 		break;
 	case FileCapture:
 		g_i2s_state = Stopping;
-		printf("Stop requested. Wav capture will end after current I2S chunk completes.\r\n");
+		g_i2s_status = HAL_SAI_DMAStop(&hsai_BlockA1);
+		g_i2s_state = Idle;
+		printf("Wav capture stopped.\r\n");
 		break;
 	case Idle:
 		printf("I2S is already idle.  Ignoring stop request\r\n");
@@ -376,8 +384,6 @@ void start_detection(char *cmd_args[]) {
 		 // it with 0s to avoid unpredictable detections at the beginning
 		 memset(g_model_input, 0x00, SWW_MODEL_INPUT_SIZE*sizeof(int8_t));
 		 memset(g_wav_block_buff, 0x00, SWW_WINLEN_SAMPLES*sizeof(int16_t));
-
-
 
 		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 		 // you can also check hsai->State
@@ -460,7 +466,7 @@ void process_command(char *full_command) {
 		printf("Streaming Wakeword reference platform\r\n");
 	}
 	else if(strcmp(cmd_args[0], "run_model") == 0) {
-		run_model(cmd_args);
+		run_model_on_test_data(cmd_args);
 	}
 	else if(strcmp(cmd_args[0], "extract") == 0) {
 		run_extraction(cmd_args);
@@ -527,6 +533,16 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
     log_printf(&g_log, "<end>w0=%d\r\n", g_wav_record[0]);
 }
 
+void delay_us(int delay_len_us) {
+	// there may be a better way to implement this
+	// this will not give an accurate 1us delay, but
+	// for longer delays it should be accurate to within 1us.
+	int delay_start = __HAL_TIM_GET_COUNTER(&htim16);
+	while(__HAL_TIM_GET_COUNTER(&htim16) < delay_start + 1 ){
+		;
+	}
+}
+
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 
 	// feature_buff is used internally as a 2nd internal scratch space,
@@ -536,6 +552,7 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
+	int32_t timer_start=0, timer_stop=0;
     log_printf(&g_log, "process_chunk:%d\r\n", num_calls);
 
 	// idle_buffer is the one that will be idle after we switch
@@ -551,7 +568,8 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	/*******  End test capture code  (jhdbg)   ******/
 
 
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
+	//    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
+
     // g_wav_block_buff[SWW_WINSTRIDE_SAMPLES:<end>]  are old samples to be
     // shifted to the beginning of the clip. After this block,
     // g_wav_block_buff[0:(winlen-winstride)] is populated
@@ -575,9 +593,20 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(255*feature_buff[i]-128);
 	}
 
-    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
+	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
+		in_data[i] = (ai_i8)g_model_input[i];
+	}
+	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
+	/*  Call inference engine */
+	aiRun(in_data, out_data);
+	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
+	if( out_data[0] > 124 ) {
+ 	    HAL_GPIO_WritePin(PIN_WW_DETECTED_GPIO_Port, PIN_WW_DETECTED_Pin, GPIO_PIN_SET);
+	    delay_us(1);
+	    HAL_GPIO_WritePin(PIN_WW_DETECTED_GPIO_Port, PIN_WW_DETECTED_Pin, GPIO_PIN_RESET);
+	}
 
-    if( num_calls == 29){
+    if( 0 && num_calls == 29){
     	printf("{"); // this part can be snipped out and read in as JSON
     	printf("\"wav_cap\": ");
 		// print_vals_int16(g_wav_record, g_int16s_read);
@@ -589,6 +618,14 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 		printf(", \r\n \"model_input\": ");
 		print_vals_int8(g_model_input, SWW_MODEL_INPUT_SIZE);
 		printf("} \r\n");
+
+		printf("TIM16: aiRun took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
+		printf("Output = [");
+		for(int i=0;i<AI_SWW_MODEL_OUT_1_SIZE;i++){
+			printf("%02d, ", out_data[i]);
+		}
+		printf("]\r\n");
+
 		g_i2s_state = Stopping;
 		// print_vals_float(model_output, 40);
     }
