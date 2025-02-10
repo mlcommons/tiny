@@ -5,7 +5,6 @@ from threading import Thread
 from time import time
 from SerialCommunication import SerialCommunication
 from threading import Thread
-#Comment to be able to Pull (delete later)
 
 class UnitConversions:
     """
