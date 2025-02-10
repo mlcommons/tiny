@@ -11,7 +11,7 @@ from datasets import DataSet
 from device_manager import DeviceManager
 from device_under_test import DUT
 from script import Script
-
+#Comment to be able to Pull (delete later)
 """
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
 under test.

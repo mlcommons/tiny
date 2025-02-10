@@ -3,6 +3,7 @@ from queue import Empty, Queue
 from threading import Thread
 
 import serial
+#Comment to be able to Pull (delete later)
 
 
 class SerialDevice:

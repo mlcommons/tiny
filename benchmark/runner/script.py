@@ -4,6 +4,7 @@ from datetime import datetime
 from device_under_test import DUT  # Import DUT class
 global_loop_count = None  # This will store the loop count globally
 file_processed = False
+#Comment to be able to Pull (delete later)
 
 class _ScriptStep:
     """Base class for script steps"""
