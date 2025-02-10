@@ -4,16 +4,16 @@ from threading import Thread
 
 import serial
 
-
 class SerialDevice:
-  def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n"):
+  def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n", echo=False):
     self._port = serial.Serial(port_device, baud_rate, timeout=0.1)
     self._delimiter = delimiter
     self._end_of_response = end_of_response
     self._message_queue = Queue()
     self._read_thread = None
     self._running = False
-    self._echo = False
+    self._echo = echo
+    self._timeout = 5.0
 
   def __enter__(self):
     self._port.__enter__()
@@ -55,20 +55,27 @@ class SerialDevice:
     self.write(self._delimiter)
 
   def read_line(self, timeout=None):
+    """
+    Read from the serial port.  If nothing is available within timeout seconds, returns None.
+    """
     result = None
+    if timeout is None:
+      timeout = self._timeout
     try:
       result = self._message_queue.get(timeout=timeout)
     except Empty:
       pass
     return result
 
-  def send_command(self, command, end=None, echo=True):
+  def send_command(self, command, end=None, echo=False):
     if echo or self._echo: print(command + (self._delimiter if '\n' not in self._delimiter else ''))
     self.write_line(command)
     lines = []
 
     while True:
       resp = self.read_line()
+      if resp is None:
+        raise RuntimeError(f"No response to command {command}")
       end_of_resp = (end if end is not None else self._end_of_response) in resp
       if resp:
         lines.append(resp)
