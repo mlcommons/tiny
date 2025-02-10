@@ -15,7 +15,6 @@ from script import Script
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
 under test.
 """
-
 def init_dut(device):
     if device:
         with device as dut:

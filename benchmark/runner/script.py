@@ -294,7 +294,6 @@ class _ScriptInferStep(_ScriptStep):
             print(f"{formatted_time} ulp-mlperf: Median throughput is {self.median_throughput:>10.3f} inf./sec.")
             print(f"{formatted_time} ulp-mlperf: ---------------------------------------------------------")
 
-
 class _ScriptStreamStep(_ScriptStep):
     """Step to stream audio from an enhanced interface board"""
     def __init__(self, file_name=None):

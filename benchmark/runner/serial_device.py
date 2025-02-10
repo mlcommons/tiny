@@ -4,7 +4,6 @@ from threading import Thread
 
 import serial
 
-
 class SerialDevice:
   def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n", echo=False):
     self._port = serial.Serial(port_device, baud_rate, timeout=0.1)

@@ -55,7 +55,6 @@ class PowerManager:
         with open("metrics_log.txt", "w") as log_file:
             log_file.write("Timestamp, Amps (A), Voltage (V), Power (W)\n")
 
-
     def _read_and_parse_ascii(self) -> None:
         """
         Reads and parses the data from the LPM01A device in ASCII mode.
