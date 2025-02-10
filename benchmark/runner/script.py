@@ -2,9 +2,9 @@ import re
 import numpy as np
 from datetime import datetime
 from device_under_test import DUT  # Import DUT class
-from power_manager import PowerManager
-
+global_loop_count = None  # This will store the loop count globally
 file_processed = False
+
 class _ScriptStep:
     """Base class for script steps"""
     def run(self, io, dut, dataset, mode):
@@ -77,7 +77,7 @@ class _ScriptLoopStep(_ScriptStep):
         self.model = model
 
     def run(self, io, dut, dataset, mode):
-        
+        global global_loop_count
         i = 0
         result = None if self._loop_count == 1 else []
 
@@ -91,6 +91,7 @@ class _ScriptLoopStep(_ScriptStep):
                 total_length = loop_res.get('total_length', None)
                 if total_length is not None and i == 0:
                     self._loop_count *= total_length
+            global_loop_count = self._loop_count  # Store in global variable
             i += 1
             if self._loop_count != 1:
                 result.append(loop_res)
@@ -177,66 +178,74 @@ class _ScriptInferStep(_ScriptStep):
 
     def _print_energy_results(self, infer_results):
         """
-        Accumulates energy values for all loop iterations and calculates median energy per inference 
-        at the end of all iterations.
-        This function interacts with the PowerManager class to gather and process power data.
+        Calculates and prints energy metrics from metrics_log.txt
+        for the given start_time and end_time in microseconds.
         """
-        num_inferences = self._iterations
+        global global_loop_count
+        start_time = infer_results.get('start_time')
+        end_time = infer_results.get('end_time')
 
-        # Get the current time in the desired format
-        current_time = datetime.now()
-        formatted_time = current_time.strftime("%m%d.%H%M%S")
+        if start_time is None or end_time is None:
+            print("Start time or end time is missing in inference results.")
+            return
 
-        # Initialize the PowerManager with the correct port and baud rate
-        port_device = "COM19"  # Replace with your serial port
-        power_manager = PowerManager(port_device)
+        total_energy = 0  # Total energy in microjoules (uJ)
+        total_power = 0  # Total power in microwatts (µW)
+        count = 0
+        energy_values = []  # Store energy values for calculating the median later
 
-        # Use the PowerManager to gather energy and power results
-        with power_manager:
-            timestamps, power_samples = [], []
+        try:
+            with open("metrics_log.txt", "r") as log_file:
+                # Skip the header
+                next(log_file)
 
-            # Start collecting data from PowerManager
-            power_manager.start()
-            for result in power_manager.get_results():
-                if isinstance(result, str) and result.startswith("TimeStamp"):
-                    timestamps.append(float(result.split()[-1]))
-                elif isinstance(result, float):
-                    power_samples.append(result)
-            power_manager.stop()
+                for line in log_file:
+                    # Parse each line from the file
+                    timestamp, current, voltage, power = line.strip().split(", ")
+                    timestamp = int(timestamp)
+                    current = float(current)  # Amps (A)
+                    voltage = float(voltage)  # Voltage (V)
+                    power = float(power) * 1e6  # Convert Power to µW
 
-            if len(timestamps) > 1 and len(power_samples) > 0:
-                # Calculate total energy (sum of power * time intervals)
-                total_energy = sum(
-                    [power_samples[i] * (timestamps[i + 1] - timestamps[i]) for i in range(len(timestamps) - 1)]
-                )
+                    # Check if the timestamp is within the range
+                    if start_time <= timestamp <= end_time:
+                        energy = power * (1e-6)  # Power (µW) × Time (µs) = Energy (uJ)
+                        total_energy += energy
+                        total_power += power
+                        energy_values.append(energy)
+                        count += 1
 
-                # Calculate average power (mean of the recorded power samples)
-                average_power = np.mean(power_samples)
+            # Calculate metrics
+            if count > 0:
+                average_energy = total_energy / count
+                average_power = total_power / count
 
-                # Calculate energy per inference (total energy divided by number of inferences)
-                energy_per_inference = total_energy / num_inferences if num_inferences > 0 else 0
+                # Determine window and elapsed time
+                elapsed_time_us = end_time - start_time
+                elapsed_time_sec = elapsed_time_us / 1_000_000  # Convert µs to seconds
+                self.throughput_values.append(elapsed_time_sec)
 
-                # Print energy results for each window
-                print(f"{formatted_time} ulp-ml: Energy data for window {len(self.throughput_values)} at time {timestamps[-1]:.2f} for {timestamps[-1] - timestamps[0]:.2f} sec.:")
-                print(f"{formatted_time} ulp-ml:   Energy       : {total_energy:>13.3f} uJ")
-                print(f"{formatted_time} ulp-ml:   Power        : {average_power:>13.3f} uW")
-                print(f"{formatted_time} ulp-ml:   Energy/Inf.  : {energy_per_inference:>13.3f} uJ/inf.")
+                # Get the current time for log formatting
+                current_time = datetime.now()
+                formatted_time = current_time.strftime("%m%d.%H%M%S")
 
-                # Store energy values for calculating median
-                self.energy_values.append(energy_per_inference)
-
-        # Check if all iterations are complete
-        if len(self.energy_values) == self._loop_count:
-            # Calculate the median energy per inference after all loop iterations
-            total_median_energy = np.median(self.energy_values)
-
-            # Store the result for later use
-            self.median_energy = total_median_energy
-
-            # Print the formatted output with median energy per inference
-            print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
-            print(f"{formatted_time} ulp-ml: Median energy cost is {self.median_energy:>10.3f} uJ/inf.")
-            print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
+                # Print energy results in the required format
+                print(f"{formatted_time} ulp-ml: Energy data for window {len(self.throughput_values)} at time {start_time:.2f} sec. for {elapsed_time_sec:.2f} sec.:")
+                print(f"{formatted_time} ulp-ml: Energy        : {total_energy:.3f} uJ")
+                print(f"{formatted_time} ulp-ml: Power         : {average_power:.3f} µW")
+                print(f"{formatted_time} ulp-ml: Energy/Inf.   : {average_energy:.3f} uJ/inf.")
+                # If this is the last loop, calculate and print the median energy
+                if len(self.throughput_values) == global_loop_count:
+                    median_energy = np.median(energy_values)
+                    print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
+                    print(f"{formatted_time} ulp-ml: Median energy cost is {median_energy:.3f} uJ/inf.")
+                    print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
+            else:
+                print("No data points found between the specified timestamps.")
+        except FileNotFoundError:
+            print("metrics_log.txt not found.")
+        except Exception as e:
+            print(f"An error occurred while processing metrics_log.txt: {e}")
 
 
     def _print_performance_results(self, infer_results):
@@ -244,6 +253,7 @@ class _ScriptInferStep(_ScriptStep):
         Accumulates throughput values for all loop iterations and calculates median throughput 
         at the end of all iterations.
         """
+        global global_loop_count
         # Use the total_inferences from _gather_infer_results results
         num_inferences = self._iterations
         
@@ -271,9 +281,8 @@ class _ScriptInferStep(_ScriptStep):
         print(f"{formatted_time} ulp-mlperf:   Runtime      : {elapsed_time_sec:>10.3f} sec.")
         print(f"{formatted_time} ulp-mlperf:   Throughput   : {throughput:>10.3f} inf./sec.")
         print(f"{formatted_time} ulp-mlperf:   m-results    : {infer_results['results']}")
-
         # Check if we've completed all loop iterations
-        if len(self.throughput_values) == self._loop_count:
+        if len(self.throughput_values) == global_loop_count:
             # Calculate the median throughput after all loop iterations
             total_median_throughput = np.median(self.throughput_values)
 
@@ -284,7 +293,6 @@ class _ScriptInferStep(_ScriptStep):
             print(f"{formatted_time} ulp-mlperf: ---------------------------------------------------------")
             print(f"{formatted_time} ulp-mlperf: Median throughput is {self.median_throughput:>10.3f} inf./sec.")
             print(f"{formatted_time} ulp-mlperf: ---------------------------------------------------------")
-
 
 class _ScriptStreamStep(_ScriptStep):
     """Step to stream audio from an enhanced interface board"""
