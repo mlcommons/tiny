@@ -55,7 +55,7 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern SAI_HandleTypeDef haudio_out_sai;
+extern DMA_HandleTypeDef handle_GPDMA1_Channel2;
 extern DMA_HandleTypeDef handle_GPDMA2_Channel2;
 extern SD_HandleTypeDef hsd1;
 extern UART_HandleTypeDef huart1;
@@ -186,7 +186,7 @@ void GPDMA1_Channel2_IRQHandler(void)
   /* USER CODE BEGIN GPDMA1_Channel2_IRQn 0 */
 
   /* USER CODE END GPDMA1_Channel2_IRQn 0 */
-  HAL_DMA_IRQHandler(haudio_out_sai.hdmatx);
+  HAL_DMA_IRQHandler(&handle_GPDMA1_Channel2);
   /* USER CODE BEGIN GPDMA1_Channel2_IRQn 1 */
 
   /* USER CODE END GPDMA1_Channel2_IRQn 1 */
