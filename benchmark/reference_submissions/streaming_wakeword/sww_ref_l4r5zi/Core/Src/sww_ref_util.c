@@ -530,7 +530,6 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
     	g_i2s_state = Idle;
     }
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
-    log_printf(&g_log, "<end>w0=%d\r\n", g_wav_record[0]);
 }
 
 void delay_us(int delay_len_us) {
@@ -553,7 +552,6 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
 	int32_t timer_start=0, timer_stop=0;
-    log_printf(&g_log, "process_chunk:%d\r\n", num_calls);
 
 	// idle_buffer is the one that will be idle after we switch
 	int16_t *idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
@@ -561,14 +559,6 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
     g_i2s_current_buff = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
 
 	g_i2s_status = HAL_SAI_Receive_DMA(hsai, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
-
-	/*******  Also capturing for test  (jhdbg) ******/
-	g_int16s_read += g_i2s_chunk_size_bytes/2;
-	memcpy((uint8_t*)(g_wav_record+g_int16s_read-g_i2s_chunk_size_bytes/2), idle_buffer, g_i2s_chunk_size_bytes);
-	/*******  End test capture code  (jhdbg)   ******/
-
-
-	//    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_SET);
 
     // g_wav_block_buff[SWW_WINSTRIDE_SAMPLES:<end>]  are old samples to be
     // shifted to the beginning of the clip. After this block,
@@ -600,11 +590,13 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	/*  Call inference engine */
 	aiRun(in_data, out_data);
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
-	if( out_data[0] > 124 ) {
+
+	if( out_data[0] > 120 ) {
  	    HAL_GPIO_WritePin(PIN_WW_DETECTED_GPIO_Port, PIN_WW_DETECTED_Pin, GPIO_PIN_SET);
 	    delay_us(1);
 	    HAL_GPIO_WritePin(PIN_WW_DETECTED_GPIO_Port, PIN_WW_DETECTED_Pin, GPIO_PIN_RESET);
 	}
+    log_printf(&g_log, "%d, \r\n", out_data[0]);
 
     if( 0 && num_calls == 29){
     	printf("{"); // this part can be snipped out and read in as JSON
@@ -629,6 +621,7 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 		g_i2s_state = Stopping;
 		// print_vals_float(model_output, 40);
     }
+    printf("%d,\r\n", num_calls);
     num_calls++;
 }
 
