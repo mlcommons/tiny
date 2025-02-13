@@ -77,6 +77,7 @@ void Error_Handler(void);
 #define ARD_D3_GPIO_Port GPIOB
 #define WW_DET_IN_Pin GPIO_PIN_15
 #define WW_DET_IN_GPIO_Port GPIOG
+#define WW_DET_IN_EXTI_IRQn EXTI15_IRQn
 #define TRACED1_Pin GPIO_PIN_14
 #define TRACED1_GPIO_Port GPIOG
 #define SAI2_SD_B_Pin GPIO_PIN_10
