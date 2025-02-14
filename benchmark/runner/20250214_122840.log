@@ -1,0 +1,51 @@
+Logging initialized. Writing output to 20250214_122840.log
+Traceback (most recent call last):
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\main.py", line 238, in <module>
+result, lpm = run_test(**config)
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\main.py", line 41, in run_test
+manager.scan()
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\device_manager.py", line 76, in scan
+self._instantiate(d)
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\device_manager.py", line 47, in _instantiate
+definition["instance"] = PowerManager(**args)
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+TypeError
+:
+PowerManager.__init__() missing 1 required positional argument: 'baud_rate'

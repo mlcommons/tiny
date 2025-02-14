@@ -1,0 +1,85 @@
+Logging initialized. Writing output to 20250214_122142.log
+Traceback (most recent call last):
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\main.py", line 240, in <module>
+result, lpm = run_test(**config)
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\main.py", line 42, in run_test
+lpm = PowerManager(baud_rate=3864000, print_info_every_ms=1_000)
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+TypeError
+:
+PowerManager.__init__() missing 1 required positional argument: 'port_device'

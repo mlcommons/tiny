@@ -1,0 +1,49 @@
+Logging initialized. Writing output to 20250214_123858.log
+Power instance: <power_manager.PowerManager object at 0x00000191C2698590>
+Traceback (most recent call last):
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\main.py", line 241, in <module>
+result, lpm = run_test(**config)
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\main.py", line 48, in run_test
+power.init_device(mode="ascii", voltage=3300, freq=1000, duration=0)
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\power_manager.py", line 120, in init_device
+self.send_command_wait_for_response("htc")
+File "C:\Users\robet\GitHubRepos\tiny\benchmark\runner\power_manager.py", line 110, in send_command_wait_for_response
+if "ack" in response:
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+TypeError
+:
+argument of type 'NoneType' is not iterable

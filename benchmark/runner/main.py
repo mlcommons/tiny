@@ -37,20 +37,21 @@ def identify_dut(manager):
 
 
 def run_test(devices_config, dut_config, test_script, dataset_path, mode):
-    lpm = None
-    if mode == 'e':
-        lpm = PowerManager(port="COM19", baud_rate=3864000, print_info_every_ms=1_000)
-        lpm.init_device(mode="ascii", voltage=3300, freq=1000, duration=0)
-        lpm.start_capture()
-        lpm.start_background_parsing()  # Start parsing in the background
-
     manager = DeviceManager(devices_config)
     manager.scan()
+    
+    # Retrieve PowerManager instance from DeviceManager
     power = manager.get("power", {}).get("instance")
     print(f"Power instance: {power}")
     
+    if mode == 'e' and power:
+        power.init_device(mode="ascii", voltage=3300, freq=1000, duration=0)
+        power.start_capture()
+        power.start_background_parsing()  # Start parsing in the background
+
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
+    
     identify_dut(manager)
 
     dut = manager.get("dut", {}).get("instance")
@@ -61,8 +62,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
 
     data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
     result = script.run(io, dut, data_set, mode)
-
-    return result, lpm
+    lpm = power
+    return result, lpm  # Return the power instance instead of lpm
 
 
 def parse_device_config(device_list_file, device_yaml):

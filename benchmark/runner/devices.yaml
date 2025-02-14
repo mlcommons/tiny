@@ -14,8 +14,9 @@
       - 0x0043
       - 0x0243
 - name: lpm01a
-  usb_description: PowerShield
   type: power
+  usb:
+    0x0483: 0x5740  # Ensures detection by VID/PID (1155 / 22336)
 - name: l4r5zi
   type: dut
   usb:
