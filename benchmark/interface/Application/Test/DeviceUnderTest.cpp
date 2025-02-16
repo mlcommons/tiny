@@ -1,3 +1,4 @@
+#include <cstring>
 #include "DeviceUnderTest.hpp"
 #include "usart.h"
 #include "../Tasks/ITask.hpp"
@@ -31,8 +32,9 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
   };
 
 
-  DeviceUnderTest::DeviceUnderTest(Tasks::TaskRunner &runner, IO::Uart *uart) : runner(runner), uart(*uart)
+  DeviceUnderTest::DeviceUnderTest(Tasks::TaskRunner &runner, IO::Uart *uart) : runner(runner), uart(*uart), wwdet_timestamp_idx(0)
   {
+
   }
 
   void DeviceUnderTest::SendCommand(const std::string &command, TX_QUEUE *queue)
@@ -59,4 +61,40 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
     VOID *tx_msg = TX_NULL;
     tx_queue_send(queue, &tx_msg, TX_WAIT_FOREVER);
   }
+
+  void DeviceUnderTest::RecordDetection()
+  {
+	  uint32_t current_time_us = __HAL_TIM_GET_COUNTER(&htim16);
+
+	  // don't record two detections with the same timestamp and
+	  // don't overrun the end of the allocated array
+	  if( wwdet_timestamps[wwdet_timestamp_idx-1] != current_time_us &&
+	      wwdet_timestamp_idx < MAX_TIMESTAMPS )
+	  {
+		  wwdet_timestamps[wwdet_timestamp_idx++] = current_time_us;
+	  }
+  }
+  uint32_t *DeviceUnderTest::GetDetections()
+  {
+	  return wwdet_timestamps;
+  }
+
+  uint32_t DeviceUnderTest::GetNumDetections()
+  {
+  	  return wwdet_timestamp_idx;
+  }
+
+  void DeviceUnderTest::ClearDetections()
+  {
+	std::memset(wwdet_timestamps, 0, sizeof(wwdet_timestamps));
+	wwdet_timestamp_idx = 0;
+  }
+
+  void DeviceUnderTest::StartRecordingDetections()
+  {
+	ClearDetections();
+	dut_state=RecordingDetections;
+  }
+
 }
+

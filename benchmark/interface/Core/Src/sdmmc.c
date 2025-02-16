@@ -19,7 +19,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "sdmmc.h"
-#include "main.h"
 
 /* USER CODE BEGIN 0 */
 #include "tx_api.h"

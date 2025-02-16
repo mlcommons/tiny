@@ -117,6 +117,7 @@ int main(void)
   MX_TIM16_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start(&htim16); // start timer
 
   /* USER CODE END 2 */
 

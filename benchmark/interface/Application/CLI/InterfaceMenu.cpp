@@ -14,6 +14,11 @@ void CLI_Run()
   CLI::InterfaceMenu::GetSingleton().Run();
 }
 
+void Record_WW_Detection()
+{
+  // CLI::InterfaceMenu::GetSingleton().dut.RecordDetection();
+  CLI::InterfaceMenu::GetSingleton().RecordOneDetection();
+}
 namespace CLI
 {
   InterfaceMenu *InterfaceMenu::instance = (InterfaceMenu *)TX_NULL;
@@ -26,6 +31,8 @@ namespace CLI
                                                         {"name", NameWrapper},
                                                         {"ls", ListWrapper},
                                                         {"play", PlayWrapper},
+														{"record_detections", RecDetsWrapper},
+														{"print_detections", PrintDetsWrapper},
                                                         {"", DefaultWrapper} };
 
   /**
@@ -51,6 +58,23 @@ namespace CLI
   {
     instance->Play(args);
   }
+
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::RecDetsWrapper(const std::string &args)
+  {
+    instance->RecordDetections(args);
+  }
+
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::PrintDetsWrapper(const std::string &args)
+  {
+    instance->PrintDetections(args);
+  }
+
 
   /**
    * Wrap the singleton function in a static function
@@ -164,5 +188,30 @@ namespace CLI
     player.Play(wav);
     SendEnd();
     delete source;
+  }
+
+  void InterfaceMenu::RecordDetections(const std::string &args)
+  {
+	  dut.StartRecordingDetections();
+  }
+
+  void InterfaceMenu::PrintDetections(const std::string &args)
+  {
+	  uint32_t *timestamps = dut.GetDetections();
+	  uint32_t num_timestamps = dut.GetNumDetections();
+
+	  SendString("Detection Timestamps (ms)");
+	  SendEndLine();
+	  for(uint32_t i=0; i<num_timestamps; i++)
+	  {
+		  SendString(std::to_string(timestamps[i]) + ",");
+		  SendEndLine();
+	  }
+	  SendEnd();
+  }
+
+  void InterfaceMenu::RecordOneDetection()
+  {
+	  dut.RecordDetection();
   }
 }
