@@ -1,6 +1,6 @@
 ST Edge AI Core v1.0.0-19899
-Created date          : 2025-01-27 11:39:11
-Parameters            : generate --target stm32l4 --name sww_model -m /Users/jeremy/dev/tiny_mlperf/tiny_jhsyn/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite --compression none --verbosity 1 --allocate-inputs --allocate-outputs --workspace /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace2751951177129584645880868303822648 --output /Users/jeremy/.stm32cubemx/sww_model_output
+Created date          : 2025-02-17 06:43:21
+Parameters            : generate --target stm32l4 --name sww_model -m /Users/jeremy/dev/tiny_mlperf/tiny_jhsyn/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite --compression none --verbosity 1 --allocate-inputs --allocate-outputs --workspace /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace2752212193793753661899248578244979 --output /Users/jeremy/.stm32cubemx/sww_model_output
 
 Exec/report summary (generate)
 -------------------------------------------------------------------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ compression        :   none
 options            :   allocate-inputs, allocate-outputs                                                                                   
 optimization       :   balanced                                                                                                            
 target/series      :   stm32l4                                                                                                             
-workspace dir      :   /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace2751951177129584645880868303822648                   
+workspace dir      :   /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace2752212193793753661899248578244979                   
 output dir         :   /Users/jeremy/.stm32cubemx/sww_model_output                                                                         
 model_fmt          :   ss/sa per channel                                                                                                   
 model_name         :   strm_ww_int8                                                                                                        
