@@ -50,6 +50,7 @@ int8_t *g_model_input;
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
 uint32_t g_i2s_wav_len = 24*2048;
 
+
 int16_t *g_wav_block_buff = NULL; // hold most recent SWW_WINLEN_SAMPLES for feature extraction
 LogBuffer g_log = { .buffer = {0}, .current_pos = 0 };
 i2s_state_t g_i2s_state = Idle;
@@ -420,6 +421,9 @@ void print_help(char *cmd_args[]) {
 	"               on a selected input that is expected to return 0 (WW), 1 (silent), or 2(other)\r\n"
 	"extract     -- run the feature extractor on the first block of a predefined wav form (test_wav_marvin)\r\n"
 	"i2scap      -- Captures about 1s of stereo audio over an I2S link\r\n"
+	"start       -- Start wakeword detection.  Repeatedly runs feature extraction and model on incoming I2S wav data"
+    "stop        -- Stop wakeword detection"
+    "state       -- print out the current operating mode (as int) and status of the I2S link"
 	"log         -- The I2S capture function can write debug messages to a log. Prints and clears that log.\r\n"
 	"help        -- Print this help message\r\n%"
 	;
@@ -592,36 +596,12 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
 
 	if( out_data[0] > 120 ) {
- 	    HAL_GPIO_WritePin(PIN_WW_DETECTED_GPIO_Port, PIN_WW_DETECTED_Pin, GPIO_PIN_SET);
+ 	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_RESET);
 	    delay_us(1);
-	    HAL_GPIO_WritePin(PIN_WW_DETECTED_GPIO_Port, PIN_WW_DETECTED_Pin, GPIO_PIN_RESET);
+	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_SET);
 	}
     log_printf(&g_log, "%d, \r\n", out_data[0]);
 
-    if( 0 && num_calls == 29){
-    	printf("{"); // this part can be snipped out and read in as JSON
-    	printf("\"wav_cap\": ");
-		// print_vals_int16(g_wav_record, g_int16s_read);
-    	print_vals_int16(g_wav_block_buff, SWW_WINLEN_SAMPLES);
-
-    	printf(",\r\n \"features_out\": ");
-    	print_vals_float(feature_buff, NUM_MEL_FILTERS);
-
-		printf(", \r\n \"model_input\": ");
-		print_vals_int8(g_model_input, SWW_MODEL_INPUT_SIZE);
-		printf("} \r\n");
-
-		printf("TIM16: aiRun took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
-		printf("Output = [");
-		for(int i=0;i<AI_SWW_MODEL_OUT_1_SIZE;i++){
-			printf("%02d, ", out_data[i]);
-		}
-		printf("]\r\n");
-
-		g_i2s_state = Stopping;
-		// print_vals_float(model_output, 40);
-    }
-    printf("%d,\r\n", num_calls);
     num_calls++;
 }
 
@@ -732,4 +712,8 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	}
 }
 
+
+void register_detection(void) {
+
+}
 

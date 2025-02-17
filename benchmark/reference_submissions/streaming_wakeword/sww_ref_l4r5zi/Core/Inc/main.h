@@ -91,8 +91,8 @@ void Error_Handler(void);
 #define SWO_GPIO_Port GPIOB
 #define LD2_Pin GPIO_PIN_7
 #define LD2_GPIO_Port GPIOB
-#define PIN_WW_DETECTED_Pin GPIO_PIN_8
-#define PIN_WW_DETECTED_GPIO_Port GPIOB
+#define WW_DETECTED_Pin GPIO_PIN_8
+#define WW_DETECTED_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
