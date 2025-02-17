@@ -192,6 +192,10 @@ namespace CLI
 
   void InterfaceMenu::RecordDetections(const std::string &args)
   {
+
+	  std::string *msg = new std::string("Begin recording detections");
+
+	  __HAL_TIM_SET_COUNTER(&htim2, 0);
 	  dut.StartRecordingDetections();
   }
 
