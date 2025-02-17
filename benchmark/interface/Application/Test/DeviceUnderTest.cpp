@@ -64,14 +64,16 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
 
   void DeviceUnderTest::RecordDetection()
   {
-	  uint32_t current_time_us = __HAL_TIM_GET_COUNTER(&htim16);
+	  // This function is called from the WW_DET_IN falling edge ISR
+	  uint32_t current_time_ms = __HAL_TIM_GET_COUNTER(&htim2);
 
-	  // don't record two detections with the same timestamp and
+	  // don't record two detections within 10ms and
 	  // don't overrun the end of the allocated array
-	  if( wwdet_timestamps[wwdet_timestamp_idx-1] != current_time_us &&
+	  if((wwdet_timestamps[wwdet_timestamp_idx-1] < current_time_ms - 10 ||
+		  wwdet_timestamps[wwdet_timestamp_idx-1] > current_time_ms) && // if the timer rolled over
 	      wwdet_timestamp_idx < MAX_TIMESTAMPS )
 	  {
-		  wwdet_timestamps[wwdet_timestamp_idx++] = current_time_us;
+		  wwdet_timestamps[wwdet_timestamp_idx++] = current_time_ms;
 	  }
   }
   uint32_t *DeviceUnderTest::GetDetections()

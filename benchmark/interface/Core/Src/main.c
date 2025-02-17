@@ -114,10 +114,10 @@ int main(void)
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_SAI1_Init();
-  MX_TIM16_Init();
   MX_I2C1_Init();
+  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Base_Start(&htim16); // start timer
+  HAL_TIM_Base_Start(&htim2); // start timer
 
   /* USER CODE END 2 */
 

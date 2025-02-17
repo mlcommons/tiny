@@ -23,8 +23,8 @@ namespace CLI
       delete buffer;
 
 	  // HAL_GPIO_WritePin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin, GPIO_PIN_SET);
-      // int delay_start = __HAL_TIM_GET_COUNTER(&htim16);
-      // while(__HAL_TIM_GET_COUNTER(&htim16) < delay_start + 100 ){
+      // int delay_start = __HAL_TIM_GET_COUNTER(&htim2);
+      // while(__HAL_TIM_GET_COUNTER(&htim2) < delay_start + 100 ){
       // 	;
       // }
       // HAL_GPIO_WritePin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin, GPIO_PIN_RESET);
