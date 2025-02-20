@@ -1,1 +1,0 @@
-Timestamp, Amps (A), Voltage (V), Power (W)

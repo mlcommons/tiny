@@ -6,6 +6,7 @@ import serial
 
 class SerialDevice:
   def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n", echo=False):
+    print(f"Initializing SerialDevice on port: {port_device} at {baud_rate} baud")  # Debug print
     self._port = serial.Serial(port_device, baud_rate, timeout=0.1)
     self._delimiter = delimiter
     self._end_of_response = end_of_response
@@ -83,3 +84,26 @@ class SerialDevice:
         break
 
     return lines if len(lines) != 1 else lines[0]
+  
+  def close_serial(self) -> None:
+        """Closes the serial communication."""
+        if self._port and self._port.is_open:
+            self._port.close()
+            print("Serial connection closed.")
+            
+  def send_data(self, data: str) -> None:
+        """Sends the given data to the device."""
+        self._port.write((data + "\n").encode())
+        
+  def receive_data(self) -> str:
+    """Receives data from the device."""
+    if not self._port.is_open:
+        print("Error: Serial port is closed. Attempting to reopen...")
+        self._port.open()  # Reopen the port if needed
+
+    try:
+        response = self._port.readline().decode().strip()
+        return response
+    except serial.SerialException as e:
+        print(f"SerialException: {e}")
+        return ""  # Return an empty response instead of crashing

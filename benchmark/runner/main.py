@@ -24,8 +24,8 @@ def init_dut(device):
             dut.get_profile()
 
 def identify_dut(manager):
-    interface = manager.get("interface", {}).get("instance")
     power = manager.get("power", {}).get("instance")
+    interface = manager.get("interface", {}).get("instance")
     if not manager.get("dut") and interface: # removed and power:
         dut = DUT(interface, power_manager=power)
         manager["dut"] = {
@@ -37,34 +37,34 @@ def identify_dut(manager):
 
 
 def run_test(devices_config, dut_config, test_script, dataset_path, mode):
+    """Run the test
+
+    :param devices_config:
+    :param dut_config:
+    :param test_script:
+    :param dataset_path:
+    """
     manager = DeviceManager(devices_config)
     manager.scan()
-    
-    # Retrieve PowerManager instance from DeviceManager
     power = manager.get("power", {}).get("instance")
     print(f"Power instance: {power}")
     
-    if mode == 'e' and power:
-        power.init_device(mode="ascii", voltage=3300, freq=1000, duration=0)
-        power.start_capture()
-        power.start_background_parsing()  # Start parsing in the background
-
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
-    
     identify_dut(manager)
 
     dut = manager.get("dut", {}).get("instance")
     io = manager.get("interface", {}).get("instance")
 
-    # Pass PowerManager instance to Script
+    # with io:
+    #   start_time = time.time()
+    #   io.play_wave("cd16m.wav")
+    #   elapsed = time.time() - start_time
+
     script = Script(test_script.get(dut.get_model()))
+    set = DataSet(os.path.join(dataset_path, script.model), script.truth)
 
-    data_set = DataSet(os.path.join(dataset_path, script.model), script.truth)
-    result = script.run(io, dut, data_set, mode)
-    lpm = power
-    return result, lpm  # Return the power instance instead of lpm
-
+    return script.run(io, dut, set, mode)
 
 def parse_device_config(device_list_file, device_yaml):
     """Parsee the device discovery configuration
@@ -167,7 +167,7 @@ def calculate_auc(y_pred, labels, n_classes):
 
 
 # Summarize results
-def summarize_result(result, mode, lpm=None):
+def summarize_result(result, mode):
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -213,10 +213,8 @@ def summarize_result(result, mode, lpm=None):
         calculate_accuracy(np.array(y_pred), np.array(y_true))
         calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
     else:
-        # Stop the PowerManager if provided
-        if lpm:
-            lpm.stop_capture()
-            print("Power measurement stopped.")
+        #power manager output
+        print("Power Edition Output")
 
     return
 
@@ -238,5 +236,6 @@ if __name__ == '__main__':
         "dataset_path": args.dataset_path,
         "mode": args.mode
     }
-    result, lpm = run_test(**config)
-    summarize_result(result, args.mode, lpm=lpm)
+    result = run_test(**config)
+    summarize_result(result, args.mode)
+    
