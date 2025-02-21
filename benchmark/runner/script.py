@@ -4,6 +4,43 @@ from datetime import datetime
 from device_under_test import DUT  # Import DUT class
 global_loop_count = None  # This will store the loop count globally
 file_processed = False
+import logging
+import sys
+
+current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_filename = f"{current_time}.log"
+
+# Setup logging to file and console with NO extra formatting
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",  # Removes timestamp and log level
+    handlers=[
+        logging.FileHandler(log_filename, mode='w'),  # Log to file
+        logging.StreamHandler(sys.stdout)  # Print to console
+    ]
+)
+
+# Redirect print statements to logging
+class LoggerWriter:
+    """Custom writer to redirect stdout/stderr to logging."""
+    def __init__(self, level):
+        self.level = level
+
+    def write(self, message):
+        if message.strip():  # Avoid logging empty messages
+            self.level(message.strip())
+
+    def flush(self):
+        """Ensure real-time logging output."""
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+
+# Redirect all standard outputs to logging
+sys.stdout = LoggerWriter(logging.info)  # Capture stdout
+sys.stderr = LoggerWriter(logging.error)  # Capture stderr for errors
+
+print(f"Logging initialized. Writing output to {log_filename}")
+
 
 class _ScriptStep:
     """Base class for script steps"""
@@ -117,11 +154,6 @@ class _ScriptInferStep(_ScriptStep):
         infer_results = _ScriptInferStep._gather_infer_results(result)
 
         result = dict(infer=infer_results)
-        if dut.power_manager:
-            timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
-            print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
-            result.update(power=dict(samples=samples,
-                                      timestamps=timestamps))
 
         if mode == "a":
             self._print_accuracy_results(infer_results)
@@ -160,19 +192,6 @@ class _ScriptInferStep(_ScriptStep):
 
 
     @staticmethod
-    def _gather_power_results(power):
-        samples = []
-        timeStamps = []
-        if power:
-            for x in power.get_results():
-                if isinstance(x, str):
-                    match = re.match(r"^TimeStamp: ([0-9]{3})s ([0-9]{3})ms, buff [0-9]{2}%$", x)
-                    ts = float(f"{match.group(1)}.{match.group(2)}")
-                    timeStamps.append((ts, len(samples)))
-                else:
-                    samples.append(x)
-        return timeStamps, samples
-
     def _print_accuracy_results(self, infer_results):
         print(f"    Results = {infer_results['results']}, time={infer_results['elapsed_time']} us")
 
@@ -203,7 +222,7 @@ class _ScriptInferStep(_ScriptStep):
                     # Parse each line from the file
                     timestamp, current, voltage, power = line.strip().split(", ")
                     timestamp = int(timestamp)
-                    current = float(current)  # Amps (A)
+                    current = float(current) * 1e6  # Amps (A)
                     voltage = float(voltage)  # Voltage (V)
                     power = float(power) * 1e6  # Convert Power to µW
 
@@ -230,7 +249,7 @@ class _ScriptInferStep(_ScriptStep):
                 formatted_time = current_time.strftime("%m%d.%H%M%S")
 
                 # Print energy results in the required format
-                print(f"{formatted_time} ulp-ml: Energy data for window {len(self.throughput_values)} at time {start_time:.2f} sec. for {elapsed_time_sec:.2f} sec.:")
+                print(f"{formatted_time} ulp-ml: Energy data for window {len(self.throughput_values)} at time {current_time:.2f} sec. for {elapsed_time_sec:.2f} sec.:")
                 print(f"{formatted_time} ulp-ml: Energy        : {total_energy:.3f} uJ")
                 print(f"{formatted_time} ulp-ml: Power         : {average_power:.3f} µW")
                 print(f"{formatted_time} ulp-ml: Energy/Inf.   : {average_energy:.3f} uJ/inf.")

@@ -3,14 +3,12 @@ import sys
 from queue import Queue
 from threading import Thread
 from time import time
-from SerialCommunication import SerialCommunication
-from threading import Thread
+from serial_device import SerialDevice
 
 class UnitConversions:
     """
     A utility class for performing unit conversions used in the PowerManager.
     """
-
     @staticmethod
     def A_to_uA(current_in_A: int) -> float:
         return current_in_A * 1e6  # 1 A = 1,000,000 µA
@@ -24,24 +22,15 @@ class UnitConversions:
         return microseconds // 1000  # 1 millisecond = 1,000 milliseconds
 
 class PowerManager:
-    def __init__(self, port: str, baud_rate: int, print_info_every_ms: int = 10_000) -> None:
+    def __init__(self, port_device, baud_rate=3686400) -> None:
         """
         Initializes the LPM01A device with the given port and baud rate.
-        Also clears the metrics_log.txt file.
-
-        Args:
-            port (str): The port where the LPM01A device is connected.
-            baud_rate (int): The baud rate for the serial communication.
-            print_info_every_ms (int): The interval in ms to print the info.
         """
-        # Initialize Serial Communication
-        self.serial_comm = SerialCommunication(port, baud_rate)
-        self.serial_comm.open_serial()
+        self.serial_comm = SerialDevice(port_device, baud_rate)
 
         # Initialize attributes
-        self.data_storage = []  # Local storage for captured data
+        self.data_storage = []  
         self.uc = UnitConversions()
-        self.print_info_every_ms = print_info_every_ms
         self.mode = None
         self.board_timestamp_ms = 0
         self.capture_start_us = 0
@@ -54,6 +43,14 @@ class PowerManager:
         # Clear metrics_log.txt
         with open("metrics_log.txt", "w") as log_file:
             log_file.write("Timestamp, Amps (A), Voltage (V), Power (W)\n")
+        self.__enter__()
+
+    def __enter__(self):
+        """ Ensures logging starts for voltage, power, and amperage when entering context. """
+        self.init_device(mode="ascii", voltage=3300, freq=1000, duration=0)
+        self.start_capture()  # Ensure data capture starts
+        self.start()  # Start background logging
+        return self
 
     def _read_and_parse_ascii(self) -> None:
         """
@@ -112,7 +109,7 @@ class PowerManager:
                 except:
                     continue  # Suppress errors silently
 
-    def start_background_parsing(self) -> None:
+    def start(self) -> None:
         """
         Starts the _read_and_parse_ascii method in a background thread.
         """
@@ -189,10 +186,9 @@ class PowerManager:
         """
         Starts the capture of the LPM01A device.
         """
-        print(f"Starting capture, printing info every {self.print_info_every_ms} ms")
         self.send_command_wait_for_response("start")
 
-    def stop_capture(self) -> None:
+    def stop(self) -> None:
         """
         Stops the capture of the LPM01A device and prints the logged data.
         """

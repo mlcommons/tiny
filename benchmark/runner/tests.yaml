@@ -3,7 +3,7 @@ ad01:
   model: ad01
   truth_file: y_labels.csv
   script:
-    - loop 5: 
+    - loop 2: 
       - download
       - infer 1 0
 ic01:
@@ -13,7 +13,7 @@ ic01:
   script:
     - loop 24: 
       - download
-      - infer 3 0
+      - infer 1 0
 kws01:
   name: keyword_spotting
   model: kws01

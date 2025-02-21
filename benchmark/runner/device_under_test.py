@@ -18,15 +18,15 @@ class DUT:
     self._max_bytes = 26 if power_manager else 31
 
   def __enter__(self):
-    if self.power_manager:
-      self.power_manager.__enter__()
+    #if self.power_manager:
+      #self.power_manager.__enter__()
     self._port.__enter__()
     return self
 
   def __exit__(self, *args):
     self._port.__exit__(*args)
-    if self.power_manager:
-      self.power_manager.__exit__(*args)
+    #if self.power_manager:
+      #self.power_manager.__exit__(*args)
 
   def _retry(self, method, retries=3):
     for attempt in range(retries):
@@ -95,11 +95,11 @@ class DUT:
     result = self._port.send_command("db print")
 
     command = f"infer {number} {warmups}"  # must include warmups, even if 0, because default warmups=10
-    if self.power_manager:
-      print(self.power_manager.start())
+    #if self.power_manager:
+      #print(self.power_manager.start())
     result = self._port.send_command(command)
-    if self.power_manager:
-      print(self.power_manager.stop())
+    #if self.power_manager:
+      #print(self.power_manager.stop())
     return result
 
   def get_help(self):
