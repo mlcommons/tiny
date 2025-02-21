@@ -63,8 +63,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
 
     script = Script(test_script.get(dut.get_model()))
     set = DataSet(os.path.join(dataset_path, script.model), script.truth)
-
-    return script.run(io, dut, set, mode)
+    result = script.run(io, dut, set, mode)
+    return result, power
 
 def parse_device_config(device_list_file, device_yaml):
     """Parsee the device discovery configuration
@@ -167,7 +167,7 @@ def calculate_auc(y_pred, labels, n_classes):
 
 
 # Summarize results
-def summarize_result(result, mode):
+def summarize_result(result, mode, power):
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -215,6 +215,9 @@ def summarize_result(result, mode):
     else:
         #power manager output
         print("Power Edition Output")
+        power.stop()  # Stop power capture
+        power.send_command_wait_for_response("pwr off")
+
 
     return
 
@@ -236,6 +239,6 @@ if __name__ == '__main__':
         "dataset_path": args.dataset_path,
         "mode": args.mode
     }
-    result = run_test(**config)
-    summarize_result(result, args.mode)
+    result, power = run_test(**config)  # Unpack power from run_test
+    summarize_result(result, args.mode, power)  # Pass power to summarize_result
     

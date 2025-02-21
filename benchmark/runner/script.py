@@ -4,6 +4,43 @@ from datetime import datetime
 from device_under_test import DUT  # Import DUT class
 global_loop_count = None  # This will store the loop count globally
 file_processed = False
+import logging
+import sys
+
+current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_filename = f"{current_time}.log"
+
+# Setup logging to file and console with NO extra formatting
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",  # Removes timestamp and log level
+    handlers=[
+        logging.FileHandler(log_filename, mode='w'),  # Log to file
+        logging.StreamHandler(sys.stdout)  # Print to console
+    ]
+)
+
+# Redirect print statements to logging
+class LoggerWriter:
+    """Custom writer to redirect stdout/stderr to logging."""
+    def __init__(self, level):
+        self.level = level
+
+    def write(self, message):
+        if message.strip():  # Avoid logging empty messages
+            self.level(message.strip())
+
+    def flush(self):
+        """Ensure real-time logging output."""
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+
+# Redirect all standard outputs to logging
+sys.stdout = LoggerWriter(logging.info)  # Capture stdout
+sys.stderr = LoggerWriter(logging.error)  # Capture stderr for errors
+
+print(f"Logging initialized. Writing output to {log_filename}")
+
 
 class _ScriptStep:
     """Base class for script steps"""
