@@ -10,6 +10,9 @@
 ### Device Under Test (L4R5ZI)
 ![DUT Wiring](img/L4R5ZI.png)
 
+There should be an extra wire connecting from CN14 port 2 to the Port on the interace board directly next to open jumper on the DUT Board
+
+
 ## Test Runner
 The test runner connects to the interface board and the power board and the dut.  It will execute test scripts.
 Test script is determined by the configuration of the hardware.
