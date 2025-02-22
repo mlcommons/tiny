@@ -45,6 +45,18 @@ The device file defines available devices that are automatically detected by the
 #### `usb`: `dict` where the key is `vid` and the value is a `pid` or list of `pid`s
 #### `usb_description`: String to match in the USB description
 
+### Running the File
+Define - mode (Defaults to accuracy)
+
+### `-e` (energy)
+### `-p` (power)
+### `-a` (accuracy)
+
+The call sign to run the file in power shell is
+```
+python main.py --dataset_path=C:\Users\robet\GitHubRepos\energyrunner\datasets --mode=e
+```
+
 ### Device Under Test Configuration `dut.yml`
 Optionally define `baud` and `voltage`
 
