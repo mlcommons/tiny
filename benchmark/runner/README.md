@@ -46,7 +46,7 @@ The device file defines available devices that are automatically detected by the
 #### `usb_description`: String to match in the USB description
 
 ### Running the File
-Define - mode (Defaults to accuracy)
+Define --mode (Defaults to accuracy)
 
 ### `-e` (energy)
 ### `-p` (power)
