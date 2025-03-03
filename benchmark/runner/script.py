@@ -192,7 +192,7 @@ class _ScriptInferStep(_ScriptStep):
 
 
     @staticmethod
-    def _print_accuracy_results(self, infer_results):
+    def _print_accuracy_results(infer_results):
         print(f"    Results = {infer_results['results']}, time={infer_results['elapsed_time']} us")
 
     def _print_energy_results(self, infer_results):
@@ -315,12 +315,13 @@ class _ScriptInferStep(_ScriptStep):
 
 class _ScriptStreamStep(_ScriptStep):
     """Step to stream audio from an enhanced interface board"""
-    def __init__(self, file_name=None):
-        self._file_name = file_name
-
+    def __init__(self, index=None):        
+        self._current_index = 0
     def run(self, io, dut, dataset, mode):
-        io.play_wave(self._file_name)
-        return dict(audio_file=self._file_name)
+        file_truth = dataset.get_file_by_index(self._index)
+        
+        io.play_wave(file_truth['wav_file'])
+        
 
 
 class Script:
@@ -353,6 +354,9 @@ class Script:
             # Pass the loop_count to the infer step
             loop_count = args[-1] if args else None  # Assuming loop_count is passed as last argument
             return _ScriptInferStep(*args, loop_count=loop_count)
+        if cmd == 'stream':
+            # Pass the model into the download step
+            return _ScriptStreamStep(*args, model=self.model)
 
     def run(self, io, dut, dataset, mode):
         with io:

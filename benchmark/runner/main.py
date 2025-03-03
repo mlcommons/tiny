@@ -7,7 +7,8 @@ from sklearn.metrics import roc_auc_score
 from collections import Counter
 
 from power_manager import PowerManager
-from datasets import DataSet
+from datasets import DataSet, StreamingDataSet
+
 from device_manager import DeviceManager
 from device_under_test import DUT
 from script import Script
@@ -43,6 +44,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
     :param dut_config:
     :param test_script:
     :param dataset_path:
+    :param mode:
     """
     manager = DeviceManager(devices_config)
     manager.scan()
@@ -62,7 +64,10 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
     #   elapsed = time.time() - start_time
 
     script = Script(test_script.get(dut.get_model()))
-    set = DataSet(os.path.join(dataset_path, script.model), script.truth)
+    if script.model[:3] == 'sww':
+        set = StreamingDataSet(os.path.join(dataset_path, script.model), script.truth)
+    else:
+        set = DataSet(os.path.join(dataset_path, script.model), script.truth)
     result = script.run(io, dut, set, mode)
     return result, power
 
