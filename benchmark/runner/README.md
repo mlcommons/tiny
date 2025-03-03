@@ -10,6 +10,9 @@
 ### Device Under Test (L4R5ZI)
 ![DUT Wiring](img/L4R5ZI.png)
 
+There should be an extra wire connecting from CN14 port 2 to the Port on the interace board directly next to open jumper on the DUT Board
+
+
 ## Test Runner
 The test runner connects to the interface board and the power board and the dut.  It will execute test scripts.
 Test script is determined by the configuration of the hardware.
@@ -41,6 +44,18 @@ The device file defines available devices that are automatically detected by the
 #### `preference`: The relative importance if two are detected.  Higher numbers are higher preference.
 #### `usb`: `dict` where the key is `vid` and the value is a `pid` or list of `pid`s
 #### `usb_description`: String to match in the USB description
+
+### Running the File
+Define --mode (Defaults to accuracy)
+
+### `-e` (energy)
+### `-p` (power)
+### `-a` (accuracy)
+
+The call sign to run the file in power shell is
+```
+python main.py --dataset_path=C:\Users\robet\GitHubRepos\energyrunner\datasets --mode=e
+```
 
 ### Device Under Test Configuration `dut.yml`
 Optionally define `baud` and `voltage`
