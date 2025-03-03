@@ -4,18 +4,21 @@
 
 ### Power Board (LPM01A)
 ![LPM01A Wiring](img/LPM01A.jpg)
+
 ### Interface Board (STM32H573I-DK)
 ![STM32H573I-DK Top Wiring](img/STM32H573I-DK-Top.png)
 ![STM32H573I-DK Bottom Wiring](img/STM32H573I-DK-Bottom.png)
+
 ### Device Under Test (L4R5ZI)
 ![DUT Wiring](img/L4R5ZI.png)
 
-There should be an extra wire connecting from CN14 port 2 to the Port on the interace board directly next to open jumper on the DUT Board
+There should be an extra wire connecting from **CN14 port 2** to the **port on the interface board** directly next to the **open jumper on the DUT board**.
 
+---
 
 ## Test Runner
-The test runner connects to the interface board and the power board and the dut.  It will execute test scripts.
-Test script is determined by the configuration of the hardware.
+
+The test runner connects to the **interface board**, **power board**, and **DUT**. It executes test scripts determined by the hardware configuration.
 
 ### Test Scripts `tests.yaml`
 #### Example
@@ -32,35 +35,106 @@ Test script is determined by the configuration of the hardware.
 
 #### Syntax
 
-- `download` Download data to the test device
-- `loop` Run the commands a number of time
-- `infer` Run inference For a number of cycles
+- `download` - Download data to the test device
+- `loop` - Run the commands a specified number of times
+- `infer` - Run inference for a specified number of cycles
+
+---
 
 ### Device Configuration `devices.yaml`
-The device file defines available devices that are automatically detected by the `DeviceManager`
+The device file defines available devices that are automatically detected by the `DeviceManager`.
 
-#### `name`: The name of the device
-#### `type`: the device type (`interface` or `power`)
-#### `preference`: The relative importance if two are detected.  Higher numbers are higher preference.
-#### `usb`: `dict` where the key is `vid` and the value is a `pid` or list of `pid`s
-#### `usb_description`: String to match in the USB description
+#### Parameters:
+- **`name`**: The name of the device
+- **`type`**: The device type (`interface` or `power`)
+- **`preference`**: The relative importance if two devices are detected. Higher numbers indicate higher preference.
+- **`usb`**: `dict` where the key is `vid` and the value is a `pid` or a list of `pid`s.
+- **`usb_description`**: A string used to match the USB description.
 
-### Running the File
-Define --mode (Defaults to accuracy)
+---
 
-### `-e` (energy)
-### `-p` (power)
-### `-a` (accuracy)
+### Device Under Test Configuration `dut.yml`
+Optionally define:
+- **`baud`**: The baud rate
+- **`voltage`**: The operating voltage
 
-The call sign to run the file in power shell is
-```
+---
+
+## Running the File
+Follow these steps to run tests on the device.
+
+### Step 1: Update the Baud Rate
+Ensure the DUT board has a file attached and note its **BAUD rate**.  
+In `device_under_test.py`, update **line 9** to reflect this baud rate.
+
+### Step 2: Configure the Interface Board
+If your **interface board** is set up correctly (reference the `interface` folder), you should have **two separate baud rates**:
+- One for the DUT board connection.
+- One for the computer connection.
+
+In `io_manager.py`, update **line 6** to reflect the **computer → interface** baud rate.
+
+### Step 3: Verify Wiring
+Double-check the wiring as per the beginning of the README.  
+**Note**: No I2C transmission will be used.
+
+For **Power Tests**, follow the energy setup images **exactly**.
+
+For **Accuracy/Energy Tests**:
+- TX and RX wiring should be configured identically.
+- Ground the interface board to the DUT board.
+- Connect the **3.3V** ports of both boards.
+
+### Step 4: Run a Test Trial
+Each test trial will be stored in a log file in the local folder.
+
+Define **`--mode`** (defaults to `accuracy`):
+
+- `-e` → **Energy Mode**
+- `-p` → **Power Mode**
+- `-a` → **Accuracy Mode**
+
+#### Run the Test in PowerShell:
+```powershell
 python main.py --dataset_path=C:\Users\robet\GitHubRepos\energyrunner\datasets --mode=e
 ```
 
-### Device Under Test Configuration `dut.yml`
-Optionally define `baud` and `voltage`
+## Troubleshooting Section
 
-## Open Items
-- Add start and stop playback to the script
-- fix looping
-- write the data out in the original format
+If you encounter errors while running the test, refer to the guide below.
+
+### **Error: 'NoneType' Appears**
+This typically indicates a **UART transmission error**.
+
+#### **Steps to Resolve:**
+1. **Check your wiring** – Ensure all connections are correct.
+2. **Run PowerShell as Administrator** –  
+   - On Windows, this error is often caused by restricted access to Serial ports.
+   - Open **PowerShell** as an **administrator** and retry the test.
+3. **Ensure no other application is using the device ports** –  
+   - If another process has locked the ports, the above fixes will not work.
+
+---
+
+## FX Media Open Not Working
+If `FX_FAT_READ_ERROR` is triggered, there may be **issues with the SD card or its formatting**.
+
+### **Formatting the SD Card (Windows)**
+1. Open **Command Prompt** and type:
+   ```powershell
+   diskpart
+   ```
+2. This will queue up another terminal for formatting a sd device the run the following commands
+   ```powershell
+    list disk
+    select disk _  // Ensure you select the correct disk
+    clean
+    create partition primary
+    format fs=fat32 quick 
+    assign
+    exit
+   ```
+
+### Baud Rate for Interface board:
+Located in file /application/user/core/usart.c
+   
