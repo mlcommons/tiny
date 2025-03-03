@@ -192,11 +192,16 @@ namespace CLI
 
   void InterfaceMenu::RecordDetections(const std::string &args)
   {
-
+	  // Sets the interface board into mode to capture detections,
+	  // but the detections are recorded in an interrupt handler,
+	  // so we can return here and proceed to playing the wav file
 	  std::string *msg = new std::string("Begin recording detections");
 
 	  __HAL_TIM_SET_COUNTER(&htim2, 0);
+	  SendString("Now recording detections");
+	  SendEndLine();
 	  dut.StartRecordingDetections();
+	  SendEnd();
   }
 
   void InterfaceMenu::PrintDetections(const std::string &args)

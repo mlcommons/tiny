@@ -15,9 +15,44 @@
 #include <stdint.h>
 #include "sww_model.h"
 
+
+#define EE_FW_VERSION "MLPerf Tiny Firmware V0.1.0"
+
+/* Version 1.0 of the benchmark only supports these models */
+#define EE_MODEL_VERSION_KWS01 "kws01"
+#define EE_MODEL_VERSION_VWW01 "vww01"
+#define EE_MODEL_VERSION_AD01 "ad01"
+#define EE_MODEL_VERSION_IC01 "ic01"
+#define EE_MODEL_VERSION_SWW01 "sww01"
+
+
+
+
+
+#define TH_MODEL_VERSION EE_MODEL_VERSION_SWW01
+
+
+typedef enum { EE_ARG_CLAIMED, EE_ARG_UNCLAIMED } arg_claimed_t;
+typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
+
+#define EE_DEVICE_NAME "SWW Ref L4R5ZI"
+
 #define EE_CMD_SIZE 80u
 #define EE_CMD_DELIMITER " "
 #define EE_CMD_TERMINATOR '%'
+
+#define EE_CMD_NAME "name"
+#define EE_CMD_TIMESTAMP "timestamp"
+
+#define EE_MSG_READY "m-ready\r\n"
+#define EE_MSG_INIT_DONE "m-init-done\r\n"
+#define EE_MSG_NAME "m-name-%s-[%s]\r\n"
+#define EE_MSG_TIMESTAMP "m-lap-us-%lu\r\n"
+
+#define EE_ERR_CMD "e-[Unknown command: %s]\r\n"
+
+#define TH_VENDOR_NAME_STRING "ML Commons"
+
 
 #define SWW_WINLEN_SAMPLES 1024
 #define SWW_WINSTRIDE_SAMPLES 512

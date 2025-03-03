@@ -467,7 +467,11 @@ void process_command(char *full_command) {
 	// full_command should be "<command> <arg1> <arg2>" (command and args delimited by spaces)
 	// put the command and arguments into the array cmd_arg[]
 	if (strcmp(cmd_args[0], "name") == 0) {
-		printf("Streaming Wakeword reference platform\r\n");
+		printf(EE_MSG_NAME, EE_DEVICE_NAME, TH_VENDOR_NAME_STRING);
+	}
+	else if (strcmp(cmd_args[0], "profile") == 0) {
+	    printf("m-profile-[%s]\r\n", EE_FW_VERSION);
+	    printf("m-model-[%s]\r\n", TH_MODEL_VERSION);
 	}
 	else if(strcmp(cmd_args[0], "run_model") == 0) {
 		run_model_on_test_data(cmd_args);
@@ -499,6 +503,7 @@ void process_command(char *full_command) {
 	else {
 		printf("Unrecognized command %s\r\n", full_command);
 	}
+	printf(EE_MSG_READY);
 }
 
 void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
