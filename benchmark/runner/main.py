@@ -72,7 +72,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
     return result, power
 
 def parse_device_config(device_list_file, device_yaml):
-    """Parsee the device discovery configuration
+    """Parse the device discovery configuration
 
     :param device_list: device discovery configuration file
     :param device_yaml: device description as raw yaml

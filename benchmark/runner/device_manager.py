@@ -9,7 +9,7 @@ from power_manager import PowerManager
 
 
 class DeviceManager:
-  """Detects and identifis available devices attached to the host.
+  """Detects and identifies available devices attached to the host.
   """
 
   def __init__(self, device_defs):
