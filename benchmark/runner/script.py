@@ -317,11 +317,20 @@ class _ScriptStreamStep(_ScriptStep):
     """Step to stream audio from an enhanced interface board"""
     def __init__(self, index=None):        
         self._current_index = 0
+        self._index = None if index is None else int(index)
+
     def run(self, io, dut, dataset, mode):
         file_truth = dataset.get_file_by_index(self._index)
-        
-        io.play_wave(file_truth['wav_file'])
-        
+        dut.start_detecting()  # instruct DUT to pulse GPIO when wakeword detected
+        io.play_wave(file_truth['wav_file']) # blocking call, will pause here until wav finishes
+        io.record_detections() # intfc starts recording timestamp of GPIO pulses
+        dut.stop_detecting()   # DUT stops pulsing GPIO on WW.
+        io.print_detections() # intfc prints out WW detection timestamps
+
+# record_detections%
+# play short_10s_3pos.wav%
+# dut stop%
+# print_detections%        
 
 
 class Script:
@@ -356,7 +365,7 @@ class Script:
             return _ScriptInferStep(*args, loop_count=loop_count)
         if cmd == 'stream':
             # Pass the model into the download step
-            return _ScriptStreamStep(*args, model=self.model)
+            return _ScriptStreamStep(*args)
 
     def run(self, io, dut, dataset, mode):
         with io:

@@ -43,6 +43,7 @@ class StreamingDataSet:
   def __init__(self, dataset_path, truth_file, start_index=0):
     self._dataset_path = dataset_path
     self._truth_file = truth_file
+    self._truth_data = None
     self._current_index = start_index
 
   def _read_truth_file(self):

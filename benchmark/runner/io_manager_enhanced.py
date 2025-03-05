@@ -13,4 +13,12 @@ class IOManagerEnhanced(IOManager):
 
   def play_wave(self, filename=None):
     command = "play" + (f" {filename}" if filename else "")
+    return self.port.send_command(command, timeout=20) # need to set this timeout longer than file length
+
+  def record_detections(self):
+    command = "record_detections"
     return self.port.send_command(command)
+
+  def print_detections(self):
+    command = "print_detections"
+    return self.port.send_command(command)  

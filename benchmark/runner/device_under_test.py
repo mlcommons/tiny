@@ -103,9 +103,19 @@ class DUT:
     return result
 
   def start_detecting(self):
-    command = f"start"  # must include warmups, even if 0, because default warmups=10
+    command = f"start"
     self._port.send_command(command)
     return
+
+  def stop_detecting(self):
+    command = f"stop"
+    self._port.send_command(command)
+    return    
+
+  def print_detections(self):
+    command = f"print_detections"
+    self._port.send_command(command)
+    return    
 
   def get_help(self):
     return self._port.send_command("help")
