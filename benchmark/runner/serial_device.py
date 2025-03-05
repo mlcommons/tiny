@@ -68,13 +68,13 @@ class SerialDevice:
       pass
     return result
 
-  def send_command(self, command, end=None, echo=False):
+  def send_command(self, command, end=None, echo=False, timeout=None):
     if echo or self._echo: print(command + (self._delimiter if '\n' not in self._delimiter else ''))
     self.write_line(command)
     lines = []
 
     while True:
-      resp = self.read_line()
+      resp = self.read_line(timeout=timeout)
       if resp is None:
         raise RuntimeError(f"No response to command {command}")
       end_of_resp = (end if end is not None else self._end_of_response) in resp
