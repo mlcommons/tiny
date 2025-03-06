@@ -12,6 +12,8 @@ from datasets import DataSet, StreamingDataSet
 from device_manager import DeviceManager
 from device_under_test import DUT
 from script import Script
+import streaming_ww_utils as sww_util
+
 """
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
 under test.
@@ -56,6 +58,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
     identify_dut(manager)
 
     dut = manager.get("dut", {}).get("instance")
+    dut_config['model'] = dut.get_model()
     io = manager.get("interface", {}).get("instance")
 
     # with io:
@@ -157,8 +160,14 @@ def calculate_auc(y_pred, labels, n_classes):
                         true_positives += 1
                     else:
                         false_positives += 1
-            fpr[class_item, threshold_item] = false_positives / float(all_negatives)
-            tpr[class_item, threshold_item] = true_positives / float(all_positives)
+            if all_negatives == 0:
+                fpr[class_item, threshold_item] = 0
+            else:
+                fpr[class_item, threshold_item] = false_positives / float(all_negatives)
+            if all_positives == 0:
+                tpr[class_item, threshold_item] = 0
+            else:                    
+                tpr[class_item, threshold_item] = true_positives / float(all_positives)
 
         fpr[class_item, 0] = 1
         tpr[class_item, 0] = 1
@@ -245,5 +254,8 @@ if __name__ == '__main__':
         "mode": args.mode
     }
     result, power = run_test(**config)  # Unpack power from run_test
-    summarize_result(result, args.mode, power)  # Pass power to summarize_result
+    if config['dut_config']['model'] == 'sww01':
+        sww_util.summarize_sww_result(result, args.mode, power)  # Pass power to summarize_result
+    else:
+        summarize_result(result, args.mode, power)  # Pass power to summarize_result
     

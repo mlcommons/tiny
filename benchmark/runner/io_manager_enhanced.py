@@ -21,4 +21,4 @@ class IOManagerEnhanced(IOManager):
 
   def print_detections(self):
     command = "print_detections"
-    return self.port.send_command(command)  
+    return self.port.send_command(command)
