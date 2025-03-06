@@ -6,6 +6,9 @@ global_loop_count = None  # This will store the loop count globally
 file_processed = False
 import logging
 import sys
+import time
+
+import streaming_ww_utils as sww_util
 
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_filename = f"{current_time}.log"
@@ -321,17 +324,19 @@ class _ScriptStreamStep(_ScriptStep):
 
     def run(self, io, dut, dataset, mode):
         file_truth = dataset.get_file_by_index(self._index)
+        dut.stop_detecting()   # in case it wasn't stopped earlier
         dut.start_detecting()  # instruct DUT to pulse GPIO when wakeword detected
-        io.play_wave(file_truth['wav_file']) # blocking call, will pause here until wav finishes
         io.record_detections() # intfc starts recording timestamp of GPIO pulses
+        io.play_wave(file_truth['wav_file']) # blocking call, will pause here until wav finishes
+        # not sure why this is needed, but apparently the DUT is still occupied with the 
+        # detection task, because w/o this sleep the next DUT command times out
+        time.sleep(5) 
+        print("about to tell DUT to stop detecting")
         dut.stop_detecting()   # DUT stops pulsing GPIO on WW.
-        io.print_detections() # intfc prints out WW detection timestamps
-
-# record_detections%
-# play short_10s_3pos.wav%
-# dut stop%
-# print_detections%        
-
+        detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
+        detected_timestamps = process_timestamps(detected_timestamps)
+        print(detected_timestamps)
+        return detected_timestamps
 
 class Script:
     """Script that executes a test"""
