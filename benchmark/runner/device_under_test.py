@@ -92,7 +92,7 @@ class DUT:
     return result
 
   def infer(self, number, warmups):
-    result = self._port.send_command("db print")
+    # result = self._port.send_command("db print")
 
     command = f"infer {number} {warmups}"  # must include warmups, even if 0, because default warmups=10
     #if self.power_manager:
