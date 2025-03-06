@@ -35,7 +35,7 @@
 typedef enum { EE_ARG_CLAIMED, EE_ARG_UNCLAIMED } arg_claimed_t;
 typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
 
-#define EE_DEVICE_NAME "SWW Ref L4R5ZI"
+#define EE_DEVICE_NAME "dut"
 
 #define EE_CMD_SIZE 80u
 #define EE_CMD_DELIMITER " "
