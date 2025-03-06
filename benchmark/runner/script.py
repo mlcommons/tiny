@@ -334,7 +334,7 @@ class _ScriptStreamStep(_ScriptStep):
         print("about to tell DUT to stop detecting")
         dut.stop_detecting()   # DUT stops pulsing GPIO on WW.
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
-        detected_timestamps = process_timestamps(detected_timestamps)
+        detected_timestamps = sww_util.process_timestamps(detected_timestamps)
         print(detected_timestamps)
         return detected_timestamps
 
