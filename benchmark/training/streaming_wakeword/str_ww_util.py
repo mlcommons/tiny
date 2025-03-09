@@ -357,6 +357,24 @@ def add_quantize_args(parser):
         default='trained_models/strm_ww_int8.tflite',
         help='File name to which the TF Lite model will be saved (quantize.py) or loaded (eval_quantized_model)')
 
+def add_long_wav_args(parser):
+    parser.add_argument(
+        '--long_wav_name',
+        type=str,
+        default="long_wav.wav",
+        help="File name for the wav file being built")
+    parser.add_argument(
+        '--wav_spec',
+        type=str,
+        default="long_wav_spec.json",
+        help="JSON file specifying recipe for the long wav")
+    parser.add_argument(
+        '--rel_thresh',
+        type=float,
+        default=0.05,
+        help="Threshold (relative to peak) used to clip wakewords inserted into long wav")
+
+
 def parse_command(main_program):
     parser = argparse.ArgumentParser()
     
@@ -367,6 +385,8 @@ def parse_command(main_program):
         add_eval_args(parser)
     if main_program == "quantize":
         add_quantize_args(parser)
+    if main_program == "build_long_wav":
+        add_long_wav_args(parser)
 
     Flags = parser.parse_args()
 

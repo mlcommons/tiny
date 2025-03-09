@@ -7,9 +7,16 @@ import get_dataset
 
 Flags = util.parse_command("build_long_wav")
 
-rel_thresh = 0.05 # trim out leading/trailing space with less than rel_thresh*max(waveform)
+# trim out leading/trailing space with less than rel_thresh*max(waveform)
+rel_thresh = Flags.rel_thresh
 samp_freq = Flags.sample_rate
-wav_spec_file = "long_wav_spec.json"
+wav_spec_file = Flags.wav_spec
+
+wav_filename = Flags.long_wav_name
+specgram_filename = Flags.long_wav_name.rsplit('.',1)[0]  # all but extension
+specgram_filename += "_specgram.npz"
+window_filename = Flags.long_wav_name.rsplit('.',1)[0]  # all but extension
+window_filename += "_ww_windows.json"
 
 try:
     with open('streaming_config.json', 'r') as fpi:
@@ -85,15 +92,16 @@ long_wav_int16 = (long_wav*(2**15)).astype(np.int16)
 
 feature_extractor_long = get_dataset.get_lfbe_func(data_config_long)
 
-wavfile.write('long_wav.wav', 16000, long_wav_int16)
+wavfile.write(wav_filename, 16000, long_wav_int16)
 
 # the feature extractor needs a label (in 1-hot format), but it doesn't matter what it is   
 # long_spec = feature_extractor_long({'audio':long_wav_int16/2**15, 'label':[0.0, 0.0, 0.0]})['audio'].numpy()
 long_spec = feature_extractor_long(long_wav_int16/2**15).numpy()
 print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.shape}")
 
-np.savez_compressed("long_specgram.npz", specgram=long_spec)
+np.savez_compressed(specgram_filename, specgram=long_spec)
 
 pretty_json_str = pprint.pformat(ww_windows, compact=True).replace("(","[").replace(")","]")
-with open('long_wav_ww_windows.json', 'w') as fpo:
+with open(window_filename, 'w') as fpo:
     fpo.write(pretty_json_str)
+    fpo.write("\n")
