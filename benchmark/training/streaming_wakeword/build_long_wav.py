@@ -97,7 +97,16 @@ print(f"Long waveform shape = {long_wav.shape}, spectrogram shape = {long_spec.s
 
 np.savez_compressed(specgram_filename, specgram=long_spec)
 
-pretty_json_str = pprint.pformat(ww_windows, compact=True).replace("(","[").replace(")","]")
+wav_info = {
+    "length_sec": 10.0, 
+    "detection_windows": ww_windows, 
+    "sample_rate":Flags.sample_rate
+    }
+
+pretty_json_str = pprint.pformat(wav_info, compact=True).replace("'","\"")
+pretty_json_str = pretty_json_str.replace("(","[").replace(")","]")
+
 with open(window_filename, 'w') as fpo:
     fpo.write(pretty_json_str)
     fpo.write("\n")
+print(f"Conversion complete.  Wav file stored in {wav_filename}. Window file stored in {window_filename}.")
