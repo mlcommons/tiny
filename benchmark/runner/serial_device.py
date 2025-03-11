@@ -18,6 +18,8 @@ class SerialDevice:
 
   def __enter__(self):
     self._port.__enter__()
+    self._port.reset_input_buffer()
+    self._port.reset_output_buffer()
     self._start_read_thread()
     return self
 
