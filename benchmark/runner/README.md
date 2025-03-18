@@ -88,15 +88,11 @@ For **Accuracy/Energy Tests**:
 ### Step 4: Run a Test Trial
 Each test trial will be stored in a log file in the local folder.
 
-Define **`--mode`** (defaults to `accuracy`):
-
-- `-e` → **Energy Mode**
-- `-p` → **Power Mode**
-- `-a` → **Accuracy Mode**
+The mode will be define by whether or not the powerboard is detected.
 
 #### Run the Test in PowerShell:
 ```powershell
-python main.py --dataset_path=C:\Users\robet\GitHubRepos\energyrunner\datasets --mode=e
+python main.py --dataset_path=C:\Your\Dataset\Path
 ```
 
 ## Troubleshooting Section
