@@ -60,7 +60,7 @@ class _ScriptDownloadStep(_ScriptStep):
         self._current_segment_index = 0
         self.total_length = 0
 
-    def run(self, io, dut, dataset, mode):
+    def run(self, io, dut, dataset, is_energy_mode):
         # Fetch the file and data
         if(self.model == "ad01" and self.total_length != 0):
             if (self._current_segment_index == self.total_length): 
@@ -91,12 +91,8 @@ class _ScriptDownloadStep(_ScriptStep):
             
         # Conditional print statements based on 'mode'
         if data:
-            if mode == "a":
-                print(f"Loading file {file_truth.get('file'):30}, true class = {int(file_truth.get('class')):2}")
-            elif mode == "p":
+            if not is_energy_mode:
                 print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
-            elif mode == "e":
-                pass  # Do nothing for energy mode
             if(self.model == "ad01"):
                 segment = self._segments[self._current_segment_index]
                 dut.load(segment)
@@ -151,18 +147,16 @@ class _ScriptInferStep(_ScriptStep):
         self.throughput_values = []
         self._loop_count = loop_count  # Store loop_count passed to this step
 
-    def run(self, io, dut, dataset, mode):  # mode passed to run
+    def run(self, io, dut, dataset, is_energy_mode):  # mode passed to run
         result = dut.infer(self._iterations, self._warmups)
 
         infer_results = _ScriptInferStep._gather_infer_results(result)
 
         result = dict(infer=infer_results)
 
-        if mode == "a":
-            self._print_accuracy_results(infer_results)
-        elif mode == "e":
+        if is_energy_mode:
             self._print_energy_results(infer_results)
-        elif mode == "p":
+        else:
             self._print_performance_results(infer_results)
 
         return result
@@ -372,12 +366,12 @@ class Script:
             # Pass the model into the download step
             return _ScriptStreamStep(*args)
 
-    def run(self, io, dut, dataset, mode):
+    def run(self, io, dut, dataset, is_energy_mode):
         with io:
             with dut:
                 result = None
                 for cmd in self._commands:
-                    r = cmd.run(io, dut, dataset, mode)
+                    r = cmd.run(io, dut, dataset, is_energy_mode)  # Pass boolean flag
                     if result is None:
                         result = r
                     elif isinstance(r, dict):
