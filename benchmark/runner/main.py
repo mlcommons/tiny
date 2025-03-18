@@ -120,14 +120,33 @@ def normalize_probabilities(scores):
     return [s / total for s in scores]
 
 # Function to calculate accuracy
-def calculate_accuracy(y_pred, labels):
-    # Normalize y_pred
-    # Check if y_pred has only one value per instance and transform it
-    if y_pred.shape[1] == 1:
-        y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
-        y_pred = np.array([[value[0], 1 - value[0]] for value in y_pred])
+import numpy as np
 
-    # Get predicted labels and calculate accuracy
+def calculate_accuracy(y_pred, labels):
+    # Check if y_pred has only one value per instance (Anomaly Detection case)
+    if y_pred.shape[1] == 1:
+        thresholds = np.amin(y_pred) + np.arange(0.0, 1.0, .01) * (np.amax(y_pred) - np.amin(y_pred))
+        accuracy = 0
+        n_normal = np.sum(labels == 0)  # Assuming normal instances are labeled as 0
+
+        for threshold in thresholds:
+            y_pred_binary = (y_pred > threshold).astype(int)  # Binarization
+
+            true_negative = np.sum((y_pred_binary[labels == 0] == 0))
+            false_positive = np.sum((y_pred_binary[labels == 0] == 1))
+            true_positive = np.sum((y_pred_binary[labels == 1] == 1))
+            false_negative = np.sum((y_pred_binary[labels == 1] == 0))
+
+            precision = true_positive / (true_positive + false_positive + 1e-8)  # Avoid division by zero
+            recall = true_positive / (true_positive + false_negative + 1e-8)
+
+            accuracy_tmp = 100 * (precision + recall) / 2  # F1-like accuracy estimation
+            accuracy = max(accuracy, accuracy_tmp)
+
+        print(f"Precision/recall accuracy = {accuracy:2.1f}")
+        return accuracy
+
+    # Normal Classification Case
     y_pred_label = np.argmax(y_pred, axis=1)
     correct = np.sum(labels == y_pred_label)
     accuracy = 100 * correct / len(y_pred)
@@ -135,17 +154,41 @@ def calculate_accuracy(y_pred, labels):
     print(f"Overall accuracy = {accuracy:2.1f}")
     return accuracy
 
-# Function to calculate AUC
+
 def calculate_auc(y_pred, labels, n_classes):
-    # Normalize y_pred for each class
+    # Check if y_pred has only one value per instance (Anomaly Detection case)
     if y_pred.shape[1] == 1:
-        y_pred = np.array([[value, 1- value] for value in y_pred])
-        y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
+        thresholds = np.amin(y_pred) + np.arange(0.0, 1.01, .01) * (np.amax(y_pred) - np.amin(y_pred))
+        roc_auc = 0
+
+        n_normal = np.sum(labels == 0)  # Assuming normal instances are labeled as 0
+        tpr = np.zeros(len(thresholds))
+        fpr = np.zeros(len(thresholds))
+
+        for threshold_item in range(1, len(thresholds)):
+            threshold = thresholds[threshold_item]
+            y_pred_binary = (y_pred > threshold).astype(int)
+
+            tpr[threshold_item] = np.sum(y_pred_binary[labels == 1]) / float(np.sum(labels == 1))
+            fpr[threshold_item] = np.sum(y_pred_binary[labels == 0]) / float(n_normal)
+
+        # Force boundary condition
+        fpr[0] = 1
+        tpr[0] = 1
+
+        # Compute AUC using trapezoidal rule
+        for threshold_item in range(len(thresholds) - 1):
+            roc_auc += 0.5 * (tpr[threshold_item] + tpr[threshold_item + 1]) * (
+                        fpr[threshold_item] - fpr[threshold_item + 1])
+        print(f"Simplified ROC AUC = {roc_auc:.3f}")
+        return roc_auc
+
+    # Multiclass Case (Existing Logic)
     thresholds = np.arange(0.0, 1.01, 0.01)
     fpr = np.zeros([n_classes, len(thresholds)])
     tpr = np.zeros([n_classes, len(thresholds)])
     roc_auc = np.zeros(n_classes)
-    
+
     for class_item in range(n_classes):
         all_positives = sum(labels == class_item)
         all_negatives = len(labels) - all_positives
@@ -177,6 +220,38 @@ def calculate_auc(y_pred, labels, n_classes):
 
     roc_auc_avg = np.mean(roc_auc)
     print(f"Simplified average ROC AUC = {roc_auc_avg:.3f}")
+    return roc_auc
+
+
+    # Multiclass Case (Existing Logic)
+    thresholds = np.arange(0.0, 1.01, 0.01)
+    fpr = np.zeros([n_classes, len(thresholds)])
+    tpr = np.zeros([n_classes, len(thresholds)])
+    roc_auc = np.zeros(n_classes)
+
+    for class_item in range(n_classes):
+        all_positives = sum(labels == class_item)
+        all_negatives = len(labels) - all_positives
+
+        for threshold_item in range(1, len(thresholds)):
+            threshold = thresholds[threshold_item]
+            false_positives = 0
+            true_positives = 0
+            for i in range(len(y_pred)):
+                if y_pred[i, class_item] > threshold:
+                    if labels[i] == class_item:
+                        true_positives += 1
+                    else:
+                        false_positives += 1
+            fpr[class_item, threshold_item] = false_positives / float(all_negatives)
+            tpr[class_item, threshold_item] = true_positives / float(all_positives)
+
+        fpr[class_item, 0] = 1
+        tpr[class_item, 0] = 1
+        for threshold_item in range(len(thresholds) - 1):
+            roc_auc[class_item] += 0.5 * (tpr[class_item, threshold_item] + tpr[class_item, threshold_item + 1]) * (
+                        fpr[class_item, threshold_item] - fpr[class_item, threshold_item + 1])
+
     return roc_auc
 
 
