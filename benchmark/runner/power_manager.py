@@ -41,8 +41,9 @@ class PowerManager:
         self.number_of_current_values = 0
 
         # Clear metrics_log.txt
-        with open("metrics_log.txt", "w") as log_file:
-            log_file.write("Timestamp, Amps (A), Voltage (V), Power (W)\n")
+        # Initialize queue for storing power readings
+        self._data_queue = Queue()
+
         self.__enter__()
 
     def __enter__(self):
@@ -55,103 +56,55 @@ class PowerManager:
     def _read_and_parse_ascii(self) -> None:
         """
         Reads and parses the data from the LPM01A device in ASCII mode.
-        Writes the parsed data to the `metrics_log.txt` file in real-time with timestamps starting at 0.
+        Stores parsed data in the queue instead of writing to a file.
         """
         # Record the capture start time
         self.capture_start_us = int(self.uc.s_to_us(time()))
-        
-        # Open the file in append mode
-        with open("metrics_log.txt", "a") as log_file:
-            while True:
-                response = self.serial_comm.receive_data()
-                if not response:
-                    continue
 
-                if "TimeStamp:" in response:
-                    try:
-                        match = re.search(
-                            "TimeStamp: (\d+)s (\d+)ms, buff (\d+)%", response
-                        )
-                        if match:
-                            self.board_timestamp_ms = (
-                                int(match.group(2)) + int(match.group(1)) * 1000
-                            )
-                            self.board_buffer_usage_percentage = int(match.group(3))
-                    except:
-                        continue  # Suppress errors silently
-                    continue
-
-                if "-" in response:
-                    exponent_sign = "-"
-                elif "+" in response:
-                    exponent_sign = "+"
-
-                try:
-                    split_response = response.split("-")
-                    current = int(split_response[0][1:] if split_response[0][0] == '\x00' else split_response[0])
-                    exponent = int(split_response[1])
-
-                    if exponent_sign == "+":
-                        current = current * pow(10, exponent)
-                    else:
-                        current = current * pow(10, -exponent)
-
-                    current = round(current, 4)  # Keep the current in Amps
-                    voltage = 3.3  # Assuming a fixed voltage of 3.3V
-                    power = round(current * voltage, 4)  # Power in Watts
-                    relative_timestamp_us = (
-                        int(self.uc.s_to_us(time())) - self.capture_start_us
-                    )  # Calculate relative timestamp in microseconds
-
-                    # Write to metrics_log.txt
-                    log_file.write(f"{relative_timestamp_us}, {current}, {voltage}, {power}\n")
-                    log_file.flush()  # Ensure data is written immediately
-                except:
-                    continue  # Suppress errors silently
-
-    def start(self) -> None:
-        """
-        Starts the _read_and_parse_ascii method in a background thread.
-        """
-        thread = Thread(target=self._read_and_parse_ascii, daemon=True)
-        thread.start()
-
-    def send_command_wait_for_response(
-        self, command: str, expected_response: str = None, timeout_s: int = 5
-    ) -> bool:
-        """
-        Sends a command to the LPM01A device and waits for a response.
-
-        Args:
-            command (str): The command to send to the LPM01A device.
-            expected_response (str): The expected response from the LPM01A device.
-            timeout_s (int): The timeout in seconds to wait for a response.
-
-        Returns:
-            bool: True if the command was successful, False otherwise.
-        """
-        tick_start = time()
-        self.serial_comm.send_data(command)
-        while time() - tick_start < timeout_s:
+        while True:
             response = self.serial_comm.receive_data()
-            if response == "":
+            if not response:
                 continue
 
-            if expected_response:
-                if response == expected_response:
-                    return True
-                else:
-                    return False
+            if "TimeStamp:" in response:
+                try:
+                    match = re.search(r"TimeStamp: (\d+)s (\d+)ms, buff (\d+)%", response)
+                    if match:
+                        self.board_timestamp_ms = (
+                            int(match.group(2)) + int(match.group(1)) * 1000
+                        )
+                        self.board_buffer_usage_percentage = int(match.group(3))
+                except:
+                    continue  # Suppress errors silently
+                continue
 
-            response = response.split("PowerShield > ack ")
+            if "-" in response:
+                exponent_sign = "-"
+            elif "+" in response:
+                exponent_sign = "+"
+
             try:
-                if response[1] == command:
-                    return True
-            except IndexError:
-                return False
+                split_response = response.split("-")
+                current = int(split_response[0][1:] if split_response[0][0] == '\x00' else split_response[0])
+                exponent = int(split_response[1])
 
-        return False
+                if exponent_sign == "+":
+                    current = current * pow(10, exponent)
+                else:
+                    current = current * pow(10, -exponent)
 
+                current = round(current, 4)  # Keep the current in Amps
+                voltage = 3.3  # Assuming a fixed voltage of 3.3V
+                power = round(current * voltage, 4)  # Power in Watts
+                relative_timestamp_us = (
+                    int(self.uc.s_to_us(time())) - self.capture_start_us
+                )  # Calculate relative timestamp in microseconds
+
+                # Store parsed data in queue instead of writing to a file
+                self._data_queue.put((relative_timestamp_us, current, voltage, power))
+
+            except:
+                continue  # Suppress errors silently
     def init_device(
         self,
         mode: str = "ascii",
@@ -180,7 +133,93 @@ class PowerManager:
 
         self.send_command_wait_for_response(f"volt {voltage}m")
         self.send_command_wait_for_response(f"freq {freq}")
-        self.send_command_wait_for_response(f"acqtime {duration}")
+        self.configure_trigger('inf', 0, 'd7')  # Set D7 as the trigger source
+        # Confirm trigger source
+        # Verify the trigger source
+        response = self.send_command_wait_for_response("trigsrc?", timeout_s=2)
+
+        print(f"DEBUG: Trigger source response: {response}")  # 🔍 Debug output
+
+        if response != "trigsrc d7":
+            print(f"ERROR: D7 trigger was not properly set. Got response: {response}")
+        else:
+            print("SUCCESS: D7 trigger source confirmed!")
+
+
+
+    def configure_trigger(self, acquisition_time, trigger_delay, trigger_source):
+        """
+        Configures the trigger settings for acquisition.
+
+        Args:
+            acquisition_time (str): Duration of acquisition ('inf' for infinite).
+            trigger_delay (int): Delay before acquisition starts (in seconds).
+            trigger_source (str): Source of trigger ('d7' for external D7 trigger).
+
+        Returns:
+            None
+        """
+        self.send_command_wait_for_response(f"acqtime {acquisition_time}",
+                        expected_response="ack",
+                        timeout_s=2)
+        self.send_command_wait_for_response(f"trigdelay {trigger_delay}",
+                        expected_response="ack",
+                        timeout_s=2)
+        self.send_command_wait_for_response(f"trigsrc {trigger_source}",
+                        expected_response="ack",
+                        timeout_s=2)
+
+    def get_results(self):
+        """
+        Retrieves power data stored in self._data_queue.
+
+        Returns:
+            Generator: Yields data from self._data_queue.
+        """
+        while not self._data_queue.empty():
+            yield self._data_queue.get()
+
+    def start(self) -> None:
+        """
+        Starts the _read_and_parse_ascii method in a background thread.
+        """
+        thread = Thread(target=self._read_and_parse_ascii, daemon=True)
+        thread.start()
+
+    def send_command_wait_for_response(
+        self, command: str, expected_response: str = None, timeout_s: int = 5
+    ) -> str:
+        """
+        Sends a command to the LPM01A device and waits for a response.
+
+        Returns:
+            str: The actual response from the device (instead of True/False).
+        """
+        tick_start = time()
+        self.serial_comm.send_data(command)
+        while time() - tick_start < timeout_s:
+            response = self.serial_comm.receive_data()
+            if response == "":
+                continue
+
+            print(f"DEBUG: Received response for {command}: {response}")  # 🔍 Debugging
+
+            if expected_response:
+                if response == expected_response:
+                    return response  # Return actual response instead of True/False
+                else:
+                    return response  # Return response so we can debug
+
+            response = response.split("PowerShield > ack ")
+            try:
+                if response[1] == command:
+                    return response[1]  # Return command confirmation
+            except IndexError:
+                return response[0]  # Return whatever we got for debugging
+
+        return "TIMEOUT"  # Indicate that we timed out
+
+
 
     def start_capture(self) -> None:
         """
