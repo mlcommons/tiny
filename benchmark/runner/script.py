@@ -60,7 +60,7 @@ class _ScriptDownloadStep(_ScriptStep):
         self._current_segment_index = 0
         self.total_length = 0
 
-    def run(self, io, dut, dataset, mode):
+    def run(self, io, dut, dataset, is_energy_mode):
         # Fetch the file and data
         if(self.model == "ad01" and self.total_length != 0):
             if (self._current_segment_index == self.total_length): 
@@ -91,12 +91,8 @@ class _ScriptDownloadStep(_ScriptStep):
             
         # Conditional print statements based on 'mode'
         if data:
-            if mode == "a":
-                print(f"Loading file {file_truth.get('file'):30}, true class = {int(file_truth.get('class')):2}")
-            elif mode == "p":
+            if not is_energy_mode:
                 print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
-            elif mode == "e":
-                pass  # Do nothing for energy mode
             if(self.model == "ad01"):
                 segment = self._segments[self._current_segment_index]
                 dut.load(segment)
@@ -151,21 +147,42 @@ class _ScriptInferStep(_ScriptStep):
         self.throughput_values = []
         self._loop_count = loop_count  # Store loop_count passed to this step
 
-    def run(self, io, dut, dataset, mode):  # mode passed to run
+    def run(self, io, dut, dataset, is_energy_mode):  # mode passed to run
         result = dut.infer(self._iterations, self._warmups)
 
         infer_results = _ScriptInferStep._gather_infer_results(result)
 
         result = dict(infer=infer_results)
 
-        if mode == "a":
-            self._print_accuracy_results(infer_results)
-        elif mode == "e":
-            self._print_energy_results(infer_results)
-        elif mode == "p":
+        if is_energy_mode:
+            timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
+            print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
+
+            # Read power values from the log file using timestamps
+            power_values = None
+
+            result.update(power=dict(samples=samples,
+                                     timestamps=timestamps,
+                                     extracted_power=power_values  # <-- NEW: Power values from the file
+                                    )
+                         )
+        else:
             self._print_performance_results(infer_results)
 
         return result
+    @staticmethod
+    def _gather_power_results(power):
+        samples = []
+        timeStamps = []
+        if power:
+            for x in power.get_results():
+                if isinstance(x, str):
+                    match = re.match(r"^TimeStamp: ([0-9]{3})s ([0-9]{3})ms, buff [0-9]{2}%$", x)
+                    ts = float(f"{match.group(1)}.{match.group(2)}")
+                    timeStamps.append((ts, len(samples)))
+                else:
+                    samples.append(x)
+        return timeStamps, samples
 
     @staticmethod
     def _gather_infer_results(cmd_results):
@@ -192,83 +209,6 @@ class _ScriptInferStep(_ScriptStep):
             print("ERROR: Incomplete time data, missing start_time or end_time.")
         result["total_inferences"] = total_inferences
         return result
-
-
-    @staticmethod
-    def _print_accuracy_results(infer_results):
-        print(f"    Results = {infer_results['results']}, time={infer_results   ['elapsed_time']} us")
-
-    def _print_energy_results(self, infer_results):
-        """
-        Calculates and prints energy metrics from metrics_log.txt
-        for the given start_time and end_time in microseconds.
-        """
-        global global_loop_count
-        start_time = infer_results.get('start_time')
-        end_time = infer_results.get('end_time')
-
-        if start_time is None or end_time is None:
-            print("Start time or end time is missing in inference results.")
-            return
-
-        total_energy = 0  # Total energy in microjoules (uJ)
-        total_power = 0  # Total power in microwatts (µW)
-        count = 0
-        energy_values = []  # Store energy values for calculating the median later
-
-        try:
-            with open("metrics_log.txt", "r") as log_file:
-                # Skip the header
-                next(log_file)
-
-                for line in log_file:
-                    # Parse each line from the file
-                    timestamp, current, voltage, power = line.strip().split(", ")
-                    timestamp = int(timestamp)
-                    current = float(current) * 1e6  # Amps (A)
-                    voltage = float(voltage)  # Voltage (V)
-                    power = float(power) * 1e6  # Convert Power to µW
-
-                    # Check if the timestamp is within the range
-                    if start_time <= timestamp <= end_time:
-                        energy = power * (1e-6)  # Power (µW) × Time (µs) = Energy (uJ)
-                        total_energy += energy
-                        total_power += power
-                        energy_values.append(energy)
-                        count += 1
-
-            # Calculate metrics
-            if count > 0:
-                average_energy = total_energy / count
-                average_power = total_power / count
-
-                # Determine window and elapsed time
-                elapsed_time_us = end_time - start_time
-                elapsed_time_sec = elapsed_time_us / 1_000_000  # Convert µs to seconds
-                self.throughput_values.append(elapsed_time_sec)
-
-                # Get the current time for log formatting
-                current_time = datetime.now()
-                formatted_time = current_time.strftime("%m%d.%H%M%S")
-
-                # Print energy results in the required format
-                print(f"{formatted_time} ulp-ml: Energy data for window {len(self.throughput_values)} at time {current_time:.2f} sec. for {elapsed_time_sec:.2f} sec.:")
-                print(f"{formatted_time} ulp-ml: Energy        : {total_energy:.3f} uJ")
-                print(f"{formatted_time} ulp-ml: Power         : {average_power:.3f} µW")
-                print(f"{formatted_time} ulp-ml: Energy/Inf.   : {average_energy:.3f} uJ/inf.")
-                # If this is the last loop, calculate and print the median energy
-                if len(self.throughput_values) == global_loop_count:
-                    median_energy = np.median(energy_values)
-                    print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
-                    print(f"{formatted_time} ulp-ml: Median energy cost is {median_energy:.3f} uJ/inf.")
-                    print(f"{formatted_time} ulp-ml: ---------------------------------------------------------")
-            else:
-                print("No data points found between the specified timestamps.")
-        except FileNotFoundError:
-            print("metrics_log.txt not found.")
-        except Exception as e:
-            print(f"An error occurred while processing metrics_log.txt: {e}")
-
 
     def _print_performance_results(self, infer_results):
         """
@@ -376,12 +316,12 @@ class Script:
             # Pass the model into the download step
             return _ScriptStreamStep(*args)
 
-    def run(self, io, dut, dataset, mode):
+    def run(self, io, dut, dataset, is_energy_mode):
         with io:
             with dut:
                 result = None
                 for cmd in self._commands:
-                    r = cmd.run(io, dut, dataset, mode)
+                    r = cmd.run(io, dut, dataset, is_energy_mode)  # Pass boolean flag
                     if result is None:
                         result = r
                     elif isinstance(r, dict):

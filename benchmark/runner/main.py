@@ -39,19 +39,21 @@ def identify_dut(manager):
     init_dut(dut)
 
 
-def run_test(devices_config, dut_config, test_script, dataset_path, mode):
+def run_test(devices_config, dut_config, test_script, dataset_path):
     """Run the test
 
     :param devices_config:
     :param dut_config:
     :param test_script:
     :param dataset_path:
-    :param mode:
     """
     manager = DeviceManager(devices_config)
     manager.scan()
     power = manager.get("power", {}).get("instance")
     print(f"Power instance: {power}")
+
+    is_energy_mode = power is not None  # If power exists, it's energy mode
+    print(f"Running in {'Energy' if is_energy_mode else 'Performance'} mode")
     
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
@@ -71,7 +73,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path, mode):
         set = StreamingDataSet(os.path.join(dataset_path, script.model), script.truth)
     else:
         set = DataSet(os.path.join(dataset_path, script.model), script.truth)
-    result = script.run(io, dut, set, mode)
+    result = script.run(io, dut, set, is_energy_mode)
     return result, power
 
 def parse_device_config(device_list_file, device_yaml):
@@ -120,14 +122,33 @@ def normalize_probabilities(scores):
     return [s / total for s in scores]
 
 # Function to calculate accuracy
-def calculate_accuracy(y_pred, labels):
-    # Normalize y_pred
-    # Check if y_pred has only one value per instance and transform it
-    if y_pred.shape[1] == 1:
-        y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
-        y_pred = np.array([[value[0], 1 - value[0]] for value in y_pred])
+import numpy as np
 
-    # Get predicted labels and calculate accuracy
+def calculate_accuracy(y_pred, labels):
+    # Check if y_pred has only one value per instance (Anomaly Detection case)
+    if y_pred.shape[1] == 1:
+        thresholds = np.amin(y_pred) + np.arange(0.0, 1.0, .01) * (np.amax(y_pred) - np.amin(y_pred))
+        accuracy = 0
+        n_normal = np.sum(labels == 0)  # Assuming normal instances are labeled as 0
+
+        for threshold in thresholds:
+            y_pred_binary = (y_pred > threshold).astype(int)  # Binarization
+
+            true_negative = np.sum((y_pred_binary[labels == 0] == 0))
+            false_positive = np.sum((y_pred_binary[labels == 0] == 1))
+            true_positive = np.sum((y_pred_binary[labels == 1] == 1))
+            false_negative = np.sum((y_pred_binary[labels == 1] == 0))
+
+            precision = true_positive / (true_positive + false_positive + 1e-8)  # Avoid division by zero
+            recall = true_positive / (true_positive + false_negative + 1e-8)
+
+            accuracy_tmp = 100 * (precision + recall) / 2  # F1-like accuracy estimation
+            accuracy = max(accuracy, accuracy_tmp)
+
+        print(f"Precision/recall accuracy = {accuracy:2.1f}")
+        return accuracy
+
+    # Normal Classification Case
     y_pred_label = np.argmax(y_pred, axis=1)
     correct = np.sum(labels == y_pred_label)
     accuracy = 100 * correct / len(y_pred)
@@ -135,17 +156,41 @@ def calculate_accuracy(y_pred, labels):
     print(f"Overall accuracy = {accuracy:2.1f}")
     return accuracy
 
-# Function to calculate AUC
+
 def calculate_auc(y_pred, labels, n_classes):
-    # Normalize y_pred for each class
+    # Check if y_pred has only one value per instance (Anomaly Detection case)
     if y_pred.shape[1] == 1:
-        y_pred = np.array([[value, 1- value] for value in y_pred])
-        y_pred = (y_pred - y_pred.min(axis=0)) / (y_pred.max(axis=0) - y_pred.min(axis=0) + 1e-10)
+        thresholds = np.amin(y_pred) + np.arange(0.0, 1.01, .01) * (np.amax(y_pred) - np.amin(y_pred))
+        roc_auc = 0
+
+        n_normal = np.sum(labels == 0)  # Assuming normal instances are labeled as 0
+        tpr = np.zeros(len(thresholds))
+        fpr = np.zeros(len(thresholds))
+
+        for threshold_item in range(1, len(thresholds)):
+            threshold = thresholds[threshold_item]
+            y_pred_binary = (y_pred > threshold).astype(int)
+
+            tpr[threshold_item] = np.sum(y_pred_binary[labels == 1]) / float(np.sum(labels == 1))
+            fpr[threshold_item] = np.sum(y_pred_binary[labels == 0]) / float(n_normal)
+
+        # Force boundary condition
+        fpr[0] = 1
+        tpr[0] = 1
+
+        # Compute AUC using trapezoidal rule
+        for threshold_item in range(len(thresholds) - 1):
+            roc_auc += 0.5 * (tpr[threshold_item] + tpr[threshold_item + 1]) * (
+                        fpr[threshold_item] - fpr[threshold_item + 1])
+        print(f"Simplified ROC AUC = {roc_auc:.3f}")
+        return roc_auc
+
+    # Multiclass Case (Existing Logic)
     thresholds = np.arange(0.0, 1.01, 0.01)
     fpr = np.zeros([n_classes, len(thresholds)])
     tpr = np.zeros([n_classes, len(thresholds)])
     roc_auc = np.zeros(n_classes)
-    
+
     for class_item in range(n_classes):
         all_positives = sum(labels == class_item)
         all_negatives = len(labels) - all_positives
@@ -179,9 +224,8 @@ def calculate_auc(y_pred, labels, n_classes):
     print(f"Simplified average ROC AUC = {roc_auc_avg:.3f}")
     return roc_auc
 
-
 # Summarize results
-def summarize_result(result, mode, power):
+def summarize_result(result, power):
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -207,7 +251,11 @@ def summarize_result(result, mode, power):
             infer_results = normalize_probabilities(infer_results)
             file_infer_results[file_name]['results'].append(infer_results)
 
-    if mode != 'e':
+    if power is not None:  # If power is present, we're in energy mode
+        print("Power Edition Output")
+        power.stop()  # Stop power capture
+        power.send_command_wait_for_response("pwr off")
+    else:
         for file_name, data in file_infer_results.items():
             true_class = data['true_class']
             results = data['results']
@@ -226,14 +274,6 @@ def summarize_result(result, mode, power):
 
         calculate_accuracy(np.array(y_pred), np.array(y_true))
         calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
-    else:
-        #power manager output
-        print("Power Edition Output")
-        power.stop()  # Stop power capture
-        power.send_command_wait_for_response("pwr off")
-
-
-    return
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
@@ -244,18 +284,17 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
     parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
     parser.add_argument("-s", "--dataset_path", default="datasets")
-    parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
     args = parser.parse_args()
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
         "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
         "test_script": parse_test_script(args.test_script),
         "dataset_path": args.dataset_path,
-        "mode": args.mode
     }
     result, power = run_test(**config)  # Unpack power from run_test
     if config['dut_config']['model'] == 'sww01':
-        sww_util.summarize_sww_result(result, args.mode, power)  # Pass power to summarize_result
+        sww_util.summarize_sww_result(result, power)  # Pass only power
     else:
-        summarize_result(result, args.mode, power)  # Pass power to summarize_result
+        summarize_result(result, power)  # Remove mode parameter
+
     
