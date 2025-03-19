@@ -11,9 +11,9 @@ class IOManagerEnhanced(IOManager):
   def get_waves(self):
     return [x for x in self.get_files() if x.lower().endswith("wav") or x == "m-ready"]
 
-  def play_wave(self, filename=None):
+  def play_wave(self, filename=None, timeout=10):
     command = "play" + (f" {filename}" if filename else "")
-    return self.port.send_command(command, timeout=20) # need to set this timeout longer than file length
+    return self.port.send_command(command, timeout=timeout) # need to set this timeout longer than file length
 
   def record_detections(self):
     command = "record_detections"
