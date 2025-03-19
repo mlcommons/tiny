@@ -196,7 +196,7 @@ class _ScriptInferStep(_ScriptStep):
 
     @staticmethod
     def _print_accuracy_results(infer_results):
-        print(f"    Results = {infer_results['results']}, time={infer_results['elapsed_time']} us")
+        print(f"    Results = {infer_results['results']}, time={infer_results   ['elapsed_time']} us")
 
     def _print_energy_results(self, infer_results):
         """
@@ -327,16 +327,20 @@ class _ScriptStreamStep(_ScriptStep):
         dut.stop_detecting()   # in case it wasn't stopped earlier
         dut.start_detecting()  # instruct DUT to pulse GPIO when wakeword detected
         io.record_detections() # intfc starts recording timestamp of GPIO pulses
-        io.play_wave(file_truth['wav_file']) # blocking call, will pause here until wav finishes
+        print(f"Playing {file_truth['wav_file']} ... ", end="")
+        # play_wave is a blocking call, will pause here until wav finishes
+        io.play_wave(file_truth['wav_file'], timeout=file_truth["length_sec"]+10.0) 
         # not sure why this is needed, but apparently the DUT is still occupied with the 
-        # detection task, because w/o this sleep the next DUT command times out
-        time.sleep(5) 
-        print("about to tell DUT to stop detecting")
+        # detection task, because w/o this sleep the next DUT command times out.  Could be shorter
+        time.sleep(5)
+        print(" ... done")
         dut.stop_detecting()   # DUT stops pulsing GPIO on WW.
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
         detected_timestamps = sww_util.process_timestamps(detected_timestamps)
-        print(detected_timestamps)
-        return detected_timestamps
+        results = {}
+        results.update(file_truth)        
+        results["detections"] = detected_timestamps
+        return results
 
 class Script:
     """Script that executes a test"""
