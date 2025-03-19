@@ -32,7 +32,7 @@ class PowerManager:
         self.data_storage = []  
         self.uc = UnitConversions()
         self.mode = None
-        self.board_timestamp_ms = 0
+        self.board_timestamps_ms = []
         self.capture_start_us = 0
         self.num_of_captured_values = 0
         self.last_print_timestamp_ms = 0
@@ -70,12 +70,16 @@ class PowerManager:
                 try:
                     match = re.search(r"TimeStamp: (\d+)s (\d+)ms, buff (\d+)%", response)
                     if match:
-                        self.board_timestamp_ms = (
+                        self.board_timestamps_ms.append(
                             int(match.group(2)) + int(match.group(1)) * 1000
                         )
                         self.board_buffer_usage_percentage = int(match.group(3))
-                except:
-                    continue  # Suppress errors silently
+                        # string responses will be parsed as timestamp messags in infer_step._gather_power_results()
+                        self._data_queue.put(response) 
+                        print(f"At timestamp {self.board_timestamps_ms[-1]} buffer usage = {self.board_buffer_usage_percentage}%")
+                except Exception as e:
+                    print(f"Exception caught in PowerManager: {type(e).__name__}")
+                    continue  
                 continue
 
             if "-" in response:
@@ -101,7 +105,7 @@ class PowerManager:
                 )  # Calculate relative timestamp in microseconds
 
                 # Store parsed data in queue instead of writing to a file
-                self._data_queue.put((relative_timestamp_us, current, voltage, power))
+                self._data_queue.put((relative_timestamp_us, current, voltage, power, self.board_timestamps_ms[-1]))
 
             except:
                 continue  # Suppress errors silently
