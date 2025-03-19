@@ -150,7 +150,7 @@ class _ScriptInferStep(_ScriptStep):
     def run(self, io, dut, dataset, is_energy_mode):  # mode passed to run
         result = dut.infer(self._iterations, self._warmups)
 
-        infer_results = _ScriptInferStep._gather_infer_results(result)
+        infer_results = _ScriptInferStep._gather_infer_results(result, is_energy_mode)
 
         result = dict(infer=infer_results)
 
@@ -185,7 +185,7 @@ class _ScriptInferStep(_ScriptStep):
         return timeStamps, samples
 
     @staticmethod
-    def _gather_infer_results(cmd_results):
+    def _gather_infer_results(cmd_results, energy_mode):
         result = {}
         total_inferences = 0
         for res in cmd_results:
@@ -203,9 +203,9 @@ class _ScriptInferStep(_ScriptStep):
             if match:
                 key = "end_time" if "start_time" in result else "start_time"
                 result[key] = int(match.group(1))
-        if "start_time" in result and "end_time" in result:
+        if not energy_mode and "start_time" in result and "end_time" in result:
             result["elapsed_time"] = result["end_time"] - result["start_time"]
-        else:
+        elif not energy_mode:
             print("ERROR: Incomplete time data, missing start_time or end_time.")
         result["total_inferences"] = total_inferences
         return result
