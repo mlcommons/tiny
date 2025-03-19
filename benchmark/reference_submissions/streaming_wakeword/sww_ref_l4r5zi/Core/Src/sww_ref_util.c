@@ -49,6 +49,7 @@ int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 int8_t *g_model_input;
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
 uint32_t g_i2s_wav_len = 24*2048;
+uint32_t g_first_frame = 1;
 
 
 int16_t *g_wav_block_buff = NULL; // hold most recent SWW_WINLEN_SAMPLES for feature extraction
@@ -373,6 +374,7 @@ void start_detection(char *cmd_args[]) {
 	else {
 		 g_i2s_state = Streaming;
 		 g_int16s_read = 0; // jhdbg -- only needed when we're capturing the waveform in addition to detecting
+		 g_first_frame = 1; // on the first frame of a recording we pulse the detection GPIO to synchronize timing.
 
 		 printf("Listening for I2S data ... \r\n");
 
@@ -600,10 +602,11 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	aiRun(in_data, out_data);
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
 
-	if( out_data[0] > 120 ) {
+	if( out_data[0] > DETECT_THRESHOLD || g_first_frame) {
  	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_RESET);
 	    delay_us(1);
 	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_SET);
+	    g_first_frame = 0;
 	}
     log_printf(&g_log, "%d, \r\n", out_data[0]);
 
@@ -717,8 +720,4 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	}
 }
 
-
-void register_detection(void) {
-
-}
 
