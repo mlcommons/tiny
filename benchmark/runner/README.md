@@ -27,7 +27,6 @@ To use the USB-UART interface, choose `iouart` in the `devices. yaml` file. See 
     0x067b:0x23a3  # USB-UART device VID and PID
 ```
 
-
 ## Test Runner
 The test runner connects to the interface board and the power board and the dut.  It will execute test scripts.
 Test script is determined by the configuration of the hardware.
