@@ -194,7 +194,7 @@ class _ScriptInferStep(_ScriptStep):
                 try:
                     results = [float(x) for x in match.group(1).split(',') if x.strip()]
                     result["results"] = results
-                    total_inferences += len(results)
+                    total_inferences += 1 # this results vector is the output of 1 inference, not a collection of multiple inferences
                 except ValueError as e:
                     print(f"ERROR: Failed to parse infer results: {e}. Data: {match.group(1)}")
                     result["results"] = []
