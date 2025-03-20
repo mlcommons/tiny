@@ -3,6 +3,7 @@ import yaml
 from serial.tools import list_ports
 
 from device_under_test import DUT
+from io_uart import IOUart
 from io_manager import IOManager
 from io_manager_enhanced import IOManagerEnhanced
 from power_manager import PowerManager
@@ -41,8 +42,12 @@ class DeviceManager:
     if definition.get("baud"):
       args["baud_rate"] = definition.get("baud")
     if definition.get("type") == "interface":
-      definition["instance"] = IOManagerEnhanced(**args) if definition.get("name") == "stm32h573i-dk" \
-        else IOManager(**args)
+      if definition.get("name") == "stm32h573i-dk":
+        definition["instance"] = IOManagerEnhanced(**args)
+      elif definition.get("name") == "iouart":
+        definition["instance"] = IOUart(**args)
+      else:
+        definition["instance"] = IOManager(**args)
     elif definition.get("type") == "power":
       definition["instance"] = PowerManager(**args)
     elif definition.get("type") == "dut":

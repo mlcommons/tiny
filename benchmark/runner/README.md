@@ -10,6 +10,23 @@
 ### Device Under Test (L4R5ZI)
 ![DUT Wiring](img/L4R5ZI.png)
 
+### Interface Board (USB-UART)
+The USB-UART interface can replace the Interface Board (STM32H573I-DK) and run benchmarks requiring only UART communication, such as IC and AD.
+
+Most USB-UART interfaces should work fine; however, the current tests were conducted using an interface based on the PL2303GS controller.
+
+The interface used and the connection details are shown in the figure below.
+![DUT Wiring](img/usb-uart2.png)
+#### Configuration
+To use the USB-UART interface, choose `iouart` in the `devices. yaml` file. See the sample entry below.
+```yaml
+- name: iouart
+  type: interface
+  preference: 3
+  usb:
+    0x067b:0x23a3  # USB-UART device VID and PID
+```
+
 ## Test Runner
 The test runner connects to the interface board and the power board and the dut.  It will execute test scripts.
 Test script is determined by the configuration of the hardware.

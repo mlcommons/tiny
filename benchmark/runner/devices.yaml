@@ -3,6 +3,11 @@
   preference: 2
   usb:
     0x0483: 0x374E
+- name: iouart
+  type: interface
+  preference: 3
+  usb:
+    0x067b: 0x23a3
 - name: arduino
   type: interface
   preference: 1
