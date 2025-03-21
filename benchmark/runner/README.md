@@ -1,4 +1,26 @@
 [[_TOC_]]
+## Performance/Accuracy Metrics
+### Device Configurations
+Connect just the device (L4R5ZI) to the computer
+### Step 1: Update the Baud Rate
+Ensure the DUT board has a file attached and note its **BAUD rate**.  
+In `device_under_test.py`, update **line 9** to reflect this baud rate.
+
+### Step 2: Run a Test Trial
+Each test trial will be stored in a log file in the local folder.
+
+The mode will be define by whether or not the powerboard is detected.
+
+#### Run the Test in PowerShell:
+```powershell
+python main.py --dataset_path=C:\Your\Dataset\Path
+```
+
+You will the be prompted to run an [A]ccuracy test or a [P]erformance test
+
+The code will accept either A or a for Accuracy and P or p for Performance
+
+** As of writing this the Performance Metric has not been implimented **
 
 ## Energy Test Connections
 
@@ -12,7 +34,6 @@
 ### Device Under Test (L4R5ZI)
 ![DUT Wiring](img/L4R5ZI.png)
 
-There should be an extra wire connecting from **CN14 port 2** to the **port on the interface board** directly next to the **open jumper on the DUT board**.
 
 ---
 

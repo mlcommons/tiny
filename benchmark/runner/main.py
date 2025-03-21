@@ -52,13 +52,26 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
     power = manager.get("power", {}).get("instance")
     print(f"Power instance: {power}")
 
-    is_energy_mode = power is not None  # If power exists, it's energy mode
-    print(f"Running in {'Energy' if is_energy_mode else 'Performance'} mode")
-    
+    if power:
+        mode = "Energy"
+    else:
+        # Ask user for mode when no power board is detected
+        while True:
+            user_input = input("No power board detected. Enter mode [P]erformance or [A]ccuracy: ").strip().upper()
+            if user_input == "P":
+                mode = "Performance"
+                break
+            elif user_input == "A":
+                mode = "Accuracy"
+                break
+            else:
+                print("Invalid input. Please enter 'P' or 'A'.")
+
+    print(f"Running in {mode} mode")
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
     identify_dut(manager)
-
+    
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
     io = manager.get("interface", {}).get("instance")
@@ -73,7 +86,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
         set = StreamingDataSet(os.path.join(dataset_path, script.model), script.truth)
     else:
         set = DataSet(os.path.join(dataset_path, script.model), script.truth)
-    result = script.run(io, dut, set, is_energy_mode)
+    result = script.run(io, dut, set, mode)
     return result, power
 
 def parse_device_config(device_list_file, device_yaml):

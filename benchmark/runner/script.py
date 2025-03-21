@@ -60,7 +60,7 @@ class _ScriptDownloadStep(_ScriptStep):
         self._current_segment_index = 0
         self.total_length = 0
 
-    def run(self, io, dut, dataset, is_energy_mode):
+    def run(self, io, dut, dataset, mode):
         # Fetch the file and data
         if(self.model == "ad01" and self.total_length != 0):
             if (self._current_segment_index == self.total_length): 
@@ -91,8 +91,10 @@ class _ScriptDownloadStep(_ScriptStep):
             
         # Conditional print statements based on 'mode'
         if data:
-            if not is_energy_mode:
+            if mode == "Accuracy":
                 print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
+            elif mode == "Performance":
+                print(f"{formatted_time} ulp-mlperf: Running Performance Metrics")
             if(self.model == "ad01"):
                 segment = self._segments[self._current_segment_index]
                 dut.load(segment)
@@ -147,14 +149,14 @@ class _ScriptInferStep(_ScriptStep):
         self.throughput_values = []
         self._loop_count = loop_count  # Store loop_count passed to this step
 
-    def run(self, io, dut, dataset, is_energy_mode):  # mode passed to run
+    def run(self, io, dut, dataset, mode):  # mode passed to run
         result = dut.infer(self._iterations, self._warmups)
 
-        infer_results = _ScriptInferStep._gather_infer_results(result, is_energy_mode)
+        infer_results = _ScriptInferStep._gather_infer_results(result, mode)
 
         result = dict(infer=infer_results)
 
-        if is_energy_mode:
+        if mode == "Energy":
             timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
             print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
 
@@ -166,8 +168,10 @@ class _ScriptInferStep(_ScriptStep):
                                      extracted_power=power_values  # <-- NEW: Power values from the file
                                     )
                          )
+        elif mode == "Accuracy":
+            self._print_accuracy_results(infer_results)
         else:
-            self._print_performance_results(infer_results)
+            print("Performance Not Implimented Yet")
 
         return result
     @staticmethod
@@ -185,7 +189,7 @@ class _ScriptInferStep(_ScriptStep):
         return timeStamps, samples
 
     @staticmethod
-    def _gather_infer_results(cmd_results, energy_mode):
+    def _gather_infer_results(cmd_results, mode):
         result = {}
         total_inferences = 0
         for res in cmd_results:
@@ -203,14 +207,14 @@ class _ScriptInferStep(_ScriptStep):
             if match:
                 key = "end_time" if "start_time" in result else "start_time"
                 result[key] = int(match.group(1))
-        if not energy_mode and "start_time" in result and "end_time" in result:
+        if mode != "Energy" and "start_time" in result and "end_time" in result:
             result["elapsed_time"] = result["end_time"] - result["start_time"]
-        elif not energy_mode:
+        elif mode != "Energy":
             print("ERROR: Incomplete time data, missing start_time or end_time.")
         result["total_inferences"] = total_inferences
         return result
 
-    def _print_performance_results(self, infer_results):
+    def _print_accuracy_results(self, infer_results):
         """
         Accumulates throughput values for all loop iterations and calculates median throughput 
         at the end of all iterations.
@@ -316,22 +320,48 @@ class Script:
             # Pass the model into the download step
             return _ScriptStreamStep(*args)
 
-    def run(self, io, dut, dataset, is_energy_mode):
-        with io:
+    def run(self, io, dut, dataset, mode):
+        result = None
+        if mode == "Energy":
+            with io:
+                with dut:
+                    result = None
+                    for cmd in self._commands:
+                        r = cmd.run(io, dut, dataset, mode)  # Pass boolean flag
+                        if result is None:
+                            result = r
+                        elif isinstance(r, dict):
+                            if isinstance(result, dict):
+                                result.update(**r)
+                            else:
+                                result.append(r)
+                        else:
+                            if isinstance(result, dict):
+                                result.update(res=r)
+                            else:
+                                result.extend(r)
+        elif mode == "Performance" or mode == "Accuracy":  # Accuracy mode
             with dut:
-                result = None
                 for cmd in self._commands:
-                    r = cmd.run(io, dut, dataset, is_energy_mode)  # Pass boolean flag
-                    if result is None:
-                        result = r
-                    elif isinstance(r, dict):
-                        if isinstance(result, dict):
-                            result.update(**r)
-                        else:
-                            result.append(r)
-                    else:
-                        if isinstance(result, dict):
-                            result.update(res=r)
-                        else:
-                            result.extend(r)
-                return result
+                    r = cmd.run(io, dut, dataset, mode)
+                    result = self._merge_results(result, r)
+        else:
+            raise RuntimeError("Missing required device instance.")
+
+        return result
+
+    def _merge_results(self, current, new):
+        if current is None:
+            return new
+        if isinstance(new, dict):
+            if isinstance(current, dict):
+                current.update(**new)
+            else:
+                current.append(new)
+        else:
+            if isinstance(current, dict):
+                current.update(res=new)
+            else:
+                current.extend(new)
+        return current
+
