@@ -2,6 +2,7 @@ import argparse
 import os
 import time
 import yaml
+from datetime import datetime
 import numpy as np
 from sklearn.metrics import roc_auc_score
 from collections import Counter
@@ -134,9 +135,6 @@ def normalize_probabilities(scores):
     total = sum(scores)
     return [s / total for s in scores]
 
-# Function to calculate accuracy
-import numpy as np
-
 def calculate_accuracy(y_pred, labels):
     # Check if y_pred has only one value per instance (Anomaly Detection case)
     if y_pred.shape[1] == 1:
@@ -157,16 +155,12 @@ def calculate_accuracy(y_pred, labels):
 
             accuracy_tmp = 100 * (precision + recall) / 2  # F1-like accuracy estimation
             accuracy = max(accuracy, accuracy_tmp)
-
-        print(f"Precision/recall accuracy = {accuracy:2.1f}")
         return accuracy
 
     # Normal Classification Case
     y_pred_label = np.argmax(y_pred, axis=1)
     correct = np.sum(labels == y_pred_label)
     accuracy = 100 * correct / len(y_pred)
-
-    print(f"Overall accuracy = {accuracy:2.1f}")
     return accuracy
 
 
@@ -195,7 +189,6 @@ def calculate_auc(y_pred, labels, n_classes):
         for threshold_item in range(len(thresholds) - 1):
             roc_auc += 0.5 * (tpr[threshold_item] + tpr[threshold_item + 1]) * (
                         fpr[threshold_item] - fpr[threshold_item + 1])
-        print(f"Simplified ROC AUC = {roc_auc:.3f}")
         return roc_auc
 
     # Multiclass Case (Existing Logic)
@@ -234,8 +227,7 @@ def calculate_auc(y_pred, labels, n_classes):
                         fpr[class_item, threshold_item] - fpr[class_item, threshold_item + 1])
 
     roc_auc_avg = np.mean(roc_auc)
-    print(f"Simplified average ROC AUC = {roc_auc_avg:.3f}")
-    return roc_auc
+    return roc_auc_avg
 
 # Summarize results
 def summarize_result(result, power):
@@ -243,17 +235,30 @@ def summarize_result(result, power):
     total_files = 0
     y_pred = []
     y_true = []
+    throughput_values = []
 
     file_infer_results = {}
+    current_time = datetime.now()
+    formatted_time = current_time.strftime("%m%d.%H%M%S ") 
 
     # Extract all unique classes
-    all_classes = sorted(list(set(int(r['class']) for r in result)))
+    all_classes = sorted(list(set(int(r['class']) for r in result if 'class' in r)))
     n_classes = len(all_classes)
 
     for r in result:
-        infer_results = r['infer']['results']
+        if 'infer' not in r or 'class' not in r or 'file' not in r:
+            continue  # Skip malformed or error-only entries
+        infer_data = r['infer']
+        infer_results = infer_data['results']
         file_name = r['file']
         true_class = int(r['class'])
+        for r in result:
+            errors = r.get('error')  # ✅ Safe access
+            if errors:
+                continue  # Skip error entries entirely here
+        
+        if 'throughput' in infer_data:
+            throughput_values.append(infer_data['throughput'])
 
         if file_name not in file_infer_results:
             file_infer_results[file_name] = {'true_class': true_class, 'results': []}
@@ -268,6 +273,19 @@ def summarize_result(result, power):
         print("Power Edition Output")
         power.stop()  # Stop power capture
         power.send_command_wait_for_response("pwr off")
+    elif throughput_values:  # <-- NEW: Performance mode detected
+        has_error_1 = any(r.get("error") == "error 1" for r in result)
+        has_error_2 = any(r.get("error") == "error 2" for r in result)
+        if has_error_1:
+            print(f"{formatted_time}ulp-mlperf: ERROR 1 – loop_count was not exactly 5.")
+        elif has_error_2:
+            print(f"{formatted_time}ulp-mlperf: ERROR 2 – loop exited before 10 seconds elapsed.")
+        else:
+            median_throughput = np.median(throughput_values)
+            print(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------")
+            print(f"{formatted_time}ulp-mlperf: Median throughput is {median_throughput:>10.3f} inf./sec.")
+            print(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------")
+
     else:
         for file_name, data in file_infer_results.items():
             true_class = data['true_class']
@@ -285,8 +303,14 @@ def summarize_result(result, power):
 
             total_files += 1
 
-        calculate_accuracy(np.array(y_pred), np.array(y_true))
-        calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
+        auc = calculate_accuracy(np.array(y_pred), np.array(y_true))
+        accuracy = calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
+        current_time = datetime.now()
+        formatted_time = current_time.strftime("%m%d.%H%M%S ") 
+        print(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}")
+        print(f"{formatted_time}ulp-mlperf: AUC = {auc:.3f}")
+    
+        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)

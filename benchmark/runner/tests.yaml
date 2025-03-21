@@ -19,9 +19,9 @@ kws01:
   model: kws01
   truth_file: y_labels.csv
   script:
-    - loop 20: 
+    - loop 5: 
       - download
-      - infer 1 0
+      - infer 10 1
 vww01:
   name: person_detection
   model: vww01
