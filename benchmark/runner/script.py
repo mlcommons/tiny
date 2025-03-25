@@ -318,7 +318,7 @@ class Script:
 
     def run(self, io, dut, dataset, mode):
         result = None
-        if mode == "Energy":
+        if io != None:
             with io:
                 with dut:
                     result = None
@@ -336,7 +336,7 @@ class Script:
                                 result.update(res=r)
                             else:
                                 result.extend(r)
-        elif mode == "Performance" or mode == "Accuracy":  # Accuracy mode
+        elif dut != None:  # Accuracy mode
             with dut:
                 for cmd in self._commands:
                     r = cmd.run(io, dut, dataset, mode)
