@@ -37,7 +37,6 @@ class PowerManager(SerialDevice):
       if not line:
         continue
       if line.startswith("TimeStamp"):
-        print(line)
         self._data_queue.put(line)
       elif re.match("\d\d\d\d[+-]\d\d", line):
         line = line.replace('+', 'e').replace('-', "e-")

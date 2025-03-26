@@ -6,7 +6,7 @@ from serial_device import SerialDevice
 
 
 class DUT:
-  def __init__(self, port_device, baud_rate=9600, power_manager=None):
+  def __init__(self, port_device, baud_rate=115200, power_manager=None):
     interface = port_device
     if not isinstance(port_device, InterfaceDevice):
       interface = SerialDevice(port_device, baud_rate, "m-ready", '%')
