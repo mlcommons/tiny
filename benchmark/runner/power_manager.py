@@ -31,6 +31,33 @@ class PowerManager(SerialDevice):
     self._stop_read_thread()
     self._port.__exit__(*args)
 
+  @staticmethod
+  def extract_current_values(line):
+    pattern = r'\d{4}[-+]\d{2}'  # Matches full strings like "1221-05" or "9876+12"
+    matches = list(re.finditer(pattern, line))  # Find all matches
+
+    results = []
+
+    if matches:
+      first_match_start = matches[0].start()
+      last_match_end = matches[-1].end()
+
+    # Check for partial string **before** first match
+    if first_match_start > 0:
+      results.append("nan")
+
+    # Add extracted valid strings
+    results.extend(match.group() for match in matches)
+
+    # Check for partial string **after** last match
+    if last_match_end < len(line):
+        results.append("nan")
+    
+    for i,s in enumerate(results):
+      results[i] = s.replace("+", "e+").replace("-", "e-")
+    
+    return [float(s) for s in results]  
+    
   def _read_loop(self):
     while self._running:
       line = self._port.read_line(timeout=0.250)
@@ -39,10 +66,9 @@ class PowerManager(SerialDevice):
       if line.startswith("TimeStamp"):
         self._data_queue.put(line)
       elif re.match("\d\d\d\d[+-]\d\d", line):
-        line = line.replace('+', 'e').replace('-', "e-")
-        line = line[:1] + "." + line[1:]
-        value = float(line)
-        self._data_queue.put(value)
+        values = PowerManager.extract_current_values(line)
+        for v in values: 
+          self._data_queue.put(v)
       else:
         self._message_queue.put(line)
 

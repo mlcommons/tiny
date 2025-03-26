@@ -160,10 +160,9 @@ class _ScriptInferStep(_ScriptStep):
         self._loop_count = loop_count  # Store loop_count passed to this step
 
     def run(self, io, dut, dataset, mode):  # mode passed to run
-        result = dut.infer(self._iterations, self._warmups)
-
-        infer_results = _ScriptInferStep._gather_infer_results(result, mode)
-
+        raw_result = dut.infer(self._iterations, self._warmups)
+        infer_results = _ScriptInferStep._gather_infer_results(raw_result, mode)
+        result = dict(infer=infer_results)
 
         if mode == "Energy":
             timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
@@ -179,7 +178,7 @@ class _ScriptInferStep(_ScriptStep):
                          )
         else:
             self._print_AP_results(infer_results,mode)
-        result = dict(infer=infer_results)
+        
         return result
     @staticmethod
     def _gather_power_results(power):
