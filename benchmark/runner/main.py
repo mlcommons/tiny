@@ -271,8 +271,13 @@ def summarize_result(result, power):
 
     if power is not None:  # If power is present, we're in energy mode
         print("Power Edition Output")
-        power.stop()  # Stop power capture
-        power.send_command_wait_for_response("pwr off")
+        # power.stop()  # Stop power capture
+        # power.send_command_wait_for_response("pwr off")
+        # print("after stop")
+        power.power_off()
+        # print("after power_off")
+        power.__exit__() # fix this so it only looks for 'ack stop'
+        print("after __exit__")
     elif throughput_values:  # <-- NEW: Performance mode detected
         has_error_1 = any(r.get("error") == "error 1" for r in result)
         has_error_2 = any(r.get("error") == "error 2" for r in result)

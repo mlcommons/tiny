@@ -15,6 +15,7 @@ class SerialDevice:
     self._running = False
     self._echo = echo
     self._timeout = 5.0
+    self.full_debug = False
 
   def __enter__(self):
     self._port.__enter__()
