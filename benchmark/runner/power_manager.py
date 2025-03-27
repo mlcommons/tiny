@@ -72,6 +72,8 @@ class PowerManager(SerialDevice):
         values = PowerManager.extract_current_values(line)
         for v in values: 
           self._data_queue.put(v)
+      elif re.match(r"event (\d+) ris", line): # event markers indicate an occurence (D7 falling edge here)
+        self._data_queue.put(line)
       else:
         self._message_queue.put(line)
 
@@ -91,10 +93,13 @@ class PowerManager(SerialDevice):
     print(f"BoardID: {self.get_board_id()}", file=sys.stderr)
     print(f"Version: {self.get_version()}", file=sys.stderr)
     print(f"Status: {self.get_status()}", file=sys.stderr)
-    self.set_lcd("     mlperf     ", "     monitor    ")
+    self.set_lcd("MLPerf Tiny", "     monitor    ")
     self.power_off()
     # Acquire infinitely
-    self.configure_trigger('inf', 0, 'd7')
+    # self.configure_trigger('inf', 0, 'd7')
+    # trigger='sw' => start measuring on command; ='d7'=>wait for d7 then start
+    self.configure_trigger('inf', 0, 'sw') 
+
     self.configure_output('energy', 'ascii_dec', '1k')
     self.set_voltage(self._voltage)
     self.power_on()
@@ -102,6 +107,7 @@ class PowerManager(SerialDevice):
 
   def _tear_down(self):
     self.stop()
+    self.power_off()
     self._release_remote_control()
 
   def _claim_remote_control(self):
@@ -140,6 +146,8 @@ class PowerManager(SerialDevice):
                        err_message="Error setting trigger_delay to {trigger_delay}")
     self._send_command(f"trigsrc {trigger_source}",
                        err_message=f"Error setting trigger_source to {trigger_source}")
+    self._send_command(f"eventsrc d7 fal",
+                        err_message=f"Error setting event source to D7 Falling edge")
 
   def configure_output(self, output_type, output_format, samples_per_second):
     self._send_command(f"output {output_type}", err_message=f"Error setting output_type to {output_type}")

@@ -1,7 +1,4 @@
-import argparse
-import os
-import time
-import yaml
+import argparse, os, time, yaml, json
 from datetime import datetime
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -339,4 +336,5 @@ if __name__ == '__main__':
     else:
         summarize_result(result, power)  # Remove mode parameter
 
-    
+    with open('perf_result.json', 'w') as fpo:
+        json.dump(result, fpo)

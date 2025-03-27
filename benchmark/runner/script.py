@@ -182,14 +182,25 @@ class _ScriptInferStep(_ScriptStep):
         return result
     @staticmethod
     def _gather_power_results(power):
+        # this method should really be done inside the power manager, since
+        # other emon devices will structure the raw data different
         samples = []
-        timeStamps = []
+        timeStamps = [] # this is what the EEMBC runner calls "Timestamps"
+        clock_ticks = [] # this is what the LPM01a calls "TimeStamps"
         if power:
             for x in power.get_results():
                 if isinstance(x, str):
-                    match = re.match(r"^TimeStamp: ([0-9]{3})s ([0-9]{3})ms, buff [0-9]{2}%$", x)
-                    ts = float(f"{match.group(1)}.{match.group(2)}")
-                    timeStamps.append((ts, len(samples)))
+                    if x.startswith("TimeStamp"):
+                        match = re.match(r"^TimeStamp: ([0-9]{3})s ([0-9]{3})ms, buff [0-9]{2}%$", x)                    
+                        ts = float(f"{match.group(1)}.{match.group(2)}")
+                        clock_ticks.append((ts, len(samples)))
+                        if len(clock_ticks) > 1 and clock_ticks[-1][1]-clock_ticks[-2][1] != 1000:
+                            expected_samples = clock_ticks[-2][1] + 1000
+                            print(f"At time {ts}: expected {expected_samples}, but we have {clock_ticks[-1][1]}.")
+                    elif x.startswith("event"):
+                        match = re.match(r"event (\d+) ris", x)
+                        event_num = match.group(1)
+                        timeStamps.append((event_num, len(samples)))
                 else:
                     samples.append(x)
         return timeStamps, samples
