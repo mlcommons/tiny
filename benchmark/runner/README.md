@@ -9,16 +9,13 @@ In `device_under_test.py`, update **line 9** to reflect this baud rate.
 ### Step 2: Run a Test Trial
 Each test trial will be stored in a log file in the local folder.
 
-The mode will be define by whether or not the powerboard is detected.
 
 #### Run the Test in PowerShell:
 ```powershell
-python main.py --dataset_path=C:\Your\Dataset\Path
+python main.py --dataset_path=C:\Your\Dataset\Path --mode=p
 ```
 
-You will the be prompted to run an [A]ccuracy test or a [P]erformance test
-
-The code will accept either A or a for Accuracy and P or p for Performance
+Mode for accuracy is a, mode for performance is p. This needs to be lowercase and we default to accuracy
 
 ** As of writing this the Performance Metric has not been implimented **
 
@@ -109,13 +106,13 @@ For **Accuracy/Energy Tests**:
 ### Step 4: Run a Test Trial
 Each test trial will be stored in a log file in the local folder.
 
-The mode will be define by whether or not the powerboard is detected.
 
 #### Run the Test in PowerShell:
 ```powershell
-python main.py --dataset_path=C:\Your\Dataset\Path
+python main.py --dataset_path=C:\Your\Dataset\Path --mode=e
 ```
 
+You must define mode as e and if for some reason the PowerBoard is not detecting it will return a runtime error
 ## Troubleshooting Section
 
 If you encounter errors while running the test, refer to the guide below.
