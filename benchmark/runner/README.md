@@ -22,14 +22,14 @@ Mode for accuracy is a, mode for performance is p. This needs to be lowercase an
 ## Energy Test Connections
 
 ### Power Board (LPM01A)
-![LPM01A Wiring](img/LPM01A.jpg)
+![LPM01A Wiring](img/LPM01A_1.jpg)
 
 ### Interface Board (STM32H573I-DK)
 ![STM32H573I-DK Top Wiring](img/STM32H573I-DK-Top.png)
 ![STM32H573I-DK Bottom Wiring](img/STM32H573I-DK-Bottom.png)
 
 ### Device Under Test (L4R5ZI)
-![DUT Wiring](img/L4R5ZI.png)
+![DUT Wiring](img/L4R5ZI_1.png)
 
 
 ---
