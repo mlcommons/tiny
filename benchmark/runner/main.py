@@ -40,7 +40,7 @@ def identify_dut(manager):
     init_dut(dut)
 
 
-def run_test(devices_config, dut_config, test_script, dataset_path):
+def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     """Run the test
 
     :param devices_config:
@@ -48,31 +48,16 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
     :param test_script:
     :param dataset_path:
     """
+    
     manager = DeviceManager(devices_config)
     manager.scan()
     power = manager.get("power", {}).get("instance")
-    print(f"Power instance: {power}")
-
-    if power:
-        mode = "Energy"
-    else:
-        # Ask user for mode when no power board is detected
-        while True:
-            user_input = input("No power board detected. Enter mode [P]erformance or [A]ccuracy: ").strip().upper()
-            if user_input == "P":
-                mode = "Performance"
-                break
-            elif user_input == "A":
-                mode = "Accuracy"
-                break
-            else:
-                print("Invalid input. Please enter 'P' or 'A'.")
-
-    print(f"Running in {mode} mode")
+    if mode == "e" and power is None:
+        raise RuntimeError("ERROR: Energy mode selected but no power board was found.")
+    
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
     identify_dut(manager)
-    
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
     io = manager.get("interface", {}).get("instance")
@@ -321,12 +306,14 @@ if __name__ == '__main__':
     parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
     parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
     parser.add_argument("-s", "--dataset_path", default="datasets")
+    parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
     args = parser.parse_args()
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
         "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
         "test_script": parse_test_script(args.test_script),
         "dataset_path": args.dataset_path,
+        "mode": args.mode
     }
     result, power = run_test(**config)  # Unpack power from run_test
     if config['dut_config']['model'] == 'sww01':
