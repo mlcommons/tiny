@@ -5,7 +5,8 @@ ad01:
   script:
     - loop 248: 
       - download
-      - infer 1 0
+      - infer 1 0 # Infrences, Warmups
+      - reset 20
 ic01:
   name: image_classification
   model: ic01

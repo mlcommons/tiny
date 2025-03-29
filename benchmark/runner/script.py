@@ -7,10 +7,14 @@ performance_timed_out = False  # True when 10 seconds have passed
 file_processed = False
 import logging
 import sys
+import concurrent.futures
 import time
+import threading
 
 import streaming_ww_utils as sww_util
 
+watchdog_flag = {"timeout": False}
+watchdog_lock = threading.Lock()
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 log_filename = f"{current_time}.log"
 
@@ -92,9 +96,9 @@ class _ScriptDownloadStep(_ScriptStep):
             
         # Conditional print statements based on 'mode'
         if data:
-            if mode == "Accuracy":
+            if mode == "a":
                 print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
-            elif mode == "Performance":
+            elif mode == "p":
                 print(f"{formatted_time} ulp-mlperf: Running Performance Metrics")
             if(self.model == "ad01"):
                 segment = self._segments[self._current_segment_index]
@@ -119,10 +123,15 @@ class _ScriptLoopStep(_ScriptStep):
         global global_loop_count
         i = 0
         result = None if self._loop_count == 1 else []
-        start_time = time.time() if mode == "Performance" else None
+        start_time = time.time() if mode == "p" else None
 
         while (self._loop_count is None or i < self._loop_count):
             loop_res = {}
+            with watchdog_lock:
+                if watchdog_flag["timeout"]:
+                    print("[WATCHDOG] Loop timeout. Restarting current loop iteration.")
+                    watchdog_flag["timeout"] = False  # reset for next iteration
+                    r = cmd.run(io, dut, dataset, mode)
             for cmd in self._commands:
                 r = cmd.run(io, dut, dataset, mode)
                 if r is not None:
@@ -137,7 +146,7 @@ class _ScriptLoopStep(_ScriptStep):
                 result.append(loop_res)
             else:
                 result = loop_res
-        if mode == "Performance":
+        if mode == "p":
             # Error 1: Loop count not exactly 5
             if self._loop_count != 5:
                 result.append({"error": "error 1"})
@@ -150,14 +159,16 @@ class _ScriptLoopStep(_ScriptStep):
 
 class _ScriptInferStep(_ScriptStep):
     """Step to execute infer on the DUT"""
-    def __init__(self, iterations=1, warmups=0, loop_count=None):
+    def __init__(self, iterations=1, warmups=0, skip_time=0, loop_count=None):
         self._iterations = int(iterations)
         self._warmups = int(warmups)
+        self.skip_time = float(skip_time)
         self._infer_results = None
         self._power_samples = []
         self._power_timestamps = []
         self.throughput_values = []
-        self._loop_count = loop_count  # Store loop_count passed to this step
+        self._loop_count = loop_count
+
 
     def run(self, io, dut, dataset, mode):  # mode passed to run
         raw_result = dut.infer(self._iterations, self._warmups)
@@ -167,7 +178,7 @@ class _ScriptInferStep(_ScriptStep):
 
         result = dict(infer=infer_results)
 
-        if mode == "Energy":
+        if mode == "e":
             timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
             print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
 
@@ -227,9 +238,9 @@ class _ScriptInferStep(_ScriptStep):
             if match:
                 key = "end_time" if "start_time" in result else "start_time"
                 result[key] = int(match.group(1))
-        if mode != "Energy" and "start_time" in result and "end_time" in result:
+        if mode != "e" and "start_time" in result and "end_time" in result:
             result["elapsed_time"] = result["end_time"] - result["start_time"]
-        elif mode != "Energy":
+        elif mode != "e":
             print("ERROR: Incomplete time data, missing start_time or end_time.")
         result["total_inferences"] = total_inferences
         return result
@@ -257,7 +268,7 @@ class _ScriptInferStep(_ScriptStep):
         else:
             elapsed_time_sec = 0
             throughput = 0
-        if mode == "Performance":
+        if mode == "p":
             infer_results["throughput"] = throughput
         # Add throughput to the list of throughput values
         self.throughput_values.append(throughput)
@@ -295,6 +306,32 @@ class _ScriptStreamStep(_ScriptStep):
         results["detections"] = detected_timestamps
         return results
 
+class _WatchdogStep(_ScriptStep):
+    def __init__(self, timeout):
+        self.timeout = float(timeout)
+        self._timer_thread = None
+        self._last_reset_time = time.time()
+
+    def _watchdog_thread(self):
+        while True:
+            time.sleep(0.5)
+            with watchdog_lock:
+                elapsed = time.time() - self._last_reset_time
+                if elapsed >= self.timeout:
+                    watchdog_flag["timeout"] = True
+                    print(f"[WATCHDOG] Timeout reached after {elapsed:.2f}s")
+                    break
+
+    def run(self, io, dut, dataset, mode):
+        with watchdog_lock:
+            self._last_reset_time = time.time()
+            watchdog_flag["timeout"] = False
+
+        if self._timer_thread is None or not self._timer_thread.is_alive():
+            self._timer_thread = threading.Thread(target=self._watchdog_thread, daemon=True)
+            self._timer_thread.start()
+        return {}
+
 class Script:
     """Script that executes a test"""
     def __init__(self, script):
@@ -325,6 +362,9 @@ class Script:
             # Pass the loop_count to the infer step
             loop_count = args[-1] if args else None  # Assuming loop_count is passed as last argument
             return _ScriptInferStep(*args, loop_count=loop_count)
+        if cmd == 'reset':
+            #resets the watchdog timer
+            return _WatchdogStep(*args)
         if cmd == 'stream':
             # Pass the model into the download step
             return _ScriptStreamStep(*args)
