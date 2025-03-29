@@ -267,7 +267,7 @@ def print_energy_results(l_results, energy_sampling_freq=1000):
         
 
 # Summarize results
-def summarize_result(result, power):
+def summarize_result(result, power, mode):
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -306,11 +306,13 @@ def summarize_result(result, power):
             infer_results = normalize_probabilities(infer_results)
             file_infer_results[file_name]['results'].append(infer_results)
 
-    if power is not None:  # If power is present, we're in energy mode
-        print("Power Edition Output")
+    if power is not None:  # If power is present, turn it off.  
+        # this should really be somewhere else
         power.power_off()
         power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
 
+    if mode == "e":
+        print("Power Edition Output")
         print_energy_results(result, energy_sampling_freq=1000)
 
     elif throughput_values:  # <-- NEW: Performance mode detected
@@ -371,10 +373,12 @@ if __name__ == '__main__':
         "mode": args.mode
     }
     result, power = run_test(**config)  # Unpack power from run_test
+    for r in result: 
+        r["mode"] = config["mode"]
     if config['dut_config']['model'] == 'sww01':
         sww_util.summarize_sww_result(result, power)  # Pass only power
     else:
-        summarize_result(result, power)  # Remove mode parameter
+        summarize_result(result, power, mode=config["mode"])  # Remove mode parameter
 
     with open('perf_result.json', 'w') as fpo:
         json.dump(result, fpo)
