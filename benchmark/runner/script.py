@@ -162,6 +162,9 @@ class _ScriptInferStep(_ScriptStep):
     def run(self, io, dut, dataset, mode):  # mode passed to run
         raw_result = dut.infer(self._iterations, self._warmups)
         infer_results = _ScriptInferStep._gather_infer_results(raw_result, mode)
+        infer_results["iterations"] = self._iterations
+        infer_results["warmups"] = self._warmups
+
         result = dict(infer=infer_results)
 
         if mode == "Energy":
@@ -185,8 +188,8 @@ class _ScriptInferStep(_ScriptStep):
         # this method should really be done inside the power manager, since
         # other emon devices will structure the raw data different
         samples = []
-        timeStamps = [] # this is what the EEMBC runner calls "Timestamps"
-        clock_ticks = [] # this is what the LPM01a calls "TimeStamps"
+        timeStamps = [] # this is what the EEMBC runner calls "timestamps"
+        clock_ticks = [] # this is what the LPM01a calls "timestamps"
         if power:
             for x in power.get_results():
                 if isinstance(x, str):

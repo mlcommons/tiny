@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np
 from sklearn.metrics import roc_auc_score
 from collections import Counter
+import matplotlib.pyplot as plt
 
 from power_manager import PowerManager
 from datasets import DataSet, StreamingDataSet
@@ -85,6 +86,9 @@ def run_test(devices_config, dut_config, test_script, dataset_path):
     else:
         set = DataSet(os.path.join(dataset_path, script.model), script.truth)
     result = script.run(io, dut, set, mode)
+    if 'power' in result:
+        result['power']['voltage'] = dut_config.get("voltage")
+    
     return result, power
 
 def parse_device_config(device_list_file, device_yaml):
@@ -226,6 +230,57 @@ def calculate_auc(y_pred, labels, n_classes):
     roc_auc_avg = np.mean(roc_auc)
     return roc_auc_avg
 
+def print_energy_results(l_results, energy_sampling_freq=1000):
+    
+    for inf_num,res in enumerate(l_results):
+        plt.clf()
+        energy_samples = res['power']['samples'] # assume 'output type' is set to energy
+        
+        # timestamps (or 'events' per LPM01a wording are recorded as 
+        # (counter, num_samples) where
+        # counter: 0,1,.. for the 1st, 2nd, etc, to test if you lost a timestamp
+        # num_samples: number of samples captured when the timestamp happened
+        ts_counters = [int(ts[0]) for ts in res['power']['timestamps']]
+        ts_samp_nums = np.array([int(ts[1]) for ts in res['power']['timestamps']])
+        ts_seconds = ts_samp_nums/energy_sampling_freq
+        
+        if np.any(np.diff(ts_counters) != 1):
+            raise RuntimeError(f"Timestamps are not consecutive:\n{res['power']['timestamps']}")
+
+        t_implicit = np.arange(len(energy_samples))/energy_sampling_freq
+        plt.plot(t_implicit, energy_samples, 'b')
+        y_min = np.min(energy_samples)
+        y_max = np.max(energy_samples)
+        
+        for ts in ts_seconds:  
+            plt.plot([ts, ts], [y_min, y_max], 'r')
+            plt.grid(True)
+        plt.savefig(f"energy_inf_{inf_num:03d}.png")
+        
+        # the first inference has a timestamp at the very beginning, the others just
+        # just have one at the beginning and end of the inference.
+        if inf_num==0 and int(res['power']['timestamps'][0][0]) == 0:
+            t_start = ts_seconds[1]
+            t_stop = ts_seconds[2]
+            idx_start = ts_samp_nums[1]
+            idx_stop = ts_samp_nums[2]
+        else:
+            t_start = ts_seconds[0]
+            t_stop = ts_seconds[1]
+            idx_start = ts_samp_nums[0]
+            idx_stop = ts_samp_nums[1]
+
+        elapsed_time = t_stop-t_start
+        inference_energy_samples = np.array(energy_samples[idx_start:idx_stop])
+        total_inference_energy = np.sum(inference_energy_samples)
+        num_inferences = res['infer']['iterations']
+        energy_per_inf = total_inference_energy / num_inferences
+        latency_per_inf = elapsed_time / num_inferences
+        print(f"{num_inferences} iterations. Elapsed time = {elapsed_time},",
+              f"total energy = {total_inference_energy}")
+        print(f"Per inference: time = {latency_per_inf}, energy = {energy_per_inf}")
+        
+
 # Summarize results
 def summarize_result(result, power):
     num_correct_files = 0
@@ -268,13 +323,11 @@ def summarize_result(result, power):
 
     if power is not None:  # If power is present, we're in energy mode
         print("Power Edition Output")
-        # power.stop()  # Stop power capture
-        # power.send_command_wait_for_response("pwr off")
-        # print("after stop")
         power.power_off()
-        # print("after power_off")
-        power.__exit__() # fix this so it only looks for 'ack stop'
-        print("after __exit__")
+        power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
+
+        print_energy_results(result, energy_sampling_freq=1000)
+
     elif throughput_values:  # <-- NEW: Performance mode detected
         has_error_1 = any(r.get("error") == "error 1" for r in result)
         has_error_2 = any(r.get("error") == "error 2" for r in result)
