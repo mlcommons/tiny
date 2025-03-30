@@ -373,6 +373,8 @@ if __name__ == '__main__':
         "mode": args.mode
     }
     result, power = run_test(**config)  # Unpack power from run_test
+    if isinstance(result, dict): # this is a hack. make the run_test outputs consistent
+        result = [result]
     for r in result: 
         r["mode"] = config["mode"]
     if config['dut_config']['model'] == 'sww01':

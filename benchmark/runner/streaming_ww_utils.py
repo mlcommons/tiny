@@ -12,7 +12,7 @@ def process_timestamps(raw_result):
     except ValueError:
         raise ValueError("One or more values in the list cannot be converted to an integer")
     print(timestamps)
-    return np.array(timestamps)
+    return timestamps # leave as list so we can dump to json later
 
 def calc_detection_stats(measured_timestamps_ms, true_det_windows,
                          false_pos_suppresion_delay_sec=1.0,
@@ -23,6 +23,7 @@ def calc_detection_stats(measured_timestamps_ms, true_det_windows,
         raise RuntimeError("No detections captured.  There should be at least one to mark the"
                            "beginning of the run"
                            )
+    measured_timestamps_ms = np.array(measured_timestamps_ms)
     detection_start = measured_timestamps_ms[0]
     fp_timestamps_ms = measured_timestamps_ms[1:] - detection_start
 
@@ -75,9 +76,11 @@ def replace_env_vars(str_in, env_dict=None):
 
 
 
-def summarize_sww_result(result, mode, power):  # Pass power to summarize_result
-    true_pos_sec, false_neg_sec, false_pos_sec = calc_detection_stats(
-        result["detections"], result["detection_windows"])
-    print(f"True Positives: {true_pos_sec}")
-    print(f"False negatives: {false_neg_sec}")
-    print(f"False Positives: {false_pos_sec}")
+def summarize_sww_result(results_list, power):  # Pass power to summarize_result
+    for r in results_list:
+        true_pos_sec, false_neg_sec, false_pos_sec = calc_detection_stats(
+            r["detections"], r["detection_windows"])
+        print(f"== File {r['wav_file']} ({r['length_sec']:2.1f} s) == ")
+        print(f"    True Positives: {true_pos_sec}")
+        print(f"    False negatives: {false_neg_sec}")
+        print(f"    False Positives: {false_pos_sec}")
