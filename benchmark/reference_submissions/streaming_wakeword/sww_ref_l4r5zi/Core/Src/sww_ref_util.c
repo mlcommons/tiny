@@ -562,7 +562,9 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
-	int32_t timer_start=0, timer_stop=0;
+
+	// extract the input scale factor from the (file-global) ai_input
+	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
 
 	// idle_buffer is the one that will be idle after we switch
 	int16_t *idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
@@ -590,17 +592,17 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	for(int i=0;i<SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS;i++) {
 		g_model_input[i] = g_model_input[i+NUM_MEL_FILTERS];
 	}
+
 	for(int i=0;i<NUM_MEL_FILTERS;i++) {
-		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(255*feature_buff[i]-128);
+		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(feature_buff[i]/input_scale_factor-128);
 	}
 
 	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
 		in_data[i] = (ai_i8)g_model_input[i];
 	}
-	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
+
 	/*  Call inference engine */
 	aiRun(in_data, out_data);
-	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
 
 	if( out_data[0] > DETECT_THRESHOLD || g_first_frame) {
  	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_RESET);
@@ -677,15 +679,6 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	arm_mult_f32(pTmp, pTmp,pDst, spec_len); // pDst[0:513] = pTmp[0:513]^2
 	arm_scale_f32(pDst, inv_block_length, pTmp, spec_len);
 
-	//    powspec_max = tf.reduce_max(input_tensor=powspec)
-	//    powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
-
-	for(i=0;i<spec_len;i++){
-		pTmp[i] = (pTmp[i] > 1e-30) ? pTmp[i] : 1e-30;
-	}
-
-	// now copy pTmp back into pDst (just for debug)
-	//	arm_scale_f32(pTmp, 1.0, pDst, block_length);
 
 	// The original lin2mel matrix is spec_len x num_filters, where each column holds one mel filter,
 	// lin2mel_packed_<X>x<Y> has all the non-zero elements packed together in one 1D array
@@ -703,6 +696,12 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 				pDst+i);
 
 		lin2mel_coeff_idx += lin2mel_513x40_filter_lens[i];
+	}
+
+	//    powspec_max = tf.reduce_max(input_tensor=powspec)
+	//    powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
+	for(i=0;i<num_filters;i++){
+		pDst[i] = (pDst[i] > 1e-30) ? pDst[i] : 1e-30;
 	}
 
 	for(i=0; i<num_filters; i++){
