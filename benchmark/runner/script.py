@@ -6,7 +6,7 @@ global_loop_count = None  # This will store the loop count globally
 performance_timed_out = False  # True when 10 seconds have passed
 file_processed = False
 import logging
-import sys
+import sys, os
 import concurrent.futures
 import time
 import threading
@@ -16,7 +16,8 @@ import streaming_ww_utils as sww_util
 watchdog_flag = {"timeout": False}
 watchdog_lock = threading.Lock()
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-log_filename = f"{current_time}.log"
+os.makedirs("logs", exist_ok=True)
+log_filename = os.path.join("logs", f"{current_time}.log")
 
 # Setup logging to file and console with NO extra formatting
 logging.basicConfig(
