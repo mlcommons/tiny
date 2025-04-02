@@ -86,6 +86,9 @@ void log_printf(LogBuffer *log, const char *format, ...);
 
 void process_command(char *full_command);
 void ee_serial_callback(char c);
+void th_timestamp(void);
+void set_processing_pin_high(void);
+void set_processing_pin_low(void);
 
 ai_error aiInit(void);
 void setup_i2s_buffers();

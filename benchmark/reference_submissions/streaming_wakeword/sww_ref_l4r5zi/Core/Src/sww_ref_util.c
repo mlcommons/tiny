@@ -66,6 +66,16 @@ void setup_i2s_buffers() {
 	g_model_input = (int8_t *)malloc(SWW_MODEL_INPUT_SIZE * sizeof(int8_t));
 }
 
+void delay_us(int delay_len_us) {
+	// there may be a better way to implement this
+	// this will not give an accurate 1us delay, but
+	// for longer delays it should be accurate to within 1us.
+	int delay_start = __HAL_TIM_GET_COUNTER(&htim16);
+	while(__HAL_TIM_GET_COUNTER(&htim16) < delay_start + 1 ){
+		;
+	}
+}
+
 void print_vals_int16(const int16_t *buffer, uint32_t num_vals)
 {
 	const int vals_per_line = 16;
@@ -499,13 +509,40 @@ void process_command(char *full_command) {
 	else if(strcmp(cmd_args[0], "help") == 0) {
 		print_help(cmd_args);
 	}
+	else if(strcmp(cmd_args[0], "timestamp") == 0) {
+		th_timestamp(); // mostly useful for testing the timestamp code
+	}
+	else if(strcmp(cmd_args[0], "proc_hi") == 0) {
+		set_processing_pin_high();
+	}
+	else if(strcmp(cmd_args[0], "proc_lo") == 0) {
+		set_processing_pin_low();
+	}
 	else if(cmd_args[0] == 0) {
-		printf("Empty command (only a %% read).  Type 'help%%' for help\r\n");
+		printf("Empty command (only a %% read).  Type 'help%%' for help\r\n"); // %% => %
 	}
 	else {
 		printf("Unrecognized command %s\r\n", full_command);
 	}
 	printf(EE_MSG_READY);
+}
+
+void th_timestamp(void) {
+	HAL_GPIO_WritePin(timestamp_GPIO_Port, timestamp_Pin, GPIO_PIN_RESET);
+    delay_us(1);
+    HAL_GPIO_WritePin(timestamp_GPIO_Port, timestamp_Pin, GPIO_PIN_SET);
+
+	//  unsigned long microSeconds = 0ul;
+	//  microSeconds = us_ticker_read();
+	//  th_printf(EE_MSG_TIMESTAMP, microSeconds);
+}
+
+void set_processing_pin_high(void) {
+	HAL_GPIO_WritePin(Processing_GPIO_Port, Processing_Pin, GPIO_PIN_SET);
+}
+
+void set_processing_pin_low(void) {
+	HAL_GPIO_WritePin(Processing_GPIO_Port, Processing_Pin, GPIO_PIN_RESET);
 }
 
 void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
@@ -541,16 +578,6 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
     	g_i2s_state = Idle;
     }
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
-}
-
-void delay_us(int delay_len_us) {
-	// there may be a better way to implement this
-	// this will not give an accurate 1us delay, but
-	// for longer delays it should be accurate to within 1us.
-	int delay_start = __HAL_TIM_GET_COUNTER(&htim16);
-	while(__HAL_TIM_GET_COUNTER(&htim16) < delay_start + 1 ){
-		;
-	}
 }
 
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
