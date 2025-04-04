@@ -295,17 +295,35 @@ class _ScriptStreamStep(_ScriptStep):
         print(f"Playing {file_truth['wav_file']} ... ", end="")
         # play_wave is a blocking call, will pause here until wav finishes
         io.play_wave(file_truth['wav_file'], timeout=file_truth["length_sec"]+10.0) 
+
         # not sure why this is needed, but apparently the DUT is still occupied with the 
         # detection task, because w/o this sleep the next DUT command times out.  Could be shorter
-        time.sleep(5)
-        print(" ... done")
+        time.sleep(1)
         dut.stop_detecting()   # DUT stops pulsing GPIO on WW.
+        print(" ... done")
+        
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
         detected_timestamps = sww_util.process_timestamps(detected_timestamps)
-        results = {}
-        results.update(file_truth)        
-        results["detections"] = detected_timestamps
-        return results
+        infer_results = {}
+        infer_results.update(file_truth)        
+        infer_results["detections"] = detected_timestamps
+        infer_results["iterations"] = 1 # always 1, but keep for consistency w/ other tests
+        infer_results["warmups"] = 0 # same but 0
+        result = dict(infer=infer_results)
+
+        if mode == "e":
+            timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
+            print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
+
+            # Read power values from the log file using timestamps
+            power_values = None
+
+            result.update(power=dict(samples=samples,
+                                     timestamps=timestamps,
+                                     extracted_power=power_values
+                                    )
+                         )        
+        return result
 
 class _WatchdogStep(_ScriptStep):
     def __init__(self, timeout):

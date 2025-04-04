@@ -242,18 +242,12 @@ def print_energy_results(l_results, energy_sampling_freq=1000):
             plt.grid(True)
         plt.savefig(f"energy_inf_{inf_num:03d}.png")
         
-        # the first inference has a timestamp at the very beginning, the others just
-        # just have one at the beginning and end of the inference.
-        if inf_num==0 and int(res['power']['timestamps'][0][0]) == 0:
-            t_start = ts_seconds[1]
-            t_stop = ts_seconds[2]
-            idx_start = ts_samp_nums[1]
-            idx_stop = ts_samp_nums[2]
-        else:
-            t_start = ts_seconds[0]
-            t_stop = ts_seconds[1]
-            idx_start = ts_samp_nums[0]
-            idx_stop = ts_samp_nums[1]
+        # There is sometimes some extra activity on the timestamp pin at the 
+        # beginning, so take the last two
+        t_start = ts_seconds[-2]
+        t_stop = ts_seconds[-1]
+        idx_start = ts_samp_nums[-2]
+        idx_stop = ts_samp_nums[-1]
 
         elapsed_time = t_stop-t_start
         inference_energy_samples = np.array(energy_samples[idx_start:idx_stop])
@@ -378,6 +372,13 @@ if __name__ == '__main__':
     for r in result: 
         r["mode"] = config["mode"]
     if config['dut_config']['model'] == 'sww01':
+        if power is not None:  # If power is present, turn it off.  
+            # this should really be somewhere else
+            power.power_off()
+            power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
+        if config["mode"] == "e":
+            print("Power Edition Output")
+            print_energy_results(result, energy_sampling_freq=1000)
         sww_util.summarize_sww_result(result, power)  # Pass only power
     else:
         summarize_result(result, power, mode=config["mode"])  # Remove mode parameter

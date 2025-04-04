@@ -77,10 +77,11 @@ def replace_env_vars(str_in, env_dict=None):
 
 
 def summarize_sww_result(results_list, power):  # Pass power to summarize_result
-    for r in results_list:
+    for res in results_list:
+        inf_res = res["infer"]
         true_pos_sec, false_neg_sec, false_pos_sec = calc_detection_stats(
-            r["detections"], r["detection_windows"])
-        print(f"== File {r['wav_file']} ({r['length_sec']:2.1f} s) == ")
+            inf_res["detections"], inf_res["detection_windows"])
+        print(f"== File {inf_res['wav_file']} ({inf_res['length_sec']:2.1f} s) == ")
         print(f"    True Positives: {true_pos_sec}")
         print(f"    False negatives: {false_neg_sec}")
         print(f"    False Positives: {false_pos_sec}")
