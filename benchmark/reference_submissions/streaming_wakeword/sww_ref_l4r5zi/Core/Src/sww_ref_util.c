@@ -357,6 +357,7 @@ void stop_detection(char *cmd_args[]) {
 		g_i2s_state = Stopping;
 		g_i2s_status = HAL_SAI_DMAStop(&hsai_BlockA1);
 		g_i2s_state = Idle;
+		th_timestamp(); // this timestamp will stop the measurement of power
 		printf("Streaming stopped.\r\n");
 		break;
 	case FileCapture:
@@ -398,10 +399,10 @@ void start_detection(char *cmd_args[]) {
 		 memset(g_model_input, 0x00, SWW_MODEL_INPUT_SIZE*sizeof(int8_t));
 		 memset(g_wav_block_buff, 0x00, SWW_WINLEN_SAMPLES*sizeof(int16_t));
 
+		 th_timestamp(); // this timestamp will start the measurement of power
+
 		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
-		 // you can also check hsai->State
-		 printf("DMA receive initiated. status=%lu, state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
-		 printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
+		 printf("DMA receive initiated.\r\n");
 	}
 }
 
@@ -512,6 +513,7 @@ void process_command(char *full_command) {
 	else if(strcmp(cmd_args[0], "timestamp") == 0) {
 		th_timestamp(); // mostly useful for testing the timestamp code
 	}
+	// These next two are mostly useful for testing
 	else if(strcmp(cmd_args[0], "proc_hi") == 0) {
 		set_processing_pin_high();
 	}
@@ -590,6 +592,8 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
 
+	set_processing_pin_high(); // start of processing, used for duty cycle measurement
+
 	// extract the input scale factor from the (file-global) ai_input
 	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
 
@@ -640,6 +644,7 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
     log_printf(&g_log, "%d, \r\n", out_data[0]);
 
     num_calls++;
+    set_processing_pin_low();  // end of processing, used for duty cycle measurement
 }
 
 void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai) {

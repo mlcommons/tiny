@@ -140,7 +140,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   setup_i2s_buffers(); // allocate memory for I2S reception
   HAL_TIM_Base_Start(&htim16); // start timer
-
+  th_timestamp();  // Toggle D7 pin on startup
   /* USER CODE END 2 */
 
   /* Infinite loop */
