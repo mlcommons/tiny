@@ -669,7 +669,8 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	const float32_t power_offset = 52.0;
 	const uint32_t num_filters = 40;
 	int i; // for looping
-
+	// to maintain continuity in pre-emphasis over segment boundaries
+	static float32_t last_value = 0.0;
 	arm_status op_result = ARM_MATH_SUCCESS;
 
 	// convert int16_t pSrc to float32_t.  range [-32768:32767] => [-1.0,1.0)
@@ -684,8 +685,10 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	arm_scale_f32(pDst, preemphasis_coef, pTmp, block_length);
 	// use pDst as a 2nd temp buffer
 	arm_sub_f32 (pDst+1, pTmp, pDst+1, block_length-1);
-	// pDst[0] is unchanged by the pre-emphasis. now pDst has pre-emphasized segment
 
+	// calculate pDst[0] separately since it uses a value from the last segment
+	pDst[0] = pDst[0] - last_value*preemphasis_coef;
+	last_value = pDst[block_length-1];
 
 	// apply hamming window to pDst and put results in pTmp.
 	arm_mult_f32(pDst, hamm_win_1024, pTmp, block_length);
@@ -746,7 +749,7 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 
 
 	//log_mel_spec = tf.clip_by_value(log_mel_spec, 0, 1)
-	for(i=0;i<spec_len;i++){
+	for(i=0; i<num_filters; i++){
 		pDst[i] = (pTmp[i] < 0.0) ? 0.0 : ((pTmp[i] > 1.0) ? 1.0 : pTmp[i]);
 	}
 }
