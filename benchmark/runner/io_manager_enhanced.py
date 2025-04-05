@@ -2,8 +2,11 @@ from io_manager import IOManager
 
 
 class IOManagerEnhanced(IOManager):
-  def __init__(self, port_device, baud_rate=115200):
-    IOManager.__init__(self, port_device, baud_rate)
+  def __init__(self, port_device, baud_rate=115200, echo=None):
+    kw_args = {"baud_rate":baud_rate,
+               "echo":echo
+               }
+    IOManager.__init__(self, port_device, **kw_args)
 
   def get_files(self):
     return self.port.send_command('ls')

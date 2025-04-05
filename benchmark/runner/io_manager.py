@@ -3,8 +3,14 @@ from serial_device import SerialDevice
 
 
 class IOManager(InterfaceDevice):
-  def __init__(self, port_device, baud_rate=115200):
-    self.port = SerialDevice(port_device, baud_rate, "m-ready", '%')
+  def __init__(self, port_device, baud_rate=115200, echo=None):
+    port_kwargs = {"end_of_response":"m-ready",
+                   "delimiter":"%"
+                   }
+    if echo: 
+      port_kwargs["echo"] = echo
+      
+    self.port = SerialDevice(port_device, baud_rate, **port_kwargs)
     self.entry_count = 0
 
   def __enter__(self):
