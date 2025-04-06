@@ -298,8 +298,8 @@ class _ScriptStreamStep(_ScriptStep):
 
         # not sure why this is needed, but apparently the DUT is still occupied with the 
         # detection task, because w/o this sleep the next DUT command times out.  Could be shorter
-        time.sleep(1)
-        dut.stop_detecting()   # DUT stops pulsing GPIO on WW.
+        time.sleep(0.25)
+        dut.stop_detecting()  # DUT stops processing audio and toggles D7 to end power measurement
         print(" ... done")
         
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
