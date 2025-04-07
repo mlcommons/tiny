@@ -258,7 +258,7 @@ def print_energy_results(l_results, energy_sampling_freq=1000):
         print(f"{num_inferences} iterations. Elapsed time = {elapsed_time},",
               f"total energy = {total_inference_energy}")
         print(f"Per inference: time = {latency_per_inf}, energy = {energy_per_inf}")
-        
+        print(f"Average Power = {1e3*energy_per_inf/latency_per_inf:5.4} mW.")
 
 # Summarize results
 def summarize_result(result, power, mode):
