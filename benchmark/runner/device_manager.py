@@ -42,6 +42,9 @@ class DeviceManager:
       args["baud_rate"] = definition.get("baud")
     if definition.get("echo"):
       args["echo"] = definition.get("echo")
+    if definition.get("voltage"):
+      args["voltage"] = definition["voltage"]
+      
     if definition.get("type") == "interface":
       definition["instance"] = IOManagerEnhanced(**args) if definition.get("name") == "stm32h573i-dk" \
         else IOManager(**args)

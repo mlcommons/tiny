@@ -47,6 +47,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     :param dataset_path:
     """
     
+
     manager = DeviceManager(devices_config)
     manager.scan()
     power = manager.get("power", {}).get("instance")
@@ -55,6 +56,11 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
+    
+    power.power_on()
+    time.sleep(1) # let the DUT boot up
+    power.start() # start recording current measurements
+
     identify_dut(manager)
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
@@ -361,11 +367,18 @@ if __name__ == '__main__':
     args = parser.parse_args()
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
-        "dut_config": parse_dut_config(args.dut_config, args.dut_voltage, args.dut_baud),
         "test_script": parse_test_script(args.test_script),
         "dataset_path": args.dataset_path,
         "mode": args.mode
     }
+    # copy any DUT from the devices_config into the dut_config.  The last DUT listed will 
+    # be the one we use.  This means that internally we have the DUT info in two 
+    # places (config["devices_config"][i] for some i, and dut_config), but at least
+    # externally the DUT info is only in one place
+    for dev in config["devices_config"]:
+        if dev["type"] == "dut":
+            config["dut_config"] = dev
+
     result, power = run_test(**config)  # Unpack power from run_test
     if isinstance(result, dict): # this is a hack. make the run_test outputs consistent
         result = [result]

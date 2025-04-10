@@ -7,9 +7,9 @@ from threading import Thread
 class PowerManager(SerialDevice):
   PROMPT = "PowerShield > "
 
-  def __init__(self, port_device, baud_rate=3686400):
+  def __init__(self, port_device, baud_rate=3686400, voltage=3.3):
     self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n")
-    self._voltage = "3300m"
+    self._voltage = voltage
     self._board_id = None
     self._version = None
     self._lcd = [None, None]
@@ -101,9 +101,8 @@ class PowerManager(SerialDevice):
     self.configure_trigger('inf', 0, 'sw') 
 
     self.configure_output('energy', 'ascii_dec', '1k')
-    self.set_voltage(self._voltage)
-    self.power_on()
-    self.start()
+    # a little redundant.  sets the internal variable self._voltage and sends the command to the device
+    self.configure_voltage(self._voltage) 
 
   def _tear_down(self):
     self.stop()
@@ -164,9 +163,8 @@ class PowerManager(SerialDevice):
 
   def configure_voltage(self, voltage):
     self._voltage = voltage
-
-  def set_voltage(self, voltage):
-    self._send_command(f"volt {voltage}", err_message=f"Error setting voltage to {voltage}V")
+    voltage_str = f"{int(1000*(voltage))}m" # express in mV eg 1.1V => "1100m"
+    self._send_command(f"volt {voltage_str}", err_message=f"Error setting voltage to {voltage_str}V")
 
   def start(self):
     return self._send_command("start")

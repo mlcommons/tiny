@@ -22,3 +22,4 @@
   type: dut
   usb:
     0x0483: 0x374B
+  voltage: 3.3
