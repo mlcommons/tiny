@@ -206,7 +206,7 @@ class _ScriptInferStep(_ScriptStep):
             for x in power.get_results():
                 if isinstance(x, str):
                     if x.startswith("TimeStamp"):
-                        match = re.match(r"^TimeStamp: ([0-9]{3})s ([0-9]{3})ms, buff [0-9]{2}%$", x)                    
+                        match = re.match(r"^TimeStamp:[ ><]([0-9]{3})s ([0-9]{3})ms, buff [0-9]{2}%$", x)                    
                         ts = float(f"{match.group(1)}.{match.group(2)}")
                         clock_ticks.append((ts, len(samples)))
                         if len(clock_ticks) > 1 and clock_ticks[-1][1]-clock_ticks[-2][1] != 1000:
@@ -292,7 +292,8 @@ class _ScriptStreamStep(_ScriptStep):
         dut.stop_detecting()   # in case it wasn't stopped earlier
         dut.start_detecting()  # instruct DUT to pulse GPIO when wakeword detected
         io.record_detections() # intfc starts recording timestamp of GPIO pulses
-        print(f"Playing {file_truth['wav_file']} ... ", end="")
+        time_str = datetime.now().strftime("%H:%M:%S")
+        print(f"Playing {file_truth['wav_file']} (length = {file_truth['length_sec']}s) at {time_str}... ", end="")
         # play_wave is a blocking call, will pause here until wav finishes
         io.play_wave(file_truth['wav_file'], timeout=file_truth["length_sec"]+10.0) 
 
