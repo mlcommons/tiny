@@ -12,11 +12,13 @@ from device_manager import DeviceManager
 from device_under_test import DUT
 from script import Script
 import streaming_ww_utils as sww_util
+from baud_utils import get_baud_rate
 
 """
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
 under test.
 """
+
 def init_dut(device):
     if device:
         with device as dut:
@@ -25,16 +27,26 @@ def init_dut(device):
             dut.get_model()
             dut.get_profile()
 
-def identify_dut(manager):
+
+def identify_dut(manager, mode=None, yaml_path="devices.yaml"):
     power = manager.get("power", {}).get("instance")
     interface = manager.get("interface", {}).get("instance")
-    if not manager.get("dut") and interface: # removed and power:
+
+    # Step 1: Sync baud for interface board
+    if interface:
+        try:
+            desired_baud = get_baud_rate("l4r5zi", mode, yaml_path)
+            interface._set_baud(desired_baud)
+        except Exception as e:
+            print(f"[ERROR] Failed to sync baud for interface: {e}")
+
+    # Step 2: Instantiate DUT and initialize it
+    if not manager.get("dut") and interface:
         dut = DUT(interface, power_manager=power)
-        manager["dut"] = {
-            "instance": dut
-        }
+        manager["dut"] = {"instance": dut}
     else:
         dut = manager.get("dut", {}).get("instance")
+
     init_dut(dut)
 
 
@@ -56,12 +68,11 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
-    
-    power.power_on()
-    time.sleep(1) # let the DUT boot up
-    power.start() # start recording current measurements
+        power.power_on()
+        time.sleep(1) # let the DUT boot up
+        power.start() # start recording current measurements
 
-    identify_dut(manager)
+    identify_dut(manager,mode)
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
     io = manager.get("interface", {}).get("instance")

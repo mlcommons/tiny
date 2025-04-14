@@ -1,12 +1,13 @@
 - name: stm32h573i-dk
   type: interface
   preference: 2
-  echo: false
+  baud: 115200 # Baud Rate for the interface (IO) board
   usb:
     0x0483: 0x374E
 - name: arduino
   type: interface
   preference: 1
+  baud: 115200 # Baud Rate for the interface board
   usb:
     0x2341:
       - 0x0043
@@ -16,10 +17,14 @@
       - 0x0243
 - name: lpm01a
   type: power
+  baud: 3686400
   usb:
     0x0483: 0x5740  # Ensures detection by VID/PID (1155 / 22336)
 - name: l4r5zi
   type: dut
+  baud:
+    energy: 9600
+    performance: 115200
+    accuracy: 921600
   usb:
     0x0483: 0x374B
-  voltage: 3.3
