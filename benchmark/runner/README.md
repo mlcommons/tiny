@@ -28,6 +28,7 @@ The dataset path is the location of the dataset files.  If you have used the EEM
 ![STM32H573I-DK Top Wiring](img/STM32H573I-DK-Top.png)
 ![STM32H573I-DK Bottom Wiring](img/STM32H573I-DK-Bottom.png)
 
+The interface board runs at 3.3V, so if the DUT is running at any other supply voltage, the logic levels must be shifted.  The TXB0108, available in a [breakout board](https://www.adafruit.com/product/395) from Adafruit, support low-side voltages from 1.2V to 3.6V.
 The contents of the SD card are only required for the streaming test, but a card must be present in the interface board for it to function for any of the benchmarks.
 
 ### Device Under Test (L4R5ZI)
@@ -47,8 +48,15 @@ The streaming wakeword test is substantially different than the other benchmarks
          * For example, with the detection windows listed above, a detection recorded by the interface board at 2.60 s would count as a true positive, but a detection at 2.8s would count as a false positive.
          * This timing was selected because the reference model has a one-second backward-looking receptive field.
       * Detections made outside of the admissible detection window count as false positives.  False positives are "debounced" with a 1-second interval. So if a single sound triggers multiple consecutive detections, they will collectively only count as one detection if they all occur within a one second interval.
----
 
+Steps to run the streaming benchmark:
+1. Ensure the power board, the interface board, and the DUT are all connected as shown above.
+2. Ensure that the SD card in the interface board holds the wav files in the `runner/sd_card` directory.
+3. The json files from the `runner/sww_data_dir` directory are in `DATA_DIRECTORY/sww01`, where `DATA_DIRECTORY` will be specified with the `--dataset_path` on the command line.
+4. The test you run will be determined by the `sww01.truth_file` value in `tests.yaml`.  It is recommended to start with the the short test (`truth_file: sww_short_test.json`), a 10-second wav file.  The current model has 1 true positive and 2 false negatives on this file.
+5. Run the test with `main.py --dataset_path=DATA_DIRECTORY --test_script=tests.yaml`.
+
+---
 ## Test Runner
 
 The test runner connects to the **interface board**, **power board**, and **DUT**. It executes test scripts determined by the hardware configuration.
@@ -67,13 +75,13 @@ The test runner connects to the **interface board**, **power board**, and **DUT*
 ```
 
 #### Syntax
+The script listed in `tests.yaml` uses a combination of four commands, listed below.  Benchmarks will generally include a loop that repeats the test over a number of files.  The `model_id` is determined by sending the `profile` command to the DUT and extracting the model string from the DUT's response. The corresponding test is then selected from `tests.yaml`. 
 
 - `download` - Download data to the test device
 - `loop` - Run the commands a specified number of times
 - `infer` - Run inference for a specified number of cycles
-- `stream` - Specific to the streaming benchmark
+- `stream` - Specific to the streaming benchmark.  Plays the wav file listed in `truth_file`, instructs the DUT to detect wake words, and instructs the interface board to record those detections.  At the end of the wav file, the interface board will transmit a list of the detection times to the host, which will calculate true positives, false positives, and false negatives. 
 
-Benchmarks will generally include a loop that repeats the test over a number of files.  The `model_id` is determined by sending the `profile` command to the DUT and extracting the model string from the DUT's response. The corresponding test is then selected from `tests.yaml`. 
 ---
 
 ### Device Configuration `devices.yaml`
