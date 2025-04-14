@@ -32,7 +32,6 @@ def calc_detection_stats(measured_timestamps_ms, true_det_windows,
 
     for i, (t_start, t_stop) in enumerate(true_det_windows):
         t_stop += false_pos_suppresion_delay_sec
-        print(f"{t_start}, {t_stop}")
         tp_indices = np.where((fp_timestamps_ms/1000 >= t_start) & 
                             (fp_timestamps_ms/1000 <= t_stop))[0]
         if len(tp_indices) > 0:
@@ -44,7 +43,6 @@ def calc_detection_stats(measured_timestamps_ms, true_det_windows,
     i=0 # use while here b/c each loop we remove elements from fp_timestamps_ms
     while i < len(fp_timestamps_ms):
         current_fp = fp_timestamps_ms[i]
-        print(f"FP at {current_fp/1000}")
 
         fp_idxs_to_suppress = np.where((fp_timestamps_ms >= current_fp) & 
                             (fp_timestamps_ms/1000 <= current_fp+int(debounce_time_sec*1000)))[0]    
@@ -82,6 +80,8 @@ def summarize_sww_result(results_list, power):  # Pass power to summarize_result
         true_pos_sec, false_neg_sec, false_pos_sec = calc_detection_stats(
             inf_res["detections"], inf_res["detection_windows"])
         print(f"== File {inf_res['wav_file']} ({inf_res['length_sec']:2.1f} s) == ")
-        print(f"    True Positives: {true_pos_sec}")
-        print(f"    False negatives: {false_neg_sec}")
-        print(f"    False Positives: {false_pos_sec}")
+        with np.printoptions(precision=3):
+            print(f"    True Positives: {true_pos_sec}")
+            print(f"    False negatives: {false_neg_sec}")
+            print(f"    False Positives: {false_pos_sec}")
+            print(f"{len(true_pos_sec)} True Positives, {len(false_neg_sec)} False negatives, {len(false_pos_sec)} False Positives")
