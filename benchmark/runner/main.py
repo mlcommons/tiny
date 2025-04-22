@@ -18,7 +18,6 @@ from baud_utils import get_baud_rate
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
 under test.
 """
-
 def init_dut(device):
     if device:
         with device as dut:
@@ -26,7 +25,6 @@ def init_dut(device):
             dut.get_name()
             dut.get_model()
             dut.get_profile()
-
 
 def identify_dut(manager, mode=None, yaml_path="devices.yaml"):
     power = manager.get("power", {}).get("instance")
@@ -36,7 +34,7 @@ def identify_dut(manager, mode=None, yaml_path="devices.yaml"):
     if interface:
         try:
             desired_baud = get_baud_rate("l4r5zi", mode, yaml_path)
-            interface._set_baud(desired_baud)
+            interface._sync_baud(desired_baud)
         except Exception as e:
             print(f"[ERROR] Failed to sync baud for interface: {e}")
 
@@ -68,11 +66,12 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
-        power.power_on()
-        time.sleep(1) # let the DUT boot up
-        power.start() # start recording current measurements
+    
+    power.power_on()
+    time.sleep(1) # let the DUT boot up
+    power.start() # start recording current measurements
 
-    identify_dut(manager,mode)
+    identify_dut(manager, mode)
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
     io = manager.get("interface", {}).get("instance")
@@ -293,6 +292,17 @@ def summarize_result(result, power, mode):
     all_classes = sorted(list(set(int(r['class']) for r in result if 'class' in r)))
     n_classes = len(all_classes)
 
+
+    if power is not None:  # If power is present, turn it off.  
+        # this should really be somewhere else
+        power.power_off()
+        power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
+
+    if mode == "e":
+        print("Power Edition Output")
+        print_energy_results(result, energy_sampling_freq=1000)
+        return
+
     for r in result:
         if 'infer' not in r or 'class' not in r or 'file' not in r:
             continue  # Skip malformed or error-only entries
@@ -317,16 +327,7 @@ def summarize_result(result, power, mode):
             infer_results = normalize_probabilities(infer_results)
             file_infer_results[file_name]['results'].append(infer_results)
 
-    if power is not None:  # If power is present, turn it off.  
-        # this should really be somewhere else
-        power.power_off()
-        power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
-
-    if mode == "e":
-        print("Power Edition Output")
-        print_energy_results(result, energy_sampling_freq=1000)
-
-    elif throughput_values:  # <-- NEW: Performance mode detected
+    if throughput_values:  # <-- NEW: Performance mode detected
         has_error_1 = any(r.get("error") == "error 1" for r in result)
         has_error_2 = any(r.get("error") == "error 2" for r in result)
         if has_error_1:
