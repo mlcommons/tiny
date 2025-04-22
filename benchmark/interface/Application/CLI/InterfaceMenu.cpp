@@ -208,35 +208,34 @@ namespace CLI
     SendEnd();
     delete source;
   }
+
+  /**
+   * Set the new baud rate for the board
+   */
   void InterfaceMenu::SetBaud(const std::string &args)
   {
       int baud = std::stoi(args);
       SaveBaudRateToFlash(baud);  // Save permanently to Flash
 
-      SendString("setbaud(");
-      SendString(args);
-      SendString(")");
-      SendEndLine();
+      SendString("set baud to: " + args + "\n");
 
       SendEnd();
-      NVIC_SystemReset();     // 🔁 BOOM: Reset the MCU
-
+      NVIC_SystemReset();  //Reset the MCU
   }
 
 
-
-
+  /**
+   * Check the current baud rate
+   */
   void InterfaceMenu::CheckBaud(const std::string &args)
   {
       int currentBaud = huart3.Init.BaudRate;
 
-      SendString("checkbaud(");
-      SendString(std::to_string(currentBaud));
-      SendString(")");
-      SendEndLine();
+      SendString("baud is: " + std::to_string(currentBaud) + "\n");
 
       SendEnd();  // End response
   }
+
 
 
 
