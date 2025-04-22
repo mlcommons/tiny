@@ -213,7 +213,7 @@ namespace CLI
       int baud = std::stoi(args);
       SaveBaudRateToFlash(baud);  // Save permanently to Flash
 
-      SendString("m-setbaud(");
+      SendString("setbaud(");
       SendString(args);
       SendString(")");
       SendEndLine();
@@ -230,7 +230,7 @@ namespace CLI
   {
       int currentBaud = huart3.Init.BaudRate;
 
-      SendString("m-checkbaud(");
+      SendString("checkbaud(");
       SendString(std::to_string(currentBaud));
       SendString(")");
       SendEndLine();
