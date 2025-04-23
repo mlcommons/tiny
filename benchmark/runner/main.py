@@ -50,7 +50,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     """
     
     desired_baud = get_baud_rate("l4r5zi", mode, yaml_path="devices.yaml")
-    manager = DeviceManager(devices_config, desired_baud)
+    manager = DeviceManager(devices_config, desired_baud, mode)
     manager.scan()
     power = manager.get("power", {}).get("instance")
     if mode == "e" and power is None:
@@ -58,13 +58,13 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
-    
-    power.power_on()
-    time.sleep(1) # let the DUT boot up
-    power.start() # start recording current measurements
+    if power:
+        power.power_on()
+        time.sleep(1) # let the DUT boot up
+        power.start() # start recording current measurements
 
     io = manager.get("interface", {}).get("instance")
-    with io:
+    if io:
         io._sync_baud(desired_baud)
     
     identify_dut(manager, desired_baud)

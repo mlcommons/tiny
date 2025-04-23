@@ -6,15 +6,17 @@ from device_under_test import DUT
 from io_manager import IOManager
 from io_manager_enhanced import IOManagerEnhanced
 from power_manager import PowerManager
+from baud_utils import get_baud_rate
 
 
 class DeviceManager:
   """Detects and identifies available devices attached to the host.
   """
 
-  def __init__(self, device_defs, desired_baud):
+  def __init__(self, device_defs, desired_baud,mode):
     self._device_defs = device_defs
     self._desired_baud = desired_baud
+    self.mode = mode
 
   def __getitem__(self, item):
     return self.__dict__[item]
@@ -40,7 +42,10 @@ class DeviceManager:
       "port_device": definition.get("port")
     }
     if definition.get("baud"):
-      args["baud_rate"] = definition.get("baud")
+      if definition.get("name") == "l4r5zi":
+        args["baud_rate"] = get_baud_rate("l4r5zi", self.mode, yaml_path="devices.yaml")
+      else:
+        args["baud_rate"] = definition.get("baud")
     if definition.get("echo"):
       args["echo"] = definition.get("echo")
     if definition.get("voltage"):
