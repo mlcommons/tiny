@@ -3,7 +3,7 @@ from queue import Empty, Queue
 from threading import Thread
 
 import serial
-
+ 
 class SerialDevice:
   def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n", echo=False):
     print(f"Initializing SerialDevice on port: {port_device} at {baud_rate} baud")  # Debug print
@@ -85,17 +85,17 @@ class SerialDevice:
         break
 
     return lines if len(lines) != 1 else lines[0]
-  
+
   def close_serial(self) -> None:
         """Closes the serial communication."""
         if self._port and self._port.is_open:
             self._port.close()
             print("Serial connection closed.")
-            
+
   def send_data(self, data: str) -> None:
         """Sends the given data to the device."""
         self._port.write((data + "\n").encode())
-        
+
   def receive_data(self) -> str:
     """Receives data from the device."""
     if not self._port.is_open:

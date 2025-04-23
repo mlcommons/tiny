@@ -12,8 +12,9 @@ class DeviceManager:
   """Detects and identifies available devices attached to the host.
   """
 
-  def __init__(self, device_defs):
+  def __init__(self, device_defs, desired_baud):
     self._device_defs = device_defs
+    self._desired_baud = desired_baud
 
   def __getitem__(self, item):
     return self.__dict__[item]
@@ -46,6 +47,8 @@ class DeviceManager:
       args["voltage"] = definition["voltage"]
       
     if definition.get("type") == "interface":
+      if self._desired_baud:
+        args["dut_baud_rate"] = self._desired_baud  # or "dut_rate" if your IOManager expects that
       definition["instance"] = IOManagerEnhanced(**args) if definition.get("name") == "stm32h573i-dk" \
         else IOManager(**args)
     elif definition.get("type") == "power":

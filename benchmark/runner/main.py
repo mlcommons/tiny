@@ -26,21 +26,13 @@ def init_dut(device):
             dut.get_model()
             dut.get_profile()
 
-def identify_dut(manager, mode=None, yaml_path="devices.yaml"):
+def identify_dut(manager, desired_baud):
     power = manager.get("power", {}).get("instance")
     interface = manager.get("interface", {}).get("instance")
 
-    # Step 1: Sync baud for interface board
-    if interface:
-        try:
-            desired_baud = get_baud_rate("l4r5zi", mode, yaml_path)
-            interface._sync_baud(desired_baud)
-        except Exception as e:
-            print(f"[ERROR] Failed to sync baud for interface: {e}")
-
     # Step 2: Instantiate DUT and initialize it
     if not manager.get("dut") and interface:
-        dut = DUT(interface, power_manager=power)
+        dut = DUT(interface, baud_rate = desired_baud, power_manager=power)
         manager["dut"] = {"instance": dut}
     else:
         dut = manager.get("dut", {}).get("instance")
@@ -57,8 +49,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     :param dataset_path:
     """
     
-
-    manager = DeviceManager(devices_config)
+    desired_baud = get_baud_rate("l4r5zi", mode, yaml_path="devices.yaml")
+    manager = DeviceManager(devices_config, desired_baud)
     manager.scan()
     power = manager.get("power", {}).get("instance")
     if mode == "e" and power is None:
@@ -71,11 +63,13 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     time.sleep(1) # let the DUT boot up
     power.start() # start recording current measurements
 
-    identify_dut(manager, mode)
+    io = manager.get("interface", {}).get("instance")
+    with io:
+        io._sync_baud(desired_baud)
+    
+    identify_dut(manager, desired_baud)
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
-    io = manager.get("interface", {}).get("instance")
-
     # with io:
     #   start_time = time.time()
     #   io.play_wave("cd16m.wav")
