@@ -371,9 +371,15 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--dataset_path", default="datasets")
     parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
     args = parser.parse_args()
+    if args.mode == "a":
+        test_script_file = "tests_accuracy.yaml"  # Accuracy test script
+    elif args.mode == "p":
+        test_script_file = "tests_performance.yaml"  # Performance test script
+    elif args.mode == "e":
+        test_script_file = "tests_energy.yaml"  # Energy test script
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
-        "test_script": parse_test_script(args.test_script),
+        "test_script": parse_test_script(test_script_file),
         "dataset_path": args.dataset_path,
         "mode": args.mode
     }
