@@ -58,10 +58,10 @@ typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
 #define SWW_WINSTRIDE_SAMPLES 512
 #define SWW_MODEL_INPUT_SIZE 1200
 #define NUM_MEL_FILTERS 40
-#define DETECT_THRESHOLD 120
+#define DETECT_THRESHOLD 115
 
 // struct for a log we can write to without the delay of printing to UART
-#define LOG_BUFFER_SIZE 4096
+#define LOG_BUFFER_SIZE 8192
 typedef struct {
     char buffer[LOG_BUFFER_SIZE];
     size_t current_pos;
@@ -89,6 +89,7 @@ void ee_serial_callback(char c);
 void th_timestamp(void);
 void set_processing_pin_high(void);
 void set_processing_pin_low(void);
+void infer_static_wav(char *cmd_args[]);
 
 ai_error aiInit(void);
 void setup_i2s_buffers();
