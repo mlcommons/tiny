@@ -47,6 +47,7 @@ int16_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buf
 int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 int8_t *g_model_input;
+
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
 uint32_t g_i2s_wav_len = 24*2048;
 uint32_t g_first_frame = 1;
@@ -64,6 +65,7 @@ void setup_i2s_buffers() {
 	g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
 	g_wav_block_buff =(int16_t *)malloc(SWW_WINLEN_SAMPLES * sizeof(int16_t));
 	g_model_input = (int8_t *)malloc(SWW_MODEL_INPUT_SIZE * sizeof(int8_t));
+
 }
 
 void delay_us(int delay_len_us) {
@@ -520,6 +522,9 @@ void process_command(char *full_command) {
 	else if(strcmp(cmd_args[0], "proc_lo") == 0) {
 		set_processing_pin_low();
 	}
+	else if(strcmp(cmd_args[0], "infer_wav") == 0) {
+		infer_static_wav(cmd_args);
+	}
 	else if(cmd_args[0] == 0) {
 		printf("Empty command (only a %% read).  Type 'help%%' for help\r\n"); // %% => %
 	}
@@ -547,6 +552,69 @@ void set_processing_pin_low(void) {
 	HAL_GPIO_WritePin(Processing_GPIO_Port, Processing_Pin, GPIO_PIN_RESET);
 }
 
+void infer_static_wav(char *cmd_args[]) {
+	// feature_buff is used internally as a 2nd internal scratch space,
+	// in the FFT domain, so it needs to be winlen_samples long, even though
+	// ultimately it will only hold NUM_MEL_FILTERS values.  This can probably
+	// be improved with a refactored compute_lfbe_f32().
+	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
+	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
+	int num_steps;  // jhdbg
+	int offset;
+	uint32_t wav_len=0;
+	const int16_t *wav_ptr=NULL;
+
+	offset = atoi(cmd_args[1]);
+	wav_ptr = test_wav_long + offset;
+	wav_len = test_wav_long_len-offset;
+	printf("Infering on static wav with offset = %d\r\n", offset);
+
+	num_steps = (wav_len - (SWW_WINLEN_SAMPLES - SWW_WINSTRIDE_SAMPLES))/SWW_WINSTRIDE_SAMPLES;
+
+	// extract the input scale factor from the (file-global) ai_input
+	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
+
+	// initialize model input buffer to 0s.
+	for(int i=0;i<SWW_MODEL_INPUT_SIZE;i++) {
+		g_model_input[i] = 0;
+	}
+
+	for(int idx_step=0; idx_step<num_steps; idx_step++) {
+
+		compute_lfbe_f32(wav_ptr+(idx_step*SWW_WINSTRIDE_SAMPLES), feature_buff, dsp_buff);
+
+		// shift current features in g_model_input[] and add new ones.
+		for(int i=0;i<SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS;i++) {
+			g_model_input[i] = g_model_input[i+NUM_MEL_FILTERS];
+		}
+
+		for(int i=0;i<NUM_MEL_FILTERS;i++) {
+			g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(feature_buff[i]/input_scale_factor-128);
+		}
+
+		for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
+			in_data[i] = (ai_i8)g_model_input[i];
+		}
+		// print out the newest vector of features as int8
+		printf("(");
+		print_vals_int8(g_model_input+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS, NUM_MEL_FILTERS);
+		printf(", ");
+
+		/*  Call inference engine */
+		aiRun(in_data, out_data);
+
+		if( out_data[0] > DETECT_THRESHOLD || g_first_frame) {
+			printf("[%d]: Detection (%d).  g_first_frame=%lu\r\n", idx_step, out_data[0], g_first_frame);
+			log_printf(&g_log, "[%d]: Detection (%d).  g_first_frame=%lu\r\n", idx_step, out_data[0], g_first_frame);
+			g_first_frame = 0;
+		}
+		else if( out_data[0] > 100) {
+			printf("[%d]: Near miss (%d). \r\n", idx_step, out_data[0]);
+		}
+
+		printf("%d), \r\n", out_data[0]);
+	}
+}
 void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
 	int reading_complete=0;
 
@@ -643,6 +711,7 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	}
     log_printf(&g_log, "%d, \r\n", out_data[0]);
 
+
     num_calls++;
     set_processing_pin_low();  // end of processing, used for duty cycle measurement
 }
@@ -680,15 +749,18 @@ void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
     	pDst[i] = ((float32_t)pSrc[i])/32768.0;
     }
 
-	// Apply pre-emphasis:  zero-pad input by 1, then x' = x[1:]-x[:-1], so len(x')==len(x)
+	// Apply pre-emphasis:  zero-pad input by 1, then x' = x[1:]-pe_coeff*x[:-1], so len(x')==len(x)
 	// Start by scaling w/ coeff; pTmp = preemphasis_coef * input
 	arm_scale_f32(pDst, preemphasis_coef, pTmp, block_length);
-	// use pDst as a 2nd temp buffer
-	arm_sub_f32 (pDst+1, pTmp, pDst+1, block_length-1);
-
 	// calculate pDst[0] separately since it uses a value from the last segment
 	pDst[0] = pDst[0] - last_value*preemphasis_coef;
-	last_value = pDst[block_length-1];
+
+	// in the next frame pDst[SWW_WINSTRIDE_SAMPLES-1] will be 1 sample older than the 1st sample,
+	// so it will be used in the pre-emphasis for pDst[0]
+	last_value = pDst[SWW_WINSTRIDE_SAMPLES-1];
+
+	// use pDst as a 2nd temp buffer pDst[1:] - pTmp => pDst[1:]
+	arm_sub_f32 (pDst+1, pTmp, pDst+1, block_length-1);
 
 	// apply hamming window to pDst and put results in pTmp.
 	arm_mult_f32(pDst, hamm_win_1024, pTmp, block_length);
