@@ -27,6 +27,7 @@ extern const float lin2mel_packed_513x40[987];
 extern const int lin2mel_513x40_filter_starts[40];
 extern const int lin2mel_513x40_filter_lens[40];
 
-
+extern const int16_t test_wav_long[];
+extern const unsigned int test_wav_long_len;
 
 #endif /* MODEL_TEST_INPUTS_H_ */
