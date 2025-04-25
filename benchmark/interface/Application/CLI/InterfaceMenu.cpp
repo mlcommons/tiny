@@ -1,6 +1,10 @@
 #include "InterfaceMenu.hpp"
 #include "../IDataSource.hpp"
 #include "../ResourceManager.hpp"
+#include "usart.h"
+#include "baud_config.h"
+
+
 
 void CLI_Init(TX_BYTE_POOL *byte_pool, UART_HandleTypeDef *huart)
 {
@@ -31,6 +35,8 @@ namespace CLI
                                                         {"name", NameWrapper},
                                                         {"ls", ListWrapper},
                                                         {"play", PlayWrapper},
+														{"setbaud", SetBaudWrapper},
+														{"checkbaud", CheckBaudWrapper},
 														{"record_detections", RecDetsWrapper},
 														{"print_detections", PrintDetsWrapper},
                                                         {"", DefaultWrapper} };
@@ -58,7 +64,20 @@ namespace CLI
   {
     instance->Play(args);
   }
-
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::SetBaudWrapper(const std::string &args)
+    {
+      instance->SetBaud(args);
+    }
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::CheckBaudWrapper(const std::string &args)
+    {
+      instance->CheckBaud(args);
+    }
   /**
    * Wrap the singleton function in a static function
    */
@@ -189,6 +208,36 @@ namespace CLI
     SendEnd();
     delete source;
   }
+
+  /**
+   * Set the new baud rate for the board
+   */
+  void InterfaceMenu::SetBaud(const std::string &args)
+  {
+      int baud = std::stoi(args);
+      SaveBaudRateToFlash(baud);  // Save permanently to Flash
+
+      SendString("set baud to: " + args + "\n");
+
+      SendEnd();
+      NVIC_SystemReset();  //Reset the MCU
+  }
+
+
+  /**
+   * Check the current baud rate
+   */
+  void InterfaceMenu::CheckBaud(const std::string &args)
+  {
+      int currentBaud = huart3.Init.BaudRate;
+
+      SendString("baud is: " + std::to_string(currentBaud) + "\n");
+
+      SendEnd();  // End response
+  }
+
+
+
 
   void InterfaceMenu::RecordDetections(const std::string &args)
   {

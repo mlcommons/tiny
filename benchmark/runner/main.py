@@ -12,6 +12,7 @@ from device_manager import DeviceManager
 from device_under_test import DUT
 from script import Script
 import streaming_ww_utils as sww_util
+from baud_utils import get_baud_rate
 
 """
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
@@ -25,16 +26,17 @@ def init_dut(device):
             dut.get_model()
             dut.get_profile()
 
-def identify_dut(manager):
+def identify_dut(manager, desired_baud):
     power = manager.get("power", {}).get("instance")
     interface = manager.get("interface", {}).get("instance")
-    if not manager.get("dut") and interface: # removed and power:
-        dut = DUT(interface, power_manager=power)
-        manager["dut"] = {
-            "instance": dut
-        }
+
+    # Step 2: Instantiate DUT and initialize it
+    if not manager.get("dut") and interface:
+        dut = DUT(interface, baud_rate = desired_baud, power_manager=power)
+        manager["dut"] = {"instance": dut}
     else:
         dut = manager.get("dut", {}).get("instance")
+
     init_dut(dut)
 
 
@@ -47,8 +49,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     :param dataset_path:
     """
     
-
-    manager = DeviceManager(devices_config)
+    desired_baud = get_baud_rate("l4r5zi", mode, yaml_path="devices.yaml")
+    manager = DeviceManager(devices_config, desired_baud, mode)
     manager.scan()
     power = manager.get("power", {}).get("instance")
     if mode == "e" and power is None:
@@ -56,16 +58,18 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     
     if power and dut_config and dut_config.get("voltage"):
         power.configure_voltage(dut_config["voltage"])
-    
-    power.power_on()
-    time.sleep(1) # let the DUT boot up
-    power.start() # start recording current measurements
+    if power:
+        power.power_on()
+        time.sleep(1) # let the DUT boot up
+        power.start() # start recording current measurements
 
-    identify_dut(manager)
+    io = manager.get("interface", {}).get("instance")
+    if io:
+        io._sync_baud(desired_baud)
+    
+    identify_dut(manager, desired_baud)
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
-    io = manager.get("interface", {}).get("instance")
-
     # with io:
     #   start_time = time.time()
     #   io.play_wave("cd16m.wav")
@@ -282,6 +286,17 @@ def summarize_result(result, power, mode):
     all_classes = sorted(list(set(int(r['class']) for r in result if 'class' in r)))
     n_classes = len(all_classes)
 
+
+    if power is not None:  # If power is present, turn it off.  
+        # this should really be somewhere else
+        power.power_off()
+        power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
+
+    if mode == "e":
+        print("Power Edition Output")
+        print_energy_results(result, energy_sampling_freq=1000)
+        return
+
     for r in result:
         if 'infer' not in r or 'class' not in r or 'file' not in r:
             continue  # Skip malformed or error-only entries
@@ -306,16 +321,7 @@ def summarize_result(result, power, mode):
             infer_results = normalize_probabilities(infer_results)
             file_infer_results[file_name]['results'].append(infer_results)
 
-    if power is not None:  # If power is present, turn it off.  
-        # this should really be somewhere else
-        power.power_off()
-        power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
-
-    if mode == "e":
-        print("Power Edition Output")
-        print_energy_results(result, energy_sampling_freq=1000)
-
-    elif throughput_values:  # <-- NEW: Performance mode detected
+    if throughput_values:  # <-- NEW: Performance mode detected
         has_error_1 = any(r.get("error") == "error 1" for r in result)
         has_error_2 = any(r.get("error") == "error 2" for r in result)
         if has_error_1:
@@ -365,9 +371,15 @@ if __name__ == '__main__':
     parser.add_argument("-s", "--dataset_path", default="datasets")
     parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
     args = parser.parse_args()
+    if args.mode == "a":
+        test_script_file = "tests_accuracy.yaml"  # Accuracy test script
+    elif args.mode == "p":
+        test_script_file = "tests_performance.yaml"  # Performance test script
+    elif args.mode == "e":
+        test_script_file = "tests_energy.yaml"  # Energy test script
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
-        "test_script": parse_test_script(args.test_script),
+        "test_script": parse_test_script(test_script_file),
         "dataset_path": args.dataset_path,
         "mode": args.mode
     }
