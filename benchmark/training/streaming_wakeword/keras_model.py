@@ -300,7 +300,7 @@ def apply_qat(float_model, Flags, init_lr=None):
   qat_model.compile(
     optimizer=optimizer,  # Optimizer
     # Loss function to minimize
-    loss=keras.losses.CategoricalCrossentropy(from_logits=True),
+    loss=keras.losses.CategoricalCrossentropy(from_logits=False),
     # List of metrics to monitor
     metrics=[keras.metrics.CategoricalAccuracy(),
              keras.metrics.Precision(class_id=0, name='precision'), # prec = true_pos / (true_pos + false_pos)
