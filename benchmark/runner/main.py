@@ -65,7 +65,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
 
     io = manager.get("interface", {}).get("instance")
     if io:
-        io._sync_baud(desired_baud)
+        io.__enter__()
+        io.sync_baud(desired_baud)
     
     identify_dut(manager, desired_baud)
     dut = manager.get("dut", {}).get("instance")
@@ -81,6 +82,10 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     else:
         set = DataSet(os.path.join(dataset_path, script.model), script.truth)
     result = script.run(io, dut, set, mode)
+    if io:
+        io.__exit__()
+
+
     if 'power' in result:
         result['power']['voltage'] = dut_config.get("voltage")
     
