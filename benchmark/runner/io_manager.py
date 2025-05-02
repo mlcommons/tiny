@@ -17,7 +17,7 @@ class IOManager(InterfaceDevice):
   def __enter__(self):
     if not self.entry_count:
       self.port.__enter__()
-      self.get_name()
+      # self.get_name()
     self.entry_count += 1
     return self
 
@@ -29,9 +29,6 @@ class IOManager(InterfaceDevice):
   def get_name(self):
     return self.port.send_command("name")
   
-  def _sync_baud(self, baud):
-    return self.port.send_command(f"setbaud {baud}")
-
   def timestamp(self):
     return self.port.send_command("timestamp")
 
