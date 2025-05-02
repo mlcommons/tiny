@@ -3,9 +3,10 @@ import re
 import time
 
 class IOManagerEnhanced(IOManager):
-  def __init__(self, port_device, baud_rate,dut_baud_rate):
+  def __init__(self, port_device, baud_rate,dut_baud_rate, echo=False):
     kw_args = {"baud_rate":baud_rate,
                "dut_baud_rate":dut_baud_rate,
+               "echo":echo
                }
     IOManager.__init__(self, port_device, **kw_args)
 
@@ -27,4 +28,5 @@ class IOManagerEnhanced(IOManager):
     command = "print_detections"
     return self.port.send_command(command)
   
-    
+  def sync_baud(self, baud):
+    return self.port.send_command(f"setbaud {baud}")
