@@ -17,13 +17,24 @@ Flags = util.parse_command("evaluate")
 
 if not Flags.use_tflite_model and Flags.saved_model_path is None:
     err_str = "Unless use_tflite_model is specified, saved_model_path is required."
+    raise RuntimeError(err_str)
 if Flags.use_tflite_model and Flags.tfl_file_name is None:  
     err_str = "When use_tflite_model is specified, tfl_file_name is required."
+    raise RuntimeError(err_str)
 
 det_thresh = 0.95
 samp_freq = Flags.sample_rate
-# For wav file 'long_wav.wav', the wakeword windows should be in 'long_wav_ww_windows.json'
-ww_windows_file = Flags.test_wav_path.split('.')[0] + '_ww_windows.json'
+
+
+if Flags.stream_config is None:
+   test_streaming = True
+else:
+    with open(Flags.stream_config, 'r') as fpi:
+        stream_test_config = json.load(fpi)
+
+    wav_file = stream_test_config[0]['wav_file']
+    wav_file = os.path.join(Flags.wav_dir, wav_file)
+    ww_windows = stream_test_config[0]['detection_windows']
 
 if Flags.use_tflite_model:
     interpreter = tf.lite.Interpreter(model_path=Flags.tfl_file_name)
@@ -46,12 +57,15 @@ else:
     # transfer weights from trained model into variable-length model
     model_varlen.set_weights(model_std.get_weights())
 
-wav_sampling_freq, long_wav = wavfile.read(Flags.test_wav_path)
+wav_sampling_freq, long_wav = wavfile.read(wav_file)
 assert wav_sampling_freq == samp_freq
+
+if len(long_wav.shape) > 1: # stereo (or higher multi-channel) wav
+    long_wav = long_wav[:,0] # just take 1st channel
 
 data_config = get_dataset.get_data_config(Flags, 'validation')
 
-long_wav = long_wav / np.max(np.abs(long_wav)) # scale into [-1.0, +1.0] range
+long_wav = long_wav / 2**15 # scale into [-1.0, +1.0] range
 t = np.arange(len(long_wav))/samp_freq
 
 feature_extractor = get_dataset.get_lfbe_func(data_config)
@@ -77,9 +91,6 @@ if Flags.use_tflite_model:
 else:
     yy = model_varlen(np.expand_dims(long_spec, 0))[0].numpy()
 
-## shows detection when ww activation > thresh
-with open(ww_windows_file, 'r') as fpi:
-  ww_windows = json.load(fpi)
 ww_present = np.zeros(len(long_wav))
 for t_start, t_stop in ww_windows:
   idx_start = int(t_start*samp_freq)
