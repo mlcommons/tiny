@@ -29,30 +29,44 @@ def get_name(port):
     print(name)
     return name
 
-def send_cmd_get_resp(cmd, port, timeout=2, check_echo=True):
+def send_cmd_get_resp(cmd, port, timeout=2, check_echo=True, retries=5):
     logging.info(f"\n<TX> {cmd}")
-    port.write(cmd.encode())
-    response = get_response(port, timeout=timeout)
-    logging.info(f"<RX> {response}")
-    if check_echo:
-        pass
-    if "m-ready" not in response:
-        err_str = "m-ready not receved after db command"
-        logging.error(err_str)
-        raise RuntimeError(err_str)
-    if check_echo:
-        match = re.search(r"Received command:\s*(.+)", response)
-        if match:
-            rcvd_cmd = match.group(1).strip()
-            echo_correct = (rcvd_cmd == cmd.rstrip("%"))
-            if not echo_correct:
-                err_str = f"Sent command {cmd}\n. DUT received {rcvd_cmd}"
+    i_attempt = 0
+    successful = False
+    response = ""
+    while not successful and i_attempt <= retries:
+        try:
+            port.write(cmd.encode())
+            response = get_response(port, timeout=timeout)
+            logging.info(f"<RX> {response}")
+
+            if "m-ready" not in response:
+                err_str = f"m-ready not receved after command '{cmd}'"
                 logging.error(err_str)
                 raise RuntimeError(err_str)
+            if check_echo:
+                match = re.search(r"Received command:\s*(.+)", response)
+                if match:
+                    rcvd_cmd = match.group(1).strip()
+                    echo_correct = (rcvd_cmd == cmd.rstrip("%"))
+                    if not echo_correct:
+                        err_str = f"Sent command {cmd}\n. DUT received {rcvd_cmd}"
+                        logging.error(err_str)
+                        raise RuntimeError(err_str)
+                else:
+                    err_str = "'Received command:' line not found"
+                    logging.error(err_str)
+                    raise ValueError(err_str)
+        except:
+            i_attempt += 1
+            info_str = f"Error caught on {cmd}, retry {i_attempt}"
+            logging.warning(f"Error caught on {cmd}, retry {i_attempt}")
+            print(info_str)
+            reset_port(port)
         else:
-            err_str = "'Received command:' line not found"
-            logging.error(err_str)
-            raise ValueError(err_str)
+            successful = True
+    if not successful:
+        raise RuntimeError("send_cmd_get_resp failed after {i_attempt} retries")
     return response
 
 def extract_feature_array(s):
@@ -124,7 +138,7 @@ def get_features(wav_data, port, frame_size=512, num_frames=None, offset=0, max_
 
             try:
                 bytes_txd_this_frame += len(sub_frame)*2
-                response = send_cmd_get_resp(out_str, port)
+                response = send_cmd_get_resp(out_str, port, retries=0)
                 
                 if "m-load-done" in response:
                     if bytes_txd_this_frame != 2*len(frame):
@@ -186,6 +200,8 @@ def get_features(wav_data, port, frame_size=512, num_frames=None, offset=0, max_
             raise RuntimeError(err_str)
         out_str = "extract_uart_stream%"
         response = send_cmd_get_resp(out_str, port, timeout=10)
+
+
         feature_vec = extract_feature_array(response)
         if specgram is None:
             specgram = feature_vec.reshape(1, -1)
@@ -223,7 +239,7 @@ if __name__ == "__main__":
             break
     
     # flush out any unretrieved response from previous commands
-    send_cmd_get_resp('%', dut_port, timeout=1.0, check_echo=False)
+    reset_port(dut_port)
 
     ## If you want to check that the DUT is alive, you can do this
     # response = send_cmd_get_resp("name%", port)
