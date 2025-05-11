@@ -3,7 +3,7 @@ ad01:
   model: ad01
   truth_file: y_labels.csv
   script:
-    - loop 248: 
+    - loop:
       - download
       - infer 1 0 # Infrences, Warmups
       - reset 20
@@ -12,7 +12,7 @@ ic01:
   model: ic01
   truth_file: y_labels.csv
   script:
-    - loop 5: 
+    - loop: 
       - download
       - infer 1 0
 kws01:
@@ -20,15 +20,15 @@ kws01:
   model: kws01
   truth_file: y_labels.csv
   script:
-    - loop 5: 
+    - loop:
       - download
-      - infer 10 1
+      - infer 1 0
 vww01:
   name: person_detection
   model: vww01
   truth_file: y_labels.csv
   script:
-    - loop 2: 
+    - loop:
       - download
       - infer 1 0
 sww01:

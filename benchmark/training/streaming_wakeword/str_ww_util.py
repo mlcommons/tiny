@@ -320,10 +320,18 @@ def add_training_args(parser):
         """)
 
 def add_eval_args(parser):
+    # ../../runner/sww_data_dir/sww_long_test.json
     parser.add_argument(
-        '--test_wav_path',
+        '--stream_config',
         type=str,
-        default="long_wav.wav",
+        default="../../runner/sww_data_dir/sww_long_test.json",
+        help="""\
+        JSON file defining the streaming test.  If None, skips the streaming and 
+        """)
+    parser.add_argument(    
+        '--wav_dir',
+        type=str,
+        default="../../runner/sd_card/",
         help="""\
         Wav file to run the model on for the long-wav test.
         """)
@@ -333,16 +341,16 @@ def add_eval_args(parser):
         required=False,
         default=None,
         help='Trained model to evaluate')
-    parser.add_argument(
-        '--use_tflite_model',
-        action="store_true",
-        help="""\
-            Run the TFLite model. Otherwise, run the standard keras model
-            """)
-    parser.add_argument(
-        '--tfl_file_name',
-        default=None,
-        help='File name from which the TF Lite model is loaded.')
+    # parser.add_argument(
+    #     '--use_tflite_model',
+    #     action="store_true",
+    #     help="""\
+    #         Run the TFL ite model. Otherwise, run the standard keras model
+    #         """)
+    # parser.add_argument(
+    #     '--tfl_file_name',
+    #     default=None,
+    #     help='File name from which the TF Lite model is loaded.')
 
 
 def add_quantize_args(parser):
