@@ -6,7 +6,7 @@ from serial_device import SerialDevice
 
 
 class DUT:
-  def __init__(self, port_device, baud_rate=115200, power_manager=None):
+  def __init__(self, port_device, baud_rate, power_manager=None):
     interface = port_device
     if not isinstance(port_device, InterfaceDevice):
       interface = SerialDevice(port_device, baud_rate, "m-ready", '%')
@@ -97,7 +97,7 @@ class DUT:
     command = f"infer {number} {warmups}"  # must include warmups, even if 0, because default warmups=10
     #if self.power_manager:
       #print(self.power_manager.start())
-    result = self._port.send_command(command)
+    result = self._port.send_command(command, timeout=30.0)
     #if self.power_manager:
       #print(self.power_manager.stop())
     return result

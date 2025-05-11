@@ -3,7 +3,7 @@ from queue import Empty, Queue
 from threading import Thread
 
 import serial
-
+ 
 class SerialDevice:
   def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n", echo=False):
     print(f"Initializing SerialDevice on port: {port_device} at {baud_rate} baud")  # Debug print
@@ -16,15 +16,22 @@ class SerialDevice:
     self._echo = echo
     self._timeout = 5.0
     self.full_debug = False
+    self._entry_count = 0
 
   def __enter__(self):
-    self._port.__enter__()
-    self._start_read_thread()
+    print(f"SerialDevice entering port {self._port.port}, entry_count (before increment) = {self._entry_count}")
+    if not self._entry_count:
+      self._port.__enter__()
+      self._start_read_thread()
+    self._entry_count += 1
     return self
 
   def __exit__(self, *args):
-    self._stop_read_thread()
-    self._port.__exit__(*args)
+    print(f"SerialDevice exiting port {self._port.port}, entry_count (before decrement) = {self._entry_count}")
+    self._entry_count -= 1    
+    if not self._entry_count:
+      self._stop_read_thread()
+      self._port.__exit__(*args)
 
   def _read_loop(self):
     msg = ""
@@ -85,17 +92,17 @@ class SerialDevice:
         break
 
     return lines if len(lines) != 1 else lines[0]
-  
+
   def close_serial(self) -> None:
         """Closes the serial communication."""
         if self._port and self._port.is_open:
             self._port.close()
             print("Serial connection closed.")
-            
+
   def send_data(self, data: str) -> None:
         """Sends the given data to the device."""
         self._port.write((data + "\n").encode())
-        
+
   def receive_data(self) -> str:
     """Receives data from the device."""
     if not self._port.is_open:
