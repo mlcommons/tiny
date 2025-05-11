@@ -341,16 +341,17 @@ def add_eval_args(parser):
         required=False,
         default=None,
         help='Trained model to evaluate')
-    # parser.add_argument(
-    #     '--use_tflite_model',
-    #     action="store_true",
-    #     help="""\
-    #         Run the TFL ite model. Otherwise, run the standard keras model
-    #         """)
-    # parser.add_argument(
-    #     '--tfl_file_name',
-    #     default=None,
-    #     help='File name from which the TF Lite model is loaded.')
+    parser.add_argument(
+        '--specgram',
+        type=str,
+        required=False,
+        default=None,
+        help="""
+        Pre-computed spectrogram to use for long-wav test instead of computing features from wav file.
+        Should specify an npz file with an element named 'specgram'.  E.g. `np.savez('test.npz', specgram=specgram)`
+        Spectrogram should squeeze to shape (N, 40) and correspond to the detection windows specified in stream_config
+        """)
+
 
 
 def add_quantize_args(parser):
