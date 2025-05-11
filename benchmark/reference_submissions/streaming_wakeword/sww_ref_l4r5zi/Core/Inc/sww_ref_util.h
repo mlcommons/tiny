@@ -37,7 +37,7 @@ typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
 
 #define EE_DEVICE_NAME "dut"
 
-#define EE_CMD_SIZE 80u
+#define EE_CMD_SIZE 1028u
 #define EE_CMD_DELIMITER " "
 #define EE_CMD_TERMINATOR '%'
 
@@ -94,6 +94,6 @@ void infer_static_wav(char *cmd_args[]);
 ai_error aiInit(void);
 void setup_i2s_buffers();
 void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp);
-
+void extract_features_on_chunk(char *cmd_args[]);
 
 #endif /* INC_SWW_UTIL_H_ */

@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <ctype.h>
 #include <math.h>
 
 #include "stm32l4xx_hal.h"
@@ -88,7 +89,7 @@ void print_vals_int16(const int16_t *buffer, uint32_t num_vals)
 	{
 		for(int j=0;j<vals_per_line;j++)
 		{
-			end_char = (i+j==num_vals-1) ? ' ' : ',';
+			end_char = (i+j==num_vals-1) ? ']' : ',';
 			if(i+j >= num_vals)
 			{
 				break;
@@ -97,8 +98,6 @@ void print_vals_int16(const int16_t *buffer, uint32_t num_vals)
 		}
 		printf("\r\n");
 	}
-	printf("]\r\n");
-	// printf("]\r\n==== Done ====\r\n");
 }
 
 
@@ -319,6 +318,114 @@ void run_model_on_test_data(char *cmd_args[]) {
 	printf("]\r\n");
 }
 
+void load_or_print_buff(char *cmd_args[]) {
+	// process the 'db' command
+	// `db load N` -- prepares to load N bytes.
+	// `db ff0055aa` -- loads 5 bytes ([0xff, 0x00, 0x55, 0xaa])
+	// `db print [N]` prints N bytes from the buffer, defaulting to the whole thing
+
+	static int db_state = 0;  // 0=idle, 1=after 'db load', waiting for bytes'
+	static int transfer_size = 0; // `db load N` sets transfer_size to N
+	static int bytes_loaded = 0;  // bytes loaded since last `db load`
+
+	char *byte_buff = (char *)g_i2s_buffer0; // g_i2s_buffer0 is in int16 pointer
+	int buff_size = g_i2s_chunk_size_bytes;
+
+	if (cmd_args[1] == NULL) {
+		printf("Error: db requires a sub-command: 'db load <Nbytes>'; 'db print [Nbytes]', 'db <hexstring>'\r\n");
+	}
+	else if (strcmp(cmd_args[1], "load") == 0) {
+		transfer_size = atoi(cmd_args[2]);
+		if (transfer_size == 0) {
+			printf("Error: Transfer size (%s) must be valid int; greater than 0.\r\n", cmd_args[2]);
+			printf("Usage: 'db load N'; N>0\r\n");
+			db_state = 0;
+			return;
+		}
+		db_state = 1;
+		bytes_loaded = 0;
+		printf("Expecting %d bytes\r\n", transfer_size);
+		return;
+	}
+	else if (isxdigit((int)cmd_args[1][0])) { // e.g. `db ff001234` actually loads the data`
+		int num_chars = strlen(cmd_args[1]);
+		uint8_t next_byte = 0;
+
+		if (db_state != 1) {
+			printf("Error: Must issue db load <Nbytes> command before transmitting data.\r\n");
+			return;
+		}
+		if (num_chars % 2 != 0) {
+			printf("Error: number of hex digits in data string must be even. Received %d\r\n", num_chars);
+			printf("Still waiting for data\r\n");
+			return;
+		}
+		char tmp_str[3] = {'\0', '\0', '\0'};
+
+		for (int i=0;i<num_chars;) {
+			tmp_str[0] = cmd_args[1][i++];
+			tmp_str[1] = cmd_args[1][i++];
+
+			if (!isxdigit((int)tmp_str[0]) || !isxdigit((int)tmp_str[1])) {
+				printf("Error: Received non-hex digit in character pair '%s' at location %d\r\n", tmp_str, i);
+				printf("Canceling segment upload. Still waiting for data\r\n");
+				return;
+			}
+			next_byte = (uint8_t) strtol(tmp_str, NULL, 16);
+			byte_buff[bytes_loaded++] = next_byte;
+
+			if(bytes_loaded >= buff_size || bytes_loaded >= transfer_size) {
+				db_state = 0;
+				printf("m-load-done\r\n");
+				return;
+			}
+		}
+		printf("%d bytes received\r\n", bytes_loaded);
+	}
+	else if (strcmp(cmd_args[1], "getptr") == 0) {
+		printf("m-buff-ptr-%d\r\n", bytes_loaded);
+	}
+	else if (strcmp(cmd_args[1], "setptr") == 0) {
+		if (cmd_args[2] != NULL) {
+			bytes_loaded = atoi(cmd_args[2]);
+		}
+		else {
+			printf("Error: setptr requires a numeric argument: 'db setptr 123%'");
+		}
+	}
+	else if (strcmp(cmd_args[1], "print") == 0) {
+		int bytes_to_print = 0;
+		if (cmd_args[2] != NULL) {
+			bytes_to_print = atoi(cmd_args[2]);
+		}
+		if (bytes_to_print <= 0 || bytes_to_print > buff_size) {
+			bytes_to_print = buff_size;
+		}
+		printf("m-buffer-");
+		for(int i=0; i<bytes_to_print; i++){
+			printf("%02x", byte_buff[i]);
+			if( i < bytes_to_print-1) {
+				printf("-");
+			}
+			else {
+				printf("\r\n");
+			}
+		}
+	}
+	else if (strcmp(cmd_args[1], "print_i16") == 0) {
+		int vals_to_print = 0;
+		if (cmd_args[2] != NULL) {
+			vals_to_print = atoi(cmd_args[2]);
+		}
+		if (vals_to_print <= 0 || vals_to_print > buff_size/2) {
+			vals_to_print = buff_size/2;
+		}
+		print_vals_int16((int16_t *)byte_buff, vals_to_print);
+	}
+	else {
+		printf("Error: db: Unrecognized sub-command %s\r\n", cmd_args[1]);
+	}
+}
 void run_extraction(char *cmd_args[]) {
 
 	// Feature extraction work
@@ -461,7 +568,7 @@ void print_state(char *cmd_args[]) {
 void process_command(char *full_command) {
 	char *cmd_args[MAX_CMD_TOKENS] = {NULL};
 
-    printf("Full command: %s\r\n", full_command);
+    printf("Received command: %s\r\n", full_command);
 
     // Split the command on spaces, so cmd_args[0] is the command itself
     char* token = strtok(full_command, " ");
@@ -474,10 +581,11 @@ void process_command(char *full_command) {
             break;
     }
 
-    // print out the command and args 1 by 1 (for debug; remove later)
-    for(int i=0;i<MAX_CMD_TOKENS && cmd_args[i] != NULL;i++) {
-        printf("[%d]: %p=>%s\r\n", i, (void *)cmd_args[i], cmd_args[i]);
-    }
+    // Uncomment this block to print out the sub-commands individually for debugging.
+    //    // print out the command and args 1 by 1 (for debug; remove later)
+	//    for(int i=0;i<MAX_CMD_TOKENS && cmd_args[i] != NULL;i++) {
+	//        printf("[%d]: %p=>%s\r\n", i, (void *)cmd_args[i], cmd_args[i]);
+	//    }
 
 	// full_command should be "<command> <arg1> <arg2>" (command and args delimited by spaces)
 	// put the command and arguments into the array cmd_arg[]
@@ -509,6 +617,9 @@ void process_command(char *full_command) {
 	else if(strcmp(cmd_args[0], "state") == 0) {
 		print_state(cmd_args);
 	}
+	else if(strcmp(cmd_args[0], "db") == 0) {
+		load_or_print_buff(cmd_args);
+	}
 	else if(strcmp(cmd_args[0], "help") == 0) {
 		print_help(cmd_args);
 	}
@@ -524,6 +635,9 @@ void process_command(char *full_command) {
 	}
 	else if(strcmp(cmd_args[0], "infer_wav") == 0) {
 		infer_static_wav(cmd_args);
+	}
+	else if(strcmp(cmd_args[0], "extract_uart_stream") == 0) {
+		extract_features_on_chunk(cmd_args);
 	}
 	else if(cmd_args[0] == 0) {
 		printf("Empty command (only a %% read).  Type 'help%%' for help\r\n"); // %% => %
@@ -648,6 +762,46 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
     	g_i2s_state = Idle;
     }
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
+}
+
+
+void extract_features_on_chunk(char *cmd_args[]) {
+
+	// feature_buff is used internally as a 2nd internal scratch space,
+	// in the FFT domain, so it needs to be winlen_samples long, even though
+	// ultimately it will only hold NUM_MEL_FILTERS values.  This can probably
+	// be improved with a refactored compute_lfbe_f32().
+	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
+	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
+
+	// extract the input scale factor from the (file-global) ai_input
+	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
+
+	// wav samples should be in g_i2s_buffer0
+
+    // g_wav_block_buff[SWW_WINSTRIDE_SAMPLES:<end>]  are old samples to be
+    // shifted to the beginning of the clip. After this block,
+    // g_wav_block_buff[0:(winlen-winstride)] is populated
+    for(int i=SWW_WINSTRIDE_SAMPLES;i<SWW_WINLEN_SAMPLES;i++) {
+    	g_wav_block_buff[i-SWW_WINSTRIDE_SAMPLES] = g_wav_block_buff[i];
+    }
+
+    // Now fill in g_wav_block_buff[(winlen-winstride):] with winstride new samples
+	for(int i=SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES;i<SWW_WINLEN_SAMPLES;i++) {
+		// no 2* here because UART transmits mono, unlike I2S buffer, which is in stereo
+		g_wav_block_buff[i] = g_i2s_buffer0[i-(SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES)];
+	}
+
+	compute_lfbe_f32(g_wav_block_buff, feature_buff, dsp_buff);
+
+	printf("m-features-[");
+	for(int i=0;i<NUM_MEL_FILTERS;i++) {
+		printf("%+3d", (int8_t)(feature_buff[i]/input_scale_factor-128));
+		if( i < NUM_MEL_FILTERS -1){
+			printf(", ");
+		}
+	}
+	printf("],");
 }
 
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
