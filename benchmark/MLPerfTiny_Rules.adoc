@@ -177,6 +177,7 @@ The suite includes the following benchmarks:
 |   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset |     MobileNet    |   80% (Top 1)
 | Image Classification |            Small image classification           |          Cifar10          |      ResNet      |   85% (Top 1)
 |   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS         | Deep AutoEncoder |   0.85 (AUC)
+|   Streaming Wakeword | Detecting wakewords in a continuous stream of audio| Custom         | 1D DS-CNN |  TBD
 |===
 
 ==== Relaxed constraints for the Open division
@@ -189,10 +190,13 @@ The suite includes the following benchmarks:
 
 == Benchmark Runner
 
-=== EnergyRunner™ benchmark framework
-The benchmark suite is run using the EnergyRunner™ benchmark framework, which detects the DUT, sends inputs, and reads outputs over UART.
 
-The runner is available here: https://github.com/eembc/energyrunner
+
+=== EnergyRunner™ benchmark framework
+The benchmark suite is run using the EnergyRunner™ benchmark framework from EEMBC, which detects the DUT, sends inputs, and reads outputs over UART.  The EEMBC runner is being phased out.  It will be permitted for teh KWS, VWW, IC, and AD benchmarks in the summer 2015 submission.  After that, only the MLCommons Runner will be permitted.  The EEMBC runner does not support the streaming wakeword benchmark.
+
+The EEMBC runner is available here: https://github.com/eembc/energyrunner
+The MLCommons runner is available in this repository: https://github.com/mlcommons/tiny/tree/master/benchmark/runner
 
 Note: The same code must be run for both the accuracy and performance Runner modes.
 
@@ -332,7 +336,8 @@ The following techniques are disallowed:
 
 * Discarding non-zero weight elements, including pruning
 
-* Caching queries or responses
+* Caching queries or responses between files.  However, in the streaming test, it is
+permitted to store intermediate activations between frames of the same waveform.
 
 * Coalescing identical queries
 
