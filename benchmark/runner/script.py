@@ -305,6 +305,7 @@ class _ScriptStreamStep(_ScriptStep):
         
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
         detected_timestamps = sww_util.process_timestamps(detected_timestamps)
+
         infer_results = {}
         infer_results.update(file_truth)        
         infer_results["detections"] = detected_timestamps

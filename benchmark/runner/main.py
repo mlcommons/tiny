@@ -372,16 +372,19 @@ if __name__ == '__main__':
     parser.add_argument("-u", "--dut_config", required=False, help="Target device")
     parser.add_argument("-v", "--dut_voltage", required=False, help="Voltage set during test")
     parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
-    parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
+    parser.add_argument("-t", "--test_script", default=None, help="File containing test scripts")
     parser.add_argument("-s", "--dataset_path", default="datasets")
     parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
     args = parser.parse_args()
-    if args.mode == "a":
-        test_script_file = "tests_accuracy.yaml"  # Accuracy test script
-    elif args.mode == "p":
-        test_script_file = "tests_performance.yaml"  # Performance test script
-    elif args.mode == "e":
-        test_script_file = "tests_energy.yaml"  # Energy test script
+    if args.test_script is not None:
+        test_script_file=args.test_script
+    else:
+        if args.mode == "a":
+            test_script_file = "tests_accuracy.yaml"  # Accuracy test script
+        elif args.mode == "p":
+            test_script_file = "tests_performance.yaml"  # Performance test script
+        elif args.mode == "e":
+            test_script_file = "tests_energy.yaml"  # Energy test script
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
         "test_script": parse_test_script(test_script_file),
