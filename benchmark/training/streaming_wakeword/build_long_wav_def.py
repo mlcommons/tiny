@@ -5,7 +5,8 @@ import str_ww_util as util
 Flags = util.parse_command("build_long_wav_def")
 
 long_wav_len_sec = 20*60.0 # 20 minutes
-num_targets = 100
+num_targets_init = 100
+num_targets_final = 50
 min_ww_ampl = 0.5
 max_ww_ampl = 0.75
 
@@ -20,19 +21,31 @@ bg_file_configs = [
     ('{musan_path}'+'/speech/librivox/speech-librivox-0164.wav', 100.0, 300.0, 0.05),
     ('{musan_path}'+'/speech/librivox/speech-librivox-0165.wav', 100.0, 300.0, 0.05),
     ('{musan_path}'+'/speech/librivox/speech-librivox-0166.wav', 100.0, 300.0, 0.05),
-    ('{musan_path}'+'/music/hd-classical/music-hd-0002.wav', 300.0, 450.0, 0.5),
-    ('{musan_path}'+'/music/jamendo/music-jamendo-0000.wav', 450.0, 600.0, 0.5),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0052.wav', 600.0, 1200.0, 0.5),
+    ('{musan_path}'+'/music/hd-classical/music-hd-0002.wav',     300.0, 450.0, 0.5),
+    ('{musan_path}'+'/music/jamendo/music-jamendo-0000.wav',     450.0, 600.0, 0.5),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0052.wav', 600.0, 900.0, 0.5),
+    ('{musan_path}'+'/music/jamendo/music-jamendo-0001.wav',     750.0, 900.0, 0.5),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0121.wav', 900.0, 1200.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0122.wav', 900.0, 1200.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0127.wav', 900.0, 1200.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0133.wav', 900.0, 1200.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0134.wav', 900.0, 1200.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0136.wav', 900.0, 1200.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0137.wav', 900.0, 1200.0, 0.1),
 ]
 
-intervals = rng.exponential(scale=7.0, size=(num_targets))
+intervals = rng.exponential(scale=7.0, size=(num_targets_init))
 # intervals < 3 sec may mess up the counting
-intervals = intervals[intervals>3.0]
-insertion_secs = np.cumsum(intervals[:50])
+intervals = intervals[intervals>4.0]
+insertion_secs = np.cumsum(intervals[:num_targets_final])
 # This should spread the words out in time, but if the parameters
 # are changed, then double check this.
 # stop the wake words 95% into the 1st half.
 insertion_secs *= (.475*long_wav_len_sec)/insertion_secs[-1] 
+if np.min(np.diff(insertion_secs)) < 3.0:
+    print(f"Warning: Some intervals are less than 3 seconds after time-scaling.")
+if len(insertion_secs) < num_targets_final:
+    print(f"Warning: Only {len(insertion_secs)} target words remain after filtering.")
 ww_amplitudes = rng.uniform(low=min_ww_ampl, high=max_ww_ampl, size=(len(insertion_secs)))
 
 
