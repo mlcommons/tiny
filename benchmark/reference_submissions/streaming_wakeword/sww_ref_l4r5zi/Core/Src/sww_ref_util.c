@@ -291,7 +291,7 @@ ai_error aiRun(const void *in_data, void *out_data) {
 void run_model_on_test_data(char *cmd_args[]) {
 //	acquire_and_process_data(in_data);
 	const int8_t *input_source=NULL;
-	int32_t timer_start, timer_stop;
+	uint16_t timer_start, timer_stop, timer_diff;
 
 	printf("In run_model. about to run model\r\n");
 	if (strcmp(cmd_args[1], "class0") == 0) {
@@ -310,12 +310,14 @@ void run_model_on_test_data(char *cmd_args[]) {
 	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
 		in_data[i] = (ai_i8)input_source[i];
 	}
-
+	set_processing_pin_high();
 	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
 	/*  Call inference engine */
 	aiRun(in_data, out_data);
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
-	printf("TIM16: aiRun took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
+	set_processing_pin_low();
+	timer_diff = timer_stop-timer_start;
+	printf("TIM16: aiRun took (%u : %u) = %u TIM16 cycles\r\n", timer_start, timer_stop, timer_diff);
 
 	printf("Output = [");
 	for(int i=0;i<AI_SWW_MODEL_OUT_1_SIZE;i++){
@@ -860,6 +862,7 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
 
+
 	set_processing_pin_high(); // start of processing, used for duty cycle measurement
 
 	// extract the input scale factor from the (file-global) ai_input
@@ -909,7 +912,7 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_SET);
 	    g_first_frame = 0;
 	}
-    log_printf(&g_log, "%d, \r\n", out_data[0]);
+	//    log_printf(&g_log, "%d, \r\n", out_data[0]);
 
     if ( g_act_idx < ACT_BUFF_LEN) { // jhdbg
     	g_act_buff[g_act_idx++] = out_data[0];
