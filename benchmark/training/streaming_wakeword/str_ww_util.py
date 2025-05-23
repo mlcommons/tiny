@@ -28,7 +28,7 @@ def add_dataset_args(parser):
     parser.add_argument(
         '--l2_reg',
         type=float,
-        default=0.001,
+        default=0.0,
         help='L2 regularization coefficient for conv layers',)
     parser.add_argument(
         '--min_snr_training',
@@ -245,7 +245,6 @@ def add_dataset_args(parser):
         default=0.001,
         help='Initial LR',) 
 
-
 def add_training_args(parser):
     parser.add_argument(
         '--use_qat',
@@ -265,7 +264,7 @@ def add_training_args(parser):
     parser.add_argument(
         '--epochs',
         type=int,
-        default=65,
+        default=100,
         help="""\
         How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
         then the model will pretrain (without QAT) for pretrain_epochs, then train 
