@@ -390,7 +390,7 @@ void load_or_print_buff(char *cmd_args[]) {
 			bytes_loaded = atoi(cmd_args[2]);
 		}
 		else {
-			printf("Error: setptr requires a numeric argument: 'db setptr 123%'");
+			printf("Error: setptr requires a numeric argument: 'db setptr 123%%'");
 		}
 	}
 	else if (strcmp(cmd_args[1], "print") == 0) {
