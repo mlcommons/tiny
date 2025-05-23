@@ -6,16 +6,19 @@ from serial_device import SerialDevice
 
 
 class DUT:
-  def __init__(self, port_device, baud_rate, power_manager=None):
+  def __init__(self, port_device, baud_rate, power_manager=None, echo=None):
     interface = port_device
+    
+    port_kwargs = {"echo":echo} if echo else {}
     if not isinstance(port_device, InterfaceDevice):
-      interface = SerialDevice(port_device, baud_rate, "m-ready", '%')
+      interface = SerialDevice(port_device, baud_rate, "m-ready", '%', **port_kwargs)
     self._port = interface
     self.power_manager = power_manager
     self._profile = None  # Device profile
     self._model = None    # Device model
     self._name = None     # Device name
     self._max_bytes = 26 if power_manager else 31
+
 
   def __enter__(self):
     #if self.power_manager:

@@ -33,7 +33,7 @@ def calc_detection_stats(measured_timestamps_ms, true_det_windows,
     for i, (t_start, t_stop) in enumerate(true_det_windows):
         t_stop += false_pos_suppresion_delay_sec
         tp_indices = np.where((fp_timestamps_ms/1000 >= t_start) & 
-                            (fp_timestamps_ms/1000 <= t_stop))[0]
+                            (fp_timestamps_ms/1000 <= t_stop+false_pos_suppresion_delay_sec))[0]
         if len(tp_indices) > 0:
             true_positives.append(t_start)
             fp_timestamps_ms = np.delete(fp_timestamps_ms, tp_indices)
@@ -44,8 +44,8 @@ def calc_detection_stats(measured_timestamps_ms, true_det_windows,
     while i < len(fp_timestamps_ms):
         current_fp = fp_timestamps_ms[i]
 
-        fp_idxs_to_suppress = np.where((fp_timestamps_ms >= current_fp) & 
-                            (fp_timestamps_ms/1000 <= current_fp+int(debounce_time_sec*1000)))[0]    
+        fp_idxs_to_suppress = np.where((fp_timestamps_ms > current_fp) & 
+                            (fp_timestamps_ms <= current_fp+int(debounce_time_sec*1000)))[0]    
         if len(fp_idxs_to_suppress) > 0:
             fp_timestamps_ms = np.delete(fp_timestamps_ms, fp_idxs_to_suppress)
         i += 1

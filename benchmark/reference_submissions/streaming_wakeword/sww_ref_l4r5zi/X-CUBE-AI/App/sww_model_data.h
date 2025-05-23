@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    sww_model_data.h
   * @author  AST Embedded Analytics Research Platform
-  * @date    2025-02-17T06:43:20-0500
+  * @date    2025-05-22T12:16:33-0700
   * @brief   AI Tool Automatic Code Generator for Embedded NN computing
   ******************************************************************************
   * Copyright (c) 2025 STMicroelectronics.
@@ -32,7 +32,7 @@ AI_DEPRECATED
 AI_API_DECLARE_BEGIN
 
 
-extern const ai_u64 s_sww_model_weights_array_u64[2940];
+extern const ai_u64 s_sww_model_weights_array_u64[6177];
 
 
 

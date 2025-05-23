@@ -49,6 +49,7 @@ int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 int8_t *g_model_input;
 
+
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
 uint32_t g_i2s_wav_len = 24*2048;
 uint32_t g_first_frame = 1;
@@ -58,6 +59,10 @@ int16_t *g_wav_block_buff = NULL; // hold most recent SWW_WINLEN_SAMPLES for fea
 LogBuffer g_log = { .buffer = {0}, .current_pos = 0 };
 i2s_state_t g_i2s_state = Idle;
 
+int8_t *g_act_buff = NULL; // jhdbg
+uint32_t g_act_idx = 0;
+#define ACT_BUFF_LEN 40000
+
 void setup_i2s_buffers() {
 	// set up variables for I2S receiving
 	g_i2s_buffer0 = (int16_t *)malloc(g_i2s_chunk_size_bytes);
@@ -66,6 +71,7 @@ void setup_i2s_buffers() {
 	g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
 	g_wav_block_buff =(int16_t *)malloc(SWW_WINLEN_SAMPLES * sizeof(int16_t));
 	g_model_input = (int8_t *)malloc(SWW_MODEL_INPUT_SIZE * sizeof(int8_t));
+	g_act_buff = (int8_t *)malloc(ACT_BUFF_LEN * sizeof(int8_t));
 
 }
 
@@ -285,7 +291,7 @@ ai_error aiRun(const void *in_data, void *out_data) {
 void run_model_on_test_data(char *cmd_args[]) {
 //	acquire_and_process_data(in_data);
 	const int8_t *input_source=NULL;
-	int32_t timer_start, timer_stop;
+	uint16_t timer_start, timer_stop, timer_diff;
 
 	printf("In run_model. about to run model\r\n");
 	if (strcmp(cmd_args[1], "class0") == 0) {
@@ -304,12 +310,14 @@ void run_model_on_test_data(char *cmd_args[]) {
 	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
 		in_data[i] = (ai_i8)input_source[i];
 	}
-
+	set_processing_pin_high();
 	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
 	/*  Call inference engine */
 	aiRun(in_data, out_data);
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
-	printf("TIM16: aiRun took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
+	set_processing_pin_low();
+	timer_diff = timer_stop-timer_start;
+	printf("TIM16: aiRun took (%u : %u) = %u TIM16 cycles\r\n", timer_start, timer_stop, timer_diff);
 
 	printf("Output = [");
 	for(int i=0;i<AI_SWW_MODEL_OUT_1_SIZE;i++){
@@ -468,6 +476,9 @@ void stop_detection(char *cmd_args[]) {
 		g_i2s_state = Idle;
 		th_timestamp(); // this timestamp will stop the measurement of power
 		printf("Streaming stopped.\r\n");
+
+		printf("target activations: \r\n");
+		print_vals_int8(g_act_buff, g_act_idx); // jhdbg
 		break;
 	case FileCapture:
 		g_i2s_state = Stopping;
@@ -495,6 +506,9 @@ void start_detection(char *cmd_args[]) {
 		 g_i2s_state = Streaming;
 		 g_int16s_read = 0; // jhdbg -- only needed when we're capturing the waveform in addition to detecting
 		 g_first_frame = 1; // on the first frame of a recording we pulse the detection GPIO to synchronize timing.
+
+		 memset(g_act_buff, 0, ACT_BUFF_LEN); // jhdbg
+		 g_act_idx = 0;
 
 		 printf("Listening for I2S data ... \r\n");
 
@@ -767,15 +781,25 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
 
 void extract_features_on_chunk(char *cmd_args[]) {
 
+
+
 	// feature_buff is used internally as a 2nd internal scratch space,
 	// in the FFT domain, so it needs to be winlen_samples long, even though
 	// ultimately it will only hold NUM_MEL_FILTERS values.  This can probably
 	// be improved with a refactored compute_lfbe_f32().
 	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
+	static int num_calls=0;
 
 	// extract the input scale factor from the (file-global) ai_input
 	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
+
+
+	if( num_calls == 0) {
+		for(int i=0;i<SWW_MODEL_INPUT_SIZE;i++) {
+			g_model_input[i] = 0;
+		}
+	}
 
 	// wav samples should be in g_i2s_buffer0
 
@@ -794,6 +818,26 @@ void extract_features_on_chunk(char *cmd_args[]) {
 
 	compute_lfbe_f32(g_wav_block_buff, feature_buff, dsp_buff);
 
+	// shift current features in g_model_input[] and add new ones.
+	for(int i=0;i<SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS;i++) {
+		g_model_input[i] = g_model_input[i+NUM_MEL_FILTERS];
+	}
+
+	for(int i=0;i<NUM_MEL_FILTERS;i++) {
+		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(feature_buff[i]/input_scale_factor-128);
+	}
+
+	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
+		in_data[i] = (ai_i8)g_model_input[i];
+	}
+
+	/*  Call inference engine */
+	aiRun(in_data, out_data);
+
+
+
+    num_calls++;
+
 	printf("m-features-[");
 	for(int i=0;i<NUM_MEL_FILTERS;i++) {
 		printf("%+3d", (int8_t)(feature_buff[i]/input_scale_factor-128));
@@ -801,7 +845,11 @@ void extract_features_on_chunk(char *cmd_args[]) {
 			printf(", ");
 		}
 	}
-	printf("],");
+	printf("]\r\n");
+
+	printf("m-activations-[%+3d, %+3d, %+3d]\r\n", out_data[0], out_data[1], out_data[2]);
+
+
 }
 
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
@@ -813,6 +861,7 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
+
 
 	set_processing_pin_high(); // start of processing, used for duty cycle measurement
 
@@ -863,8 +912,11 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_SET);
 	    g_first_frame = 0;
 	}
-    log_printf(&g_log, "%d, \r\n", out_data[0]);
+	//    log_printf(&g_log, "%d, \r\n", out_data[0]);
 
+    if ( g_act_idx < ACT_BUFF_LEN) { // jhdbg
+    	g_act_buff[g_act_idx++] = out_data[0];
+    }
 
     num_calls++;
     set_processing_pin_low();  // end of processing, used for duty cycle measurement

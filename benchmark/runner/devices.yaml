@@ -2,10 +2,11 @@
   type: interface
   preference: 2
   baud: 115200 # Baud Rate for the interface (IO) board
+  echo: True
   usb:
     0x0483: 0x374E
 - name: arduino
-  type: interface
+  type: interface  
   preference: 1
   baud: 115200 # Baud Rate for the interface board
   usb:
@@ -23,8 +24,9 @@
 - name: l4r5zi
   type: dut
   baud:
-    energy: 9600
+    energy: 115200
     performance: 115200
-    accuracy: 921600
+    accuracy: 115200
+  echo: True
   usb:
     0x0483: 0x374B

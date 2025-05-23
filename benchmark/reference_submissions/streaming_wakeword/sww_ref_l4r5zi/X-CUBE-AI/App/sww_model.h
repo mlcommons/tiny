@@ -2,7 +2,7 @@
   ******************************************************************************
   * @file    sww_model.h
   * @author  AST Embedded Analytics Research Platform
-  * @date    2025-02-17T06:43:20-0500
+  * @date    2025-05-22T12:16:33-0700
   * @brief   AI Tool Automatic Code Generator for Embedded NN computing
   ******************************************************************************
   * @attention
@@ -23,7 +23,7 @@
 
 /******************************************************************************/
 #define AI_SWW_MODEL_MODEL_NAME          "sww_model"
-#define AI_SWW_MODEL_ORIGIN_MODEL_NAME   "strm_ww_int8"
+#define AI_SWW_MODEL_ORIGIN_MODEL_NAME   "str_ww_ref_model"
 
 /******************************************************************************/
 #define AI_SWW_MODEL_ACTIVATIONS_ALIGNMENT   (4)
