@@ -23,15 +23,15 @@ bg_file_configs = [
     ('{musan_path}'+'/speech/librivox/speech-librivox-0166.wav', 100.0, 300.0, 0.05),
     ('{musan_path}'+'/music/hd-classical/music-hd-0002.wav',     300.0, 450.0, 0.5),
     ('{musan_path}'+'/music/jamendo/music-jamendo-0000.wav',     450.0, 600.0, 0.5),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0052.wav', 600.0, 900.0, 0.5),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0052.wav', 600.0, 900.0, 0.75),
     ('{musan_path}'+'/music/jamendo/music-jamendo-0001.wav',     750.0, 900.0, 0.5),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0121.wav', 900.0, 1200.0, 0.1),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0122.wav', 900.0, 1200.0, 0.1),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0127.wav', 900.0, 1200.0, 0.1),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0133.wav', 900.0, 1200.0, 0.1),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0134.wav', 900.0, 1200.0, 0.1),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0136.wav', 900.0, 1200.0, 0.1),
-    ('{musan_path}'+'/speech/librivox/speech-librivox-0137.wav', 900.0, 1200.0, 0.1),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0121.wav', 900.0, 1200.0, 0.2),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0122.wav', 900.0, 1200.0, 0.2),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0127.wav', 900.0, 1200.0, 0.2),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0133.wav', 900.0, 1200.0, 0.2),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0134.wav', 900.0, 1200.0, 0.2),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0136.wav', 900.0, 1200.0, 0.2),
+    ('{musan_path}'+'/speech/librivox/speech-librivox-0137.wav', 900.0, 1200.0, 0.2),
 ]
 
 intervals = rng.exponential(scale=7.0, size=(num_targets_init))
