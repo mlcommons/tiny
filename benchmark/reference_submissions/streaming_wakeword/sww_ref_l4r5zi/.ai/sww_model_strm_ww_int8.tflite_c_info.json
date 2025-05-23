@@ -2531,35 +2531,35 @@
   "environment": {
     "device": null,
     "generated_model": {
-      "generated_time": "2025-01-27T11:39:10-0500",
+      "generated_time": "2025-05-21T13:28:40-0700",
       "model_files": [
         {
           "name": "sww_model_data_params.h",
-          "signature": "0xda9529062faac136f6f16157f0b259c6"
+          "signature": "0x4c169e939ff061b9012f98a375f56664"
         },
         {
           "name": "sww_model_data_params.c",
-          "signature": "0xf00a8b8f178759d3269a39c4a77135e1"
+          "signature": "0xf781e20a3c640513dde2c31684ade494"
         },
         {
           "name": "sww_model_data.h",
-          "signature": "0xce1a88722a3b9c72ecc92ec0aa3b9052"
+          "signature": "0x6556ef7eb307247c2bca219d6d822691"
         },
         {
           "name": "sww_model_data.c",
-          "signature": "0xd670967563218f5f76240042ce2ee161"
+          "signature": "0x6af81592a99418ba884b3750555bd56f"
         },
         {
           "name": "sww_model_config.h",
-          "signature": "0xe8085987c9b2fefb0629935de97bb536"
+          "signature": "0x15a07c18a2a7ebd115b256ae8252287f"
         },
         {
           "name": "sww_model.h",
-          "signature": "0x6ec15a30b53b8ca97b4b3dc6b0772173"
+          "signature": "0xe6ae3a87fcf601fcf9173a9abfb03154"
         },
         {
           "name": "sww_model.c",
-          "signature": "0x6669de2dc58fb962b92346bef8333dfc"
+          "signature": "0x01fb4b63b6794479684750d4b213926d"
         }
       ],
       "n_params": null,
@@ -2567,11 +2567,11 @@
       "size": null,
       "type": null
     },
-    "network_signature": "0xf6e93313539cc503",
+    "network_signature": "0x5f4f4fd08eb2617e",
     "test_name": "",
     "tools": [
       {
-        "arguments": "generate --target stm32l4 --name sww_model -m /Users/jeremy/dev/tiny_mlperf/tiny_jhsyn/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite --compression none --verbosity 1 --allocate-inputs --allocate-outputs --workspace /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace2751951177129584645880868303822648 --output /Users/jeremy/.stm32cubemx/sww_model_output",
+        "arguments": "generate --target stm32l4 --name sww_model -m /Users/jeremy/dev/tiny_mlperf/tiny_main/benchmark/training/streaming_wakeword/trained_models/strm_ww_int8.tflite --compression none --verbosity 1 --allocate-inputs --allocate-outputs --workspace /var/folders/qb/jcjkm0nx4878vyqfjy786xdh0000gn/T/mxAI_workspace22421878873072086813923037304615305 --output /Users/jeremy/.stm32cubemx/sww_model_output",
         "environment": [
           "STATS_TYPE=X-CUBE-AI"
         ],
