@@ -27,5 +27,6 @@
     energy: 115200
     performance: 115200
     accuracy: 115200
+  echo: True
   usb:
     0x0483: 0x374B
