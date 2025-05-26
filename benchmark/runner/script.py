@@ -298,13 +298,16 @@ class _ScriptStreamStep(_ScriptStep):
         io.play_wave(file_truth['wav_file'], timeout=file_truth["length_sec"]+10.0) 
 
         # not sure why this is needed, but apparently the DUT is still occupied with the 
-        # detection task, because w/o this sleep the next DUT command times out.  Could be shorter
+        # detection task, because w/o this sleep the next DUT command times out.
         time.sleep(0.25)
         dut.stop_detecting()  # DUT stops processing audio and toggles D7 to end power measurement
         print(" ... done")
         
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
         detected_timestamps = sww_util.process_timestamps(detected_timestamps)
+
+        dutycycle_timestamps = io.print_dutycycle()
+        print(dutycycle_timestamps)
 
         infer_results = {}
         infer_results.update(file_truth)        

@@ -7,8 +7,10 @@ from threading import Thread
 class PowerManager(SerialDevice):
   PROMPT = "PowerShield > "
 
-  def __init__(self, port_device, baud_rate=3686400, voltage=3.3):
-    self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n")
+  def __init__(self, port_device, baud_rate=3686400, voltage=3.3, echo=False):
+
+    port_kwargs = {"echo":echo} if echo else {}
+    self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n",  **port_kwargs)
     self._voltage = voltage
     self._board_id = None
     self._version = None
