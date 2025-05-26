@@ -32,7 +32,7 @@ The interface board runs at 3.3V, so if the DUT is running at any other supply v
 The contents of the SD card are only required for the streaming test, but a card must be present in the interface board for it to function for any of the benchmarks.
 
 ### Device Under Test (L4R5ZI)
-![DUT Wiring](img/L4R5ZI.png)
+![DUT Wiring](img/L4R5Zi.png)
 
 ## Streaming Test
 The streaming wakeword test is substantially different than the other benchmarks.  It requires the interface board regardless of whether power is being measured in order to deliver the streaming audio over I2S.  Power measurements are required for submissions, but for debugging purposes the streaming test can be run without the energy monitor.
@@ -172,6 +172,12 @@ If `FX_FAT_READ_ERROR` is triggered, there may be **issues with the SD card or i
     assign
     exit
    ```
+
+## I2S Audio Transfer
+If the I2S transfer appears not to be working, here are a few things to try.
+1. To run a shorter test, change the 'truth_file' value under the sww section to `sww_short_test.json` (10 seconds) or `sww_med_test.json` (2 minutes).
+2. To reduce the number of connections, you can run the test without the power board and with the the host connected directly to the DUT's USB virtual UART, although the interface board is still necessary for delivering I2S signals.  The runner will detect the connection and issue commands directly to the DUT rather than going through the interface board.  This setup will also let you use the step debugger in the DUT.  In this arrangement, make sure that the UART wires are disconnected so they don't contend with the USB UART and make sure the IDD jumper is in place, since the DUT is being powered through the USB connection.
+3. 
 
 ### Baud Rate for Interface board:
 Located in file /application/user/core/usart.c
