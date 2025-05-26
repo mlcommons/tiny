@@ -45,8 +45,13 @@ class IOManager(InterfaceDevice):
       resp = resp.replace("[dut]: ", "")
     return resp
 
-  def send_command(self, command, end=None, echo=False):
-    resp = self.port.send_command(f"dut {command}")
+  def send_command(self, command, end=None, echo=False, timeout=None):
+    if timeout is not None:
+      port_kw_args = {'timeout':timeout}
+    else:
+      port_kw_args = {}
+
+    resp = self.port.send_command(f"dut {command}", **port_kw_args)
     if len(resp) != 2 or resp[1] != "m-ready":
       return None
     resp = None
