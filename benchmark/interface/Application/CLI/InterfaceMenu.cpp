@@ -20,9 +20,19 @@ void CLI_Run()
 
 void Record_WW_Detection()
 {
-  // CLI::InterfaceMenu::GetSingleton().dut.RecordDetection();
   CLI::InterfaceMenu::GetSingleton().RecordOneDetection();
 }
+
+void Record_Dutycycle_Start()
+{
+  CLI::InterfaceMenu::GetSingleton().DutycycleStart();
+}
+void Record_Dutycycle_Stop()
+{
+  CLI::InterfaceMenu::GetSingleton().DutycycleStop();
+}
+
+
 namespace CLI
 {
   InterfaceMenu *InterfaceMenu::instance = (InterfaceMenu *)TX_NULL;
@@ -39,6 +49,7 @@ namespace CLI
 														{"checkbaud", CheckBaudWrapper},
 														{"record_detections", RecDetsWrapper},
 														{"print_detections", PrintDetsWrapper},
+														{"print_dutycycle", PrintDutycycleWrapper},
                                                         {"", DefaultWrapper} };
 
   /**
@@ -94,6 +105,13 @@ namespace CLI
     instance->PrintDetections(args);
   }
 
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::PrintDutycycleWrapper(const std::string &args)
+  {
+    instance->PrintDutycycle(args);
+  }
 
   /**
    * Wrap the singleton function in a static function
@@ -244,7 +262,6 @@ namespace CLI
 	  // Sets the interface board into mode to capture detections,
 	  // but the detections are recorded in an interrupt handler,
 	  // so we can return here and proceed to playing the wav file
-	  std::string *msg = new std::string("Begin recording detections");
 
 	  __HAL_TIM_SET_COUNTER(&htim2, 0);
 	  SendString("Now recording detections");
@@ -268,8 +285,44 @@ namespace CLI
 	  SendEnd();
   }
 
+  void InterfaceMenu::PrintDutycycle(const std::string &args)
+  {
+	  uint32_t *rising_edges = dut.GetDutycycleRisingEdges();
+	  uint32_t num_rising_edges = dut.GetNumDutycycleRisingEdges();
+	  uint32_t *falling_edges = dut.GetDutycycleFallingEdges();
+	  uint32_t num_falling_edges = dut.GetNumDutycycleFallingEdges();
+
+	  // std::string time_str;
+	  char time_str[20];
+
+	  SendString("Duty cycle start times (s)");
+	  SendEndLine();
+	  for(uint32_t i=0; i<num_rising_edges; i++)
+	  {
+		  std::snprintf(time_str, 20, "%.5f, ",  double(rising_edges[i])/100000.0);
+		  SendString(time_str);
+		  // SendString(std::to_string(rising_edges[i]) + ", ");
+		  if( i+1 % 8 == 0){
+			  SendEndLine();
+		  }
+	  }
+	  SendEnd();
+  }
+
+
   void InterfaceMenu::RecordOneDetection()
   {
 	  dut.RecordDetection();
   }
+
+  void InterfaceMenu::DutycycleStart()
+  {
+	  dut.RecordDutycycleStart();
+  }
+
+  void InterfaceMenu::DutycycleStop()
+  {
+	  dut.RecordDutycycleStop();
+  }
+
 }

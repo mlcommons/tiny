@@ -28,6 +28,9 @@ void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
 	else if(GPIO_Pin == WW_DET_IN_Pin) {
 		Record_WW_Detection();
 	}
+	else if(GPIO_Pin == DUT_DUTY_CYCLE_Pin) {
+		; // Record_Dutycycle_Stop();
+	}
 }
 
 void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
@@ -35,6 +38,9 @@ void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
 	if(GPIO_Pin == uSD_DETECT_Pin)
 	{
 		tx_semaphore_ceiling_put(&card_out_semaphore, 1);
+	}
+	else if(GPIO_Pin == DUT_DUTY_CYCLE_Pin) {
+		; // Record_Dutycycle_Start();
 	}
 }
 

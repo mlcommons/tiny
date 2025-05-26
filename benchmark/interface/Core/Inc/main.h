@@ -73,8 +73,9 @@ void Error_Handler(void);
 #define SAI2_FS_A_GPIO_Port GPIOI
 #define SAI2_SCK_A_Pin GPIO_PIN_5
 #define SAI2_SCK_A_GPIO_Port GPIOI
-#define ARD_D3_Pin GPIO_PIN_5
-#define ARD_D3_GPIO_Port GPIOB
+#define DUT_DUTY_CYCLE_Pin GPIO_PIN_5
+#define DUT_DUTY_CYCLE_GPIO_Port GPIOB
+#define DUT_DUTY_CYCLE_EXTI_IRQn EXTI5_IRQn
 #define WW_DET_IN_Pin GPIO_PIN_15
 #define WW_DET_IN_GPIO_Port GPIOG
 #define WW_DET_IN_EXTI_IRQn EXTI15_IRQn

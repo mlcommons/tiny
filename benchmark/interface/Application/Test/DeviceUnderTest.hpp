@@ -10,6 +10,7 @@
 #include "tim.h"
 
 #define MAX_TIMESTAMPS 10000
+#define MAX_FRAMES 100
 
 namespace Test
 {
@@ -40,9 +41,19 @@ namespace Test
     void SendCommand(const std::string &command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
 	void RecordDetection();
 	void ClearDetections();
+	void RecordDutycycleStart();
+	void RecordDutycycleStop();
+	void ClearDutycycleTimestamps();
 	void StartRecordingDetections();
+
 	uint32_t *GetDetections();
 	uint32_t GetNumDetections();
+
+	uint32_t GetNumDutycycleRisingEdges();
+	uint32_t *GetDutycycleRisingEdges();
+	uint32_t GetNumDutycycleFallingEdges();
+	uint32_t *GetDutycycleFallingEdges();
+
 
   private:
     friend class SendCommandTask;
@@ -52,6 +63,13 @@ namespace Test
     void IndirectSendCommand(const std::string &command, TX_QUEUE *queue = (TX_QUEUE *) TX_NULL);
 	uint32_t wwdet_timestamps[MAX_TIMESTAMPS] = {0};
 	uint32_t wwdet_timestamp_idx = 0;
+
+	uint32_t procstart_timestamps[MAX_FRAMES] = {0};
+	uint32_t procstart_timestamps_idx = 0;
+
+	uint32_t procstop_timestamps[MAX_FRAMES] = {0};
+	uint32_t procstop_timestamps_idx = 0;
+
   };
 }
 

@@ -34,7 +34,8 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
 
   DeviceUnderTest::DeviceUnderTest(Tasks::TaskRunner &runner, IO::Uart *uart) : runner(runner), uart(*uart), wwdet_timestamp_idx(0)
   {
-
+//	  procstart_timestamps = (uint32_t *)malloc(MAX_FRAMES*sizeof(uint32_t));
+//	  procstop_timestamps  = (uint32_t *)malloc(MAX_FRAMES*sizeof(uint32_t));
   }
 
   void DeviceUnderTest::SendCommand(const std::string &command, TX_QUEUE *queue)
@@ -65,7 +66,7 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
   void DeviceUnderTest::RecordDetection()
   {
 	  // This function is called from the WW_DET_IN falling edge ISR
-	  uint32_t current_time_ms = __HAL_TIM_GET_COUNTER(&htim2);
+	  uint32_t current_time_ms = __HAL_TIM_GET_COUNTER(&htim2) / 100; // tim2 has 10us period
 
 	  // don't record two detections within 10ms and
 	  // don't overrun the end of the allocated array
@@ -76,6 +77,32 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
 		  wwdet_timestamps[wwdet_timestamp_idx++] = current_time_ms;
 	  }
   }
+
+  void DeviceUnderTest::RecordDutycycleStart()
+  {
+	  // This function is called from the DUT_DUTY_CYCLE rising edge ISR
+	  uint32_t current_time_10us = __HAL_TIM_GET_COUNTER(&htim2);
+
+	  // don't overrun the end of the allocated array
+	  if( procstart_timestamps_idx < MAX_FRAMES )
+	  {
+		  procstart_timestamps[procstart_timestamps_idx++] = current_time_10us;
+	  }
+  }
+
+  void DeviceUnderTest::RecordDutycycleStop()
+  {
+	  // This function is called from the DUT_DUTY_CYCLE falling edge ISR
+	  uint32_t current_time_10us = __HAL_TIM_GET_COUNTER(&htim2);
+
+	  // don't overrun the end of the allocated array
+	  if( procstop_timestamps_idx < MAX_FRAMES )
+	  {
+		  procstop_timestamps[procstop_timestamps_idx++] = current_time_10us;
+	  }
+  }
+
+
   uint32_t *DeviceUnderTest::GetDetections()
   {
 	  return wwdet_timestamps;
@@ -92,9 +119,39 @@ class SendCommandTask : public Tasks::IIndirectTask<DeviceUnderTest>
 	wwdet_timestamp_idx = 0;
   }
 
+  void DeviceUnderTest::ClearDutycycleTimestamps()
+  {
+	std::memset(procstart_timestamps, 0, sizeof(procstart_timestamps));
+	procstart_timestamps_idx = 0;
+
+	std::memset(procstop_timestamps, 0, sizeof(procstop_timestamps));
+	procstop_timestamps_idx = 0;
+  }
+
+  uint32_t DeviceUnderTest::GetNumDutycycleRisingEdges()
+  {
+  	  return procstart_timestamps_idx;
+  }
+  uint32_t *DeviceUnderTest::GetDutycycleRisingEdges()
+  {
+  	  return procstart_timestamps;
+  }
+
+  uint32_t DeviceUnderTest::GetNumDutycycleFallingEdges()
+  {
+  	  return procstop_timestamps_idx;
+  }
+
+  uint32_t *DeviceUnderTest::GetDutycycleFallingEdges()
+  {
+  	  return procstop_timestamps;
+  }
+
+
   void DeviceUnderTest::StartRecordingDetections()
   {
 	ClearDetections();
+	ClearDutycycleTimestamps();
 	dut_state=RecordingDetections;
   }
 
