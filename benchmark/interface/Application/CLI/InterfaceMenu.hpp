@@ -35,6 +35,7 @@ namespace CLI
     static void PrintDetsWrapper(const std::string &args);
     static void PrintDutycycleWrapper(const std::string &args);
     static void DefaultWrapper(const std::string &args);
+    static bool InstanceInitialized();
 
     // Declarations for SetBaud and CheckBaud
     void SetBaud(const std::string &args);

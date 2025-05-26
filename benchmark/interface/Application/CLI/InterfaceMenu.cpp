@@ -25,11 +25,19 @@ void Record_WW_Detection()
 
 void Record_Dutycycle_Start()
 {
-  CLI::InterfaceMenu::GetSingleton().DutycycleStart();
+	if( CLI::InterfaceMenu::InstanceInitialized() )
+	{
+		// only call this if the CLI instance is initialized
+		CLI::InterfaceMenu::GetSingleton().DutycycleStart();
+	}
 }
 void Record_Dutycycle_Stop()
 {
-  CLI::InterfaceMenu::GetSingleton().DutycycleStop();
+	if( CLI::InterfaceMenu::InstanceInitialized() )
+	{
+		// only call this if the CLI instance is initialized
+		CLI::InterfaceMenu::GetSingleton().DutycycleStop();
+	}
 }
 
 
@@ -51,6 +59,15 @@ namespace CLI
 														{"print_detections", PrintDetsWrapper},
 														{"print_dutycycle", PrintDutycycleWrapper},
                                                         {"", DefaultWrapper} };
+
+  bool InterfaceMenu::InstanceInitialized()
+  {
+	  if( instance )
+		  return true;
+	  else
+		  return false;
+  }
+
 
   /**
    * Wrap the singleton function in a static function
@@ -292,17 +309,22 @@ namespace CLI
 	  uint32_t *falling_edges = dut.GetDutycycleFallingEdges();
 	  uint32_t num_falling_edges = dut.GetNumDutycycleFallingEdges();
 
-	  // std::string time_str;
-	  char time_str[20];
-
 	  SendString("Duty cycle start times (s)");
 	  SendEndLine();
 	  for(uint32_t i=0; i<num_rising_edges; i++)
 	  {
-		  std::snprintf(time_str, 20, "%.5f, ",  double(rising_edges[i])/100000.0);
-		  SendString(time_str);
-		  // SendString(std::to_string(rising_edges[i]) + ", ");
-		  if( i+1 % 8 == 0){
+		  SendString(std::to_string(rising_edges[i]) + ", ");
+		  if( (i+1) % 8 == 0){
+			  SendEndLine();
+		  }
+	  }
+	  SendEndLine();
+	  SendString("Duty cycle stop times (s)");
+	  SendEndLine();
+	  for(uint32_t i=0; i<num_falling_edges; i++)
+	  {
+		  SendString(std::to_string(falling_edges[i]) + ", ");
+		  if( (i+1) % 8 == 0){
 			  SendEndLine();
 		  }
 	  }
