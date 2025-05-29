@@ -93,6 +93,12 @@ class _ScriptDownloadStep(_ScriptStep):
                 self._segments.append(data[start:end])
                 start = start + stride  # Move start by stride to create overlap
                 self.total_length = len(self._segments)
+            if mode in ['p', 'e']:
+                # performance and energy mode use only the 1st segment.  Only accuracy
+                # uses all the segments. It might be marginally faster to conditionally skip
+                #  the segment[] construction, but this is easy.
+                self._segments = self._segments[:1]
+                self.total_length = 1
             self._current_segment_index = 0
             
         # Conditional print statements based on 'mode'
@@ -413,7 +419,7 @@ class Script:
                                 result.update(res=r)
                             else:
                                 result.extend(r)
-        elif dut != None:  # Accuracy mode
+        elif dut != None:  # Accuracy or performance mode
             with dut:
                 for cmd in self._commands:
                     r = cmd.run(io, dut, dataset, mode)
