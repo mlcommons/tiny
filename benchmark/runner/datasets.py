@@ -17,6 +17,10 @@ class DataSet:
         reader = csv.DictReader(file, fieldnames=["file", "classes", "class", "bytes_to_send","stride"])
         self._truth_data = [f for f in reader]
 
+  def get_num_files(self):
+    self._read_truth_file()
+    return len(self._truth_data)
+
   def get_file_by_index(self, index):
     self._read_truth_file()
     data = []

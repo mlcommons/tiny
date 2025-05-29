@@ -132,6 +132,9 @@ class _ScriptLoopStep(_ScriptStep):
         result = None if self._loop_count == 1 else []
         start_time = time.time() if mode == "p" else None
 
+        if self._loop_count is None or self._loop_count < 0:
+            self._loop_count = dataset.get_num_files()
+            print(f"No loop count specified.  Using full set ({self._loop_count} test files)")
         while (self._loop_count is None or i < self._loop_count):
             loop_res = {}
             with watchdog_lock:
@@ -145,7 +148,7 @@ class _ScriptLoopStep(_ScriptStep):
                     loop_res.update(**r)
             if self.model == "ad01":
                 total_length = loop_res.get('total_length', None)
-                if total_length is not None and i == 0:
+                if total_length is not None and self._loop_count is not None and i == 0:
                     self._loop_count *= total_length
             global_loop_count = self._loop_count  # Store in global variable
             i += 1
