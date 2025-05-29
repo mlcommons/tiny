@@ -10,7 +10,7 @@ from datasets import DataSet, StreamingDataSet
 
 from device_manager import DeviceManager
 from device_under_test import DUT
-from script import Script
+from script import Script, log_filename
 import streaming_ww_utils as sww_util
 from baud_utils import get_baud_rate
 
@@ -416,5 +416,6 @@ if __name__ == '__main__':
     else:
         summarize_result(result, power, mode=config["mode"])  # Remove mode parameter
 
+    print(f"Session logged in file {log_filename}")
     with open('perf_result.json', 'w') as fpo:
         json.dump(result, fpo)
