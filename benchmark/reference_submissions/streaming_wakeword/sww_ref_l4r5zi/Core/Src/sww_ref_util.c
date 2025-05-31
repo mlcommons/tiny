@@ -48,7 +48,7 @@ int16_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buf
 int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 int8_t *g_model_input;
-
+int g_buffer_alloc_success=0;
 
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
 uint32_t g_i2s_wav_len = 24*2048;
@@ -68,10 +68,18 @@ void setup_i2s_buffers() {
 	g_i2s_buffer0 = (int16_t *)malloc(g_i2s_chunk_size_bytes);
 	g_i2s_buffer1 = (int16_t *)malloc(g_i2s_chunk_size_bytes);
 	g_i2s_current_buff = g_i2s_buffer0;
-	g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
+
 	g_wav_block_buff =(int16_t *)malloc(SWW_WINLEN_SAMPLES * sizeof(int16_t));
 	g_model_input = (int8_t *)malloc(SWW_MODEL_INPUT_SIZE * sizeof(int8_t));
-	g_act_buff = (int8_t *)malloc(ACT_BUFF_LEN * sizeof(int8_t));
+	//g_act_buff = (int8_t *)malloc(ACT_BUFF_LEN * sizeof(int8_t));
+
+	if (!g_i2s_buffer0 || !g_i2s_buffer1 || !g_wav_block_buff || !g_model_input){
+		g_buffer_alloc_success = 0;
+		printf("Buffer allocation failed.");
+	}
+	else {
+		g_buffer_alloc_success = 1;
+	}
 
 }
 
@@ -479,11 +487,15 @@ void stop_detection(char *cmd_args[]) {
 
 		printf("target activations: \r\n");
 		print_vals_int8(g_act_buff, g_act_idx); // jhdbg
+		free(g_act_buff);
+		g_act_buff = NULL;
 		break;
 	case FileCapture:
 		g_i2s_state = Stopping;
 		g_i2s_status = HAL_SAI_DMAStop(&hsai_BlockA1);
 		g_i2s_state = Idle;
+		free(g_wav_record);
+		g_wav_record = NULL;
 		printf("Wav capture stopped.\r\n");
 		break;
 	case Idle:
@@ -504,6 +516,11 @@ void start_detection(char *cmd_args[]) {
 	}
 	else {
 		 g_i2s_state = Streaming;
+
+		 g_act_buff = (int8_t *)malloc(ACT_BUFF_LEN * sizeof(int8_t));
+		 if( !g_act_buff ) {
+			 printf("WARNING:  Activation buffer malloc failed.  Activation logging will not work.\r\n");
+		 }
 		 g_int16s_read = 0; // jhdbg -- only needed when we're capturing the waveform in addition to detecting
 		 g_first_frame = 1; // on the first frame of a recording we pulse the detection GPIO to synchronize timing.
 
@@ -536,6 +553,10 @@ void i2s_capture(char *cmd_args[]) {
 	else {
 		 g_i2s_state = FileCapture;
 		 g_int16s_read = 0;
+		 g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
+		 if( !g_wav_record ) {
+			 printf("WARNING: Recording buffer malloc failed. I2S Capture will not work.\r\n");
+		 }
 		 printf("Listening for I2S data ... \r\n");
 		 memset(g_wav_record, 0xFF, g_i2s_wav_len*2); // *2 b/c wav_len is int16s
 		 // these memsets are not really needed, but they make it easier to tell
@@ -773,6 +794,8 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
     if( reading_complete ){
     	printf("DMA Receive completed %lu int16s read out of %lu requested\r\n", g_int16s_read, g_i2s_wav_len);
     	print_vals_int16(g_wav_record, g_int16s_read);
+    	free(g_wav_record);
+    	g_wav_record = NULL;
     	g_i2s_state = Idle;
     }
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
@@ -861,7 +884,6 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
-
 
 	set_processing_pin_high(); // start of processing, used for duty cycle measurement
 
