@@ -46,8 +46,13 @@ int16_t *g_i2s_buffer0 = NULL;
 int16_t *g_i2s_buffer1 = NULL;
 int16_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buffer1
 int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
+uint8_t *g_gp_buffer = NULL; // general-purpose buffer; for capturing a waveform or activations.
+uint32_t g_gp_buff_bytes = 40*1024;
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
+int8_t *g_act_buff = NULL; // jhdbg
 int8_t *g_model_input;
+
+
 int g_buffer_alloc_success=0;
 
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
@@ -59,7 +64,7 @@ int16_t *g_wav_block_buff = NULL; // hold most recent SWW_WINLEN_SAMPLES for fea
 LogBuffer g_log = { .buffer = {0}, .current_pos = 0 };
 i2s_state_t g_i2s_state = Idle;
 
-int8_t *g_act_buff = NULL; // jhdbg
+
 uint32_t g_act_idx = 0;
 #define ACT_BUFF_LEN 40000
 
@@ -71,16 +76,19 @@ void setup_i2s_buffers() {
 
 	g_wav_block_buff =(int16_t *)malloc(SWW_WINLEN_SAMPLES * sizeof(int16_t));
 	g_model_input = (int8_t *)malloc(SWW_MODEL_INPUT_SIZE * sizeof(int8_t));
-	//g_act_buff = (int8_t *)malloc(ACT_BUFF_LEN * sizeof(int8_t));
+
+	g_gp_buffer = malloc(g_gp_buff_bytes);
 
 	if (!g_i2s_buffer0 || !g_i2s_buffer1 || !g_wav_block_buff || !g_model_input){
 		g_buffer_alloc_success = 0;
-		printf("Buffer allocation failed.");
+		printf("ERROR: Buffer allocation failed.  Many operationw will fail.\r\n");
 	}
 	else {
 		g_buffer_alloc_success = 1;
 	}
-
+	if( !g_gp_buff_bytes) {
+		printf("WARNING: general-purpose buffer allocation failed.  Wav and activation capture will fail.\r\n");
+	}
 }
 
 void delay_us(int delay_len_us) {
@@ -487,7 +495,6 @@ void stop_detection(char *cmd_args[]) {
 
 		printf("target activations: \r\n");
 		print_vals_int8(g_act_buff, g_act_idx); // jhdbg
-		free(g_act_buff);
 		g_act_buff = NULL;
 		break;
 	case FileCapture:
@@ -517,14 +524,14 @@ void start_detection(char *cmd_args[]) {
 	else {
 		 g_i2s_state = Streaming;
 
-		 g_act_buff = (int8_t *)malloc(ACT_BUFF_LEN * sizeof(int8_t));
+		 g_act_buff = (int8_t *)g_gp_buffer;
 		 if( !g_act_buff ) {
 			 printf("WARNING:  Activation buffer malloc failed.  Activation logging will not work.\r\n");
 		 }
 		 g_int16s_read = 0; // jhdbg -- only needed when we're capturing the waveform in addition to detecting
 		 g_first_frame = 1; // on the first frame of a recording we pulse the detection GPIO to synchronize timing.
 
-		 memset(g_act_buff, 0, ACT_BUFF_LEN); // jhdbg
+		 memset(g_act_buff, 0, g_gp_buff_bytes);
 		 g_act_idx = 0;
 
 		 printf("Listening for I2S data ... \r\n");
@@ -553,12 +560,12 @@ void i2s_capture(char *cmd_args[]) {
 	else {
 		 g_i2s_state = FileCapture;
 		 g_int16s_read = 0;
-		 g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
+		 g_wav_record = (int16_t *)g_gp_buffer; // g_gp_buff_bytes bytes
 		 if( !g_wav_record ) {
-			 printf("WARNING: Recording buffer malloc failed. I2S Capture will not work.\r\n");
+			 printf("WARNING: Recording buffer has no allocated memory. I2S Capture will fail.\r\n");
 		 }
 		 printf("Listening for I2S data ... \r\n");
-		 memset(g_wav_record, 0xFF, g_i2s_wav_len*2); // *2 b/c wav_len is int16s
+		 memset(g_wav_record, 0, g_gp_buff_bytes); // *2 b/c wav_len is int16s
 		 // these memsets are not really needed, but they make it easier to tell
 		 // if the write never happened.
 		 memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
@@ -794,7 +801,6 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
     if( reading_complete ){
     	printf("DMA Receive completed %lu int16s read out of %lu requested\r\n", g_int16s_read, g_i2s_wav_len);
     	print_vals_int16(g_wav_record, g_int16s_read);
-    	free(g_wav_record);
     	g_wav_record = NULL;
     	g_i2s_state = Idle;
     }
@@ -934,9 +940,8 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_SET);
 	    g_first_frame = 0;
 	}
-	//    log_printf(&g_log, "%d, \r\n", out_data[0]);
 
-    if ( g_act_idx < ACT_BUFF_LEN) { // jhdbg
+    if ( g_act_idx < (g_gp_buff_bytes/sizeof(g_act_buff[0])) ) {
     	g_act_buff[g_act_idx++] = out_data[0];
     }
 
