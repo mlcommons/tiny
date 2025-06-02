@@ -47,16 +47,15 @@ int16_t *g_i2s_buffer1 = NULL;
 int16_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buffer1
 int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
 uint8_t *g_gp_buffer = NULL; // general-purpose buffer; for capturing a waveform or activations.
-uint32_t g_gp_buff_bytes = 40*1024;
+uint32_t g_gp_buff_bytes = 64000;
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
 int8_t *g_act_buff = NULL; // jhdbg
 int8_t *g_model_input;
 
-
 int g_buffer_alloc_success=0;
 
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
-uint32_t g_i2s_wav_len = 24*2048;
+uint32_t g_i2s_wav_len = 0;
 uint32_t g_first_frame = 1;
 
 
@@ -556,26 +555,39 @@ void start_detection(char *cmd_args[]) {
 void i2s_capture(char *cmd_args[]) {
 	if(g_i2s_state != Idle ) {
 		 printf("I2S Rx currently in progress. Ignoring request\r\n");
+		 return;
+	}
+
+	if (cmd_args[1]) {
+		g_i2s_wav_len = atoi(cmd_args[1]);
+		if( g_i2s_wav_len > g_gp_buff_bytes/2) {
+			printf("Requested length %lu exceeds available memory. Capturing %lu samples\r\n",
+					g_i2s_wav_len, g_gp_buff_bytes/2);
+			g_i2s_wav_len = g_gp_buff_bytes/4;
+		}
 	}
 	else {
-		 g_i2s_state = FileCapture;
-		 g_int16s_read = 0;
-		 g_wav_record = (int16_t *)g_gp_buffer; // g_gp_buff_bytes bytes
-		 if( !g_wav_record ) {
-			 printf("WARNING: Recording buffer has no allocated memory. I2S Capture will fail.\r\n");
-		 }
-		 printf("Listening for I2S data ... \r\n");
-		 memset(g_wav_record, 0, g_gp_buff_bytes); // *2 b/c wav_len is int16s
-		 // these memsets are not really needed, but they make it easier to tell
-		 // if the write never happened.
-		 memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
-		 memset(g_i2s_buffer1, 0xFF, g_i2s_chunk_size_bytes);
-
-		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
-		 // you can also check hsai->State
-		 printf("DMA receive initiated. status=%lu, state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
-		 printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
+		g_i2s_wav_len = g_gp_buff_bytes/2; // 2 bytes/sample
+		printf("No length specified.  Capturing %lu samples\r\n", g_i2s_wav_len);
 	}
+
+	g_i2s_state = FileCapture;
+	g_int16s_read = 0;
+	g_wav_record = (int16_t *)g_gp_buffer; // g_gp_buff_bytes bytes
+	if( !g_wav_record ) {
+		printf("WARNING: Recording buffer has no allocated memory. I2S Capture will fail.\r\n");
+	}
+	printf("Listening for I2S data ... \r\n");
+	memset(g_wav_record, 0, g_gp_buff_bytes); // *2 b/c wav_len is int16s
+	// these memsets are not really needed, but they make it easier to tell
+	// if the write never happened.
+	memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
+	memset(g_i2s_buffer1, 0xFF, g_i2s_chunk_size_bytes);
+
+	g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
+	// you can also check hsai->State
+	printf("DMA receive initiated. status=%lu, state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
+	printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
 }
 
 void print_help(char *cmd_args[]) {
