@@ -128,8 +128,10 @@ class _ScriptLoopStep(_ScriptStep):
 
     def run(self, io, dut, dataset, mode):
         global global_loop_count
+        # some logic is different for the streaming ww test
+        is_streaming_test = any([isinstance(c, _ScriptStreamStep) for c in self._commands])
         i = 0
-        result = None if self._loop_count == 1 else []
+        result = []
         start_time = time.time() if mode == "p" else None
 
         if self._loop_count is None or self._loop_count < 0:
@@ -152,13 +154,12 @@ class _ScriptLoopStep(_ScriptStep):
                     self._loop_count *= total_length
             global_loop_count = self._loop_count  # Store in global variable
             i += 1
-            if self._loop_count != 1:
-                result.append(loop_res)
-            else:
-                result = loop_res
+            
+            result.append(loop_res)
+            
         if mode == "p":
             # Error 1: Loop count not exactly 5
-            if self._loop_count != 5:
+            if self._loop_count != 5 and not is_streaming_test:
                 result.append({"error": "error 1"})
 
             # Error 2: Loop finished before 10 seconds
@@ -309,21 +310,31 @@ class _ScriptStreamStep(_ScriptStep):
         # not sure why this is needed, but apparently the DUT is still occupied with the 
         # detection task, because w/o this sleep the next DUT command times out.
         time.sleep(0.25)
-        dut.stop_detecting()  # DUT stops processing audio and toggles D7 to end power measurement
+        detection_info = dut.stop_detecting()  # DUT stops processing audio and toggles D7 to end power measurement
         print(" ... done")
+        try:
+            activations = sww_util.array_from_strings(detection_info, 'target activations:', end_str='m-ready')
+        except ValueError as e:
+            if re.match(r"expected but not found\.", s):
+                print("No activation data found.")
+                activations = []
+
         
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
         detected_timestamps = sww_util.process_timestamps(detected_timestamps)
 
-        dutycycle_timestamps = io.print_dutycycle()
-        print(dutycycle_timestamps)
-
+        dutycycle_response = io.print_dutycycle()
+        dutycycle_info = sww_util.process_dutycycle(dutycycle_response)
+        
         infer_results = {}
         infer_results.update(file_truth)        
         infer_results["detections"] = detected_timestamps
         infer_results["iterations"] = 1 # always 1, but keep for consistency w/ other tests
         infer_results["warmups"] = 0 # same but 0
-        result = dict(infer=infer_results)
+        result = dict(infer=infer_results, 
+                      dutycycle=dutycycle_info,
+                      activations=activations
+                      )
 
         if mode == "e":
             timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
@@ -336,7 +347,7 @@ class _ScriptStreamStep(_ScriptStep):
                                      timestamps=timestamps,
                                      extracted_power=power_values
                                     )
-                         )        
+                         )
         return result
 
 class _WatchdogStep(_ScriptStep):

@@ -112,8 +112,8 @@ class DUT:
 
   def stop_detecting(self):
     command = f"stop"
-    self._port.send_command(command)
-    return    
+    response = self._port.send_command(command)
+    return response
 
   def print_detections(self):
     command = f"print_detections"

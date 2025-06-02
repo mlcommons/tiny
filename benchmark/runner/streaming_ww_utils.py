@@ -1,5 +1,49 @@
 import numpy as np
+import re
 
+
+def array_from_strings(raw_info, header_str, end_str='m-ready', data_type=None):
+
+    ## Combine the strings into one long string then split bracketed substrings
+    raw_info = ''.join(raw_info)
+    pattern = re.escape(header_str) + r'\s*(\[.*?\])\s*' + re.escape(end_str)
+    match = re.search(pattern, raw_info, re.DOTALL)
+    if not match:
+        raise ValueError(f"Start ({header_str}) or end marker  ({end_str}) expected but not found.")
+    raw_info = match.group(1)
+    
+    # split the long string into substrings based on brackets [].
+    bracket_matches = re.findall(r'\[([^\]]+)\]', raw_info)
+    array_strings = bracket_matches if bracket_matches else [raw_info]
+
+
+    ## Figure out what data type is requested
+    if data_type is None: # guess based on first value
+        first_value = array_strings[0].split(',')[0]    
+        if '.' in first_value or 'e' in first_value:
+            data_type = converter = float
+        else:
+            data_type = converter = int
+    elif data_type in [int, float]:
+        converter = data_type
+    elif isinstance(data_type, np.dtype):
+        if np.issubdtype(dtype, np.integer):
+            converter = int
+        else:
+            converter = float
+    else:
+        raise ValueError(f"data_type is {data_type}. Must be either None, int, float, or a numpy dtype")
+  
+
+    ## Now extract the data
+    number_lists = []
+    for s in array_strings:
+        number_lists.append([converter(val) for val in s.split(',')])
+    
+    if len(number_lists) == 1:
+        number_lists = number_lists[0] # only 1 array, don't make it 2D
+
+    return number_lists
 
 def process_timestamps(raw_result):
     if raw_result[0] != 'Detection Timestamps (ms)':
@@ -13,6 +57,61 @@ def process_timestamps(raw_result):
         raise ValueError("One or more values in the list cannot be converted to an integer")
     print(timestamps)
     return timestamps # leave as list so we can dump to json later
+
+
+def process_dutycycle(raw_result):
+    if raw_result[0].find('Duty cycle start times (s)') < 0:
+        raise ValueError(f"Duty cycle response must start with 'Duty cycle start times (s)'. First element is {raw_result[0]}")
+    if raw_result[-1].find('m-ready') < 0:
+        raise ValueError(f"List must end with 'm-ready'. Last element is {raw_result[-1]}")
+
+    proc_start_times = []
+    proc_stop_times = []
+
+    target_list = proc_start_times
+    # start populating proc_start_times, until we see stop-times message, then populate proc_stop_times
+    endstr_found = False
+    for i,line in enumerate(raw_result[1:]):
+        if endstr_found:
+            print(f"Warning: Duty cycle response continues beyond 'm-ready'.  Ignoring extra content")
+            break
+        if line.find('Duty cycle stop times (s)') >= 0:
+            # end of start-times, beginning of stop-times.
+            target_list = proc_stop_times
+            continue
+        if line.find('m-ready') > 0:
+            line = line.replace('m-ready', '')
+            endstr_found = True
+            
+        target_list += [int(numstr) for numstr in line.strip().split(',') if numstr]
+        
+    proc_start_times = np.array(proc_start_times)*10e-6
+    proc_stop_times = np.array(proc_stop_times)*10e-6
+
+    if len(proc_stop_times) != len(proc_start_times):
+        err_str  = f"Number of start times ({len(proc_start_times)}) and number of "
+        err_str += f"stop times ({len(proc_stop_times)}) should be equal"
+        raise RuntimeError(err_str)
+    on_times = proc_stop_times - proc_start_times
+    periods = np.diff(proc_start_times)
+    periods_fractional_var = (np.max(periods) - np.min(periods))/np.mean(periods)
+    if periods_fractional_var > 0.02: # > 2% variation
+        print(f"WARNING: Frame period variation exceeds 2%.", 
+              f"Min period = {np.min(periods*1e3):.3f} ms. ", 
+              f"Max period = {np.max(periods*1e3):.3f} ms")
+    avg_period = np.mean(periods)
+    avg_on_time = np.mean(on_times)
+    avg_duty_cycle = avg_on_time / avg_period
+
+    results = {'duty_cycle':avg_duty_cycle, 
+               'period':avg_period,
+               'processing_time':avg_on_time,
+               'start_times_s':list(proc_start_times),
+               'stop_times_s':list(proc_stop_times)
+              }
+
+    print(f"Duty cycle = {avg_duty_cycle:.3f}, Period = {avg_period*1e3:.3} ms")
+    return results    
 
 def calc_detection_stats(measured_timestamps_ms, true_det_windows,
                          false_pos_suppresion_delay_sec=1.0,
