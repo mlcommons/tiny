@@ -53,7 +53,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     manager = DeviceManager(devices_config, desired_baud, mode)
     manager.scan()
     
-    if not any([d['type'] == 'interface' for d in manager.scan()]) and not any([d['type'] == 'dut' for d in manager.scan()]):
+    if not any([d['type'] == 'interface' for d in manager.values()]) and not any([d['type'] == 'dut' for d in manager.values()]):
        raise RuntimeError("No interface or DUT detected. One must be present to run test")
 
     power = manager.get("power", {}).get("instance")

@@ -17,7 +17,7 @@ class SerialDevice:
     self._timeout = 5.0
     self.full_debug = False
     self._entry_count = 0
-    self.reset_port()
+    # self.reset_port()
 
   def __enter__(self):
     print(f"SerialDevice entering port {self._port.port}, entry_count (before increment) = {self._entry_count}")
