@@ -1,6 +1,3 @@
-export LC_CTYPE=C
-export LANG=C
-
 # define TensorFlow version as git branch/tag/hash
 TF_VERSION=v2.3.1
 
@@ -32,8 +29,8 @@ else
     wget https://github.com/tensorflow/tensorflow/archive/$TF_VERSION.zip
     unzip -o $TF_VERSION.zip
     pushd tensorflow-*	# we can't use TF_VERSION here, as github seems not to be consistent with naming (v2.3.1 vs 2.3.1) 
-    gmake -f tensorflow/lite/micro/tools/make/Makefile TAGS=$TF_MAKE_TAGS third_party_downloads
-    gmake -f tensorflow/lite/micro/tools/make/Makefile TAGS=$TF_MAKE_TAGS generate_hello_world_mbed_project -j18
+    make -f tensorflow/lite/micro/tools/make/Makefile TAGS=$TF_MAKE_TAGS third_party_downloads
+    make -f tensorflow/lite/micro/tools/make/Makefile TAGS=$TF_MAKE_TAGS generate_hello_world_mbed_project -j18
     mv -n tensorflow/lite/micro/tools/make/gen/*/prj/hello_world/mbed/* ../
     popd
     rm -rf tensorflow-*
