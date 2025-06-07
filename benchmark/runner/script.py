@@ -16,8 +16,9 @@ import streaming_ww_utils as sww_util
 watchdog_flag = {"timeout": False}
 watchdog_lock = threading.Lock()
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-os.makedirs("logs", exist_ok=True)
-log_filename = os.path.join("logs", f"{current_time}.log")
+os.makedirs("sessions", exist_ok=True)
+os.makedirs(os.path.join("sessions", current_time), exist_ok=True)
+log_filename = os.path.join("sessions", current_time, "log.txt")
 
 # Setup logging to file and console with NO extra formatting
 logging.basicConfig(
@@ -315,7 +316,7 @@ class _ScriptStreamStep(_ScriptStep):
         try:
             activations = sww_util.array_from_strings(detection_info, 'target activations:', end_str='m-ready')
         except ValueError as e:
-            if re.match(r"expected but not found\.", s):
+            if re.match(r"expected but not found\.", e):
                 print("No activation data found.")
                 activations = []
 

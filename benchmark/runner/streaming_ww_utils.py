@@ -1,6 +1,8 @@
 import numpy as np
 import re
 
+from runner_utils import print_tee
+
 
 def array_from_strings(raw_info, header_str, end_str='m-ready', data_type=None):
 
@@ -170,17 +172,15 @@ def replace_env_vars(str_in, env_dict=None):
             raise ValueError(f"Environment variable {env_var_name} not found")
             
     return new_str
-
-
-
-def summarize_sww_result(results_list, power):  # Pass power to summarize_result
+ 
+def summarize_sww_result(results_list, power, results_file=None):
     for res in results_list:
         inf_res = res["infer"]
         true_pos_sec, false_neg_sec, false_pos_sec = calc_detection_stats(
             inf_res["detections"], inf_res["detection_windows"])
         print(f"== File {inf_res['wav_file']} ({inf_res['length_sec']:2.1f} s) == ")
         with np.printoptions(precision=3):
-            print(f"    True Positives: {true_pos_sec}")
-            print(f"    False negatives: {false_neg_sec}")
-            print(f"    False Positives: {false_pos_sec}")
-            print(f"{len(true_pos_sec)} True Positives, {len(false_neg_sec)} False negatives, {len(false_pos_sec)} False Positives")
+            print_tee(f"    True positives: {true_pos_sec}", outfile=results_file)
+            print_tee(f"    False negatives: {false_neg_sec}", outfile=results_file)
+            print_tee(f"    False positives: {false_pos_sec}", outfile=results_file)
+            print_tee(f"{len(true_pos_sec)} True positives, {len(false_neg_sec)} False negatives, {len(false_pos_sec)} False positives", outfile=results_file)

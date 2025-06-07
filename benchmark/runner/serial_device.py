@@ -2,7 +2,7 @@ import sys
 from queue import Empty, Queue
 from threading import Thread
 
-import serial
+import serial, time
  
 class SerialDevice:
   def __init__(self, port_device, baud_rate, end_of_response="", delimiter="\n", echo=False):
@@ -17,6 +17,7 @@ class SerialDevice:
     self._timeout = 5.0
     self.full_debug = False
     self._entry_count = 0
+    self.reset_port()
 
   def __enter__(self):
     print(f"SerialDevice entering port {self._port.port}, entry_count (before increment) = {self._entry_count}")
@@ -115,3 +116,20 @@ class SerialDevice:
     except serial.SerialException as e:
         print(f"SerialException: {e}")
         return ""  # Return an empty response instead of crashing
+    
+  def reset_port(self, timeout=5):
+    t0 = time.time()
+    self._port.reset_input_buffer()  # flush buffers on host
+    self._port.reset_output_buffer()
+    # flush any partial command in progress on DUT, don't compare txd/rxd cmd
+
+    self._port.write(self._delimiter.encode())
+    print(f"Flushing port: {self._port}")
+    while(True):
+      b0 = self._port.read(1)
+      if b0 == b'': # nothing more to read
+          break
+      else:
+         print(b0.decode(), end="")
+      if timeout is not None and time.time() - t0 > timeout:
+          break  

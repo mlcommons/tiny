@@ -1,4 +1,4 @@
-import argparse, os, time, yaml, json
+import argparse, os, time, yaml, json, io
 from datetime import datetime
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -12,7 +12,7 @@ from device_manager import DeviceManager
 from device_under_test import DUT
 from script import Script, log_filename
 import streaming_ww_utils as sww_util
-from baud_utils import get_baud_rate
+from runner_utils import get_baud_rate, print_tee
 
 """
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
@@ -52,6 +52,10 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     desired_baud = get_baud_rate("l4r5zi", mode, yaml_path="devices.yaml")
     manager = DeviceManager(devices_config, desired_baud, mode)
     manager.scan()
+    
+    if not any([d['type'] == 'interface' for d in manager.scan()]) and not any([d['type'] == 'dut' for d in manager.scan()]):
+       raise RuntimeError("No interface or DUT detected. One must be present to run test")
+
     power = manager.get("power", {}).get("instance")
     if mode == "e" and power is None:
         raise RuntimeError("ERROR: Energy mode selected but no power board was found.")
@@ -230,8 +234,14 @@ def calculate_auc(y_pred, labels, n_classes):
     roc_auc_avg = np.mean(roc_auc)
     return roc_auc_avg
 
-def print_energy_results(l_results, energy_sampling_freq=1000):
+
+def print_energy_results(l_results, energy_sampling_freq=1000, results_file=None):
     
+    if results_file:
+        results_dir = os.path.dirname(results_file)
+    else:
+        results_dir = os.getcwd()
+
     for inf_num,res in enumerate(l_results):
         plt.clf()
         energy_samples = res['power']['samples'] # assume 'output type' is set to energy
@@ -255,7 +265,7 @@ def print_energy_results(l_results, energy_sampling_freq=1000):
         for ts in ts_seconds:  
             plt.plot([ts, ts], [y_min, y_max], 'r')
             plt.grid(True)
-        plt.savefig(f"energy_inf_{inf_num:03d}.png")
+        plt.savefig(os.path.join(results_dir, f"energy_inf_{inf_num:03d}.png"))
         
         # There is sometimes some extra activity on the timestamp pin at the 
         # beginning, so take the last two
@@ -270,13 +280,16 @@ def print_energy_results(l_results, energy_sampling_freq=1000):
         num_inferences = res['infer']['iterations']
         energy_per_inf = total_inference_energy / num_inferences
         latency_per_inf = elapsed_time / num_inferences
-        print(f"{num_inferences} iterations. Elapsed time = {elapsed_time},",
-              f"total energy = {total_inference_energy}")
-        print(f"Per inference: time = {latency_per_inf}, energy = {energy_per_inf}")
-        print(f"Average Power = {1e3*energy_per_inf/latency_per_inf:5.4} mW.")
+        results_file
+        print_tee(f"{num_inferences} iterations. Elapsed time = {elapsed_time},"+
+              f"total energy = {total_inference_energy}", outfile=results_file)
+        print_tee(f"Per inference: time = {latency_per_inf}, energy = {energy_per_inf}", outfile=results_file)
+        print_tee(f"Average Power = {1e3*energy_per_inf/latency_per_inf:5.4} mW.", outfile=results_file)
+
+
 
 # Summarize results
-def summarize_result(result, power, mode):
+def summarize_result(result, power, mode, results_file=None):
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -297,9 +310,10 @@ def summarize_result(result, power, mode):
         power.power_off()
         power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
 
+    
     if mode == "e":
-        print("Power Edition Output")
-        print_energy_results(result, energy_sampling_freq=1000)
+        print_tee("Power Edition Output", outfile=results_file)
+        print_energy_results(result, energy_sampling_freq=1000, outfile=results_file)
         return
 
     for r in result:
@@ -310,7 +324,7 @@ def summarize_result(result, power, mode):
         file_name = r['file']
         true_class = int(r['class'])
         for r in result:
-            errors = r.get('error')  # ✅ Safe access
+            errors = r.get('error')  # Safe access
             if errors:
                 continue  # Skip error entries entirely here
         
@@ -330,14 +344,14 @@ def summarize_result(result, power, mode):
         has_error_1 = any(r.get("error") == "error 1" for r in result)
         has_error_2 = any(r.get("error") == "error 2" for r in result)
         if has_error_1:
-            print(f"{formatted_time}ulp-mlperf: ERROR 1 – loop_count was not exactly 5.")
+            print_tee(f"{formatted_time}ulp-mlperf: ERROR 1 – loop_count was not exactly 5.", outfile=results_file)
         elif has_error_2:
-            print(f"{formatted_time}ulp-mlperf: ERROR 2 – loop exited before 10 seconds elapsed.")
+            print_tee(f"{formatted_time}ulp-mlperf: ERROR 2 – loop exited before 10 seconds elapsed.", outfile=results_file)
         else:
             median_throughput = np.median(throughput_values)
-            print(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------")
-            print(f"{formatted_time}ulp-mlperf: Median throughput is {median_throughput:>10.3f} inf./sec.")
-            print(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------")
+            print_tee(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------", outfile=results_file)
+            print_tee(f"{formatted_time}ulp-mlperf: Median throughput is {median_throughput:>10.3f} inf./sec.", outfile=results_file)
+            print_tee(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------", outfile=results_file)
 
     else:
         for file_name, data in file_infer_results.items():
@@ -360,8 +374,8 @@ def summarize_result(result, power, mode):
         accuracy = calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
         current_time = datetime.now()
         formatted_time = current_time.strftime("%m%d.%H%M%S ") 
-        print(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}")
-        print(f"{formatted_time}ulp-mlperf: AUC = {auc:.3f}")
+        print_tee(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}", outfile=results_file)
+        print_tee(f"{formatted_time}ulp-mlperf: AUC = {auc:.3f}", outfile=results_file)
     
         
 
@@ -404,18 +418,20 @@ if __name__ == '__main__':
         result = [result]
     for r in result: 
         r["mode"] = config["mode"]
+    results_file = os.path.join(os.path.dirname(log_filename), "results.txt")
     if config['dut_config']['model'] == 'sww01':
         if power is not None:  # If power is present, turn it off.  
             # this should really be somewhere else
             power.power_off()
             power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
         if config["mode"] == "e":
-            print("Power Edition Output")
-            print_energy_results(result, energy_sampling_freq=1000)
-        sww_util.summarize_sww_result(result, power)  # Pass only power
+            print_tee("Power Edition Output", outfile=results_file)
+            print_energy_results(result, energy_sampling_freq=1000, results_file=results_file)
+        sww_util.summarize_sww_result(result, power, results_file=results_file)
     else:
-        summarize_result(result, power, mode=config["mode"])  # Remove mode parameter
+        summarize_result(result, power, mode=config["mode"], results_file=results_file)
 
     print(f"Session logged in file {log_filename}")
-    with open('perf_result.json', 'w') as fpo:
+    results_data_file = os.path.join(os.path.dirname(log_filename), "results.json")
+    with open(results_data_file, 'w') as fpo:
         json.dump(result, fpo)

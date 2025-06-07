@@ -546,6 +546,12 @@ void start_detection(char *cmd_args[]) {
 		 memset(g_wav_block_buff, 0x00, SWW_WINLEN_SAMPLES*sizeof(int16_t));
 
 		 th_timestamp(); // this timestamp will start the measurement of power
+		 set_processing_pin_low();  // end of processing, used for duty cycle measurement
+		 // pulse processing pin for 1us to align the duty cycle, energy measurements, and detections
+		 set_processing_pin_high();  // end of processing, used for duty cycle measurement
+		 delay_us(1);
+		 set_processing_pin_low();  // end of processing, used for duty cycle measurement
+
 
 		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 		 printf("DMA receive initiated.\r\n");

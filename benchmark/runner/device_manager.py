@@ -6,7 +6,7 @@ from device_under_test import DUT
 from io_manager import IOManager
 from io_manager_enhanced import IOManagerEnhanced
 from power_manager import PowerManager
-from baud_utils import get_baud_rate
+from runner_utils import get_baud_rate
 
 
 class DeviceManager:
