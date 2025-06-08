@@ -64,9 +64,6 @@ class PowerManager(SerialDevice):
     while self._running:
       line = self._port.read_line(timeout=0.250)
       if not line:
-        q = self._port._message_queue
-        if q.qsize() > 0:
-          print(f"Failed queue read with {q.unfinished_tasks} unfinished tasks, and qsize {q.qsize()}.")
         continue
       if line.startswith("TimeStamp"):
         self._data_queue.put(line)
