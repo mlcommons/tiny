@@ -362,8 +362,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
     parser.add_argument("-d", "--device_list", default="devices.yaml", help="Device definition YAML file")
     parser.add_argument("-y", "--device_yaml", required=False, help="Raw YAML to interpret as the target device")
-    parser.add_argument("-v", "--dut_voltage", required=False, help="Voltage set during test")
-    parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
     parser.add_argument("-t", "--test_script", default=None, help="File containing test scripts")
     parser.add_argument("-s", "--dataset_path", default="datasets")
     parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
