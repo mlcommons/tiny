@@ -7,11 +7,16 @@ from io_manager import IOManager
 from io_manager_enhanced import IOManagerEnhanced
 from power_manager import PowerManager
 from runner_utils import get_baud_rate
-
+# if adding a new power manager, import its class here and add 
+# it to the pwr_mgr_class_map
+from lpm01a_power_shield import lpm01a
 
 class DeviceManager:
   """Detects and identifies available devices attached to the host.
   """
+  # make names (as specified in devices.yaml) to class
+  pwr_mgr_class_map = {"lpm01a": lpm01a}
+
 
   def __init__(self, device_defs, desired_baud,mode):
     self._device_defs = device_defs
@@ -43,6 +48,7 @@ class DeviceManager:
     }
     if definition.get("baud"):
       if definition.get("type") == "dut":
+        # DUT supports different bauds for different benchmarks
         args["baud_rate"] = get_baud_rate(definition["name"], self.mode, yaml_path="devices.yaml")
       else:
         args["baud_rate"] = definition.get("baud")
@@ -57,7 +63,8 @@ class DeviceManager:
       definition["instance"] = IOManagerEnhanced(**args) if definition.get("name") == "stm32h573i-dk" \
         else IOManager(**args)
     elif definition.get("type") == "power":
-      definition["instance"] = PowerManager(**args)
+      pwr_mgr_class = DeviceManager.pwr_mgr_class_map[definition["name"]]
+      definition["instance"] = pwr_mgr_class(**args)
     elif definition.get("type") == "dut":
       definition["instance"] = DUT(**args)
 

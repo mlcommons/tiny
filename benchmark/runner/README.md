@@ -50,7 +50,7 @@ The hardware connections are illustrated here. Not all connections will be neede
 ![STM32H573I-DK Bottom Wiring](img/STM32H573I-DK-Bottom.png)
 
 The interface board runs at 3.3V, so if the DUT is running at any other supply voltage, the logic levels must be shifted.  The TXB0108, available in a [breakout board](https://www.adafruit.com/product/395) from Adafruit, support low-side voltages from 1.2V to 3.6V.
-The contents of the SD card are only required for the streaming test, but a card must be present in the interface board for it to function for any of the benchmarks.
+The contents of the SD card are only required for the streaming test, but a card must be present in the interface board for it to function for any of the benchmarks.  Ensure 
 
 ### Device Under Test (L4R5ZI)
 ![DUT Wiring](img/L4R5Zi.png)

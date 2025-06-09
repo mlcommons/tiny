@@ -3,24 +3,24 @@ import sys
 from queue import Queue
 from serial_device import SerialDevice
 from threading import Thread
+from abc import ABC, abstractmethod
+
 
 class PowerManager(SerialDevice):
-  PROMPT = "PowerShield > "
+  # device prefaces output with PROMPT. This will always be stripped out of responses
+  PROMPT = "" 
 
-  def __init__(self, port_device, baud_rate=3686400, voltage=3.3, echo=False):
-
-    port_kwargs = {"echo":echo} if echo else {}
-    self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n",  **port_kwargs)
+  def __init__(self, port_device, baud_rate=None, voltage=3.3, echo=False):
     self._voltage = voltage
     self._board_id = None
     self._version = None
-    self._lcd = [None, None]
-    self._in_prograss = False
+    self._in_progress = False
     self._data_queue = Queue()
     self._message_queue = Queue()
     self._read_thread = None
     self._running = False
-    self.__enter__()
+    # sub-classes should construct _port (SerialDevice) and any 
+    # display (e.g. _lcd in lpm01a) and call self.__enter__()
 
   def __enter__(self):
     self._port.__enter__()
@@ -33,32 +33,12 @@ class PowerManager(SerialDevice):
     self._stop_read_thread()
     self._port.__exit__(*args)
 
-  @staticmethod
+  @abstractmethod
   def extract_current_values(line):
-    pattern = r'\d{4}[-+]\d{2}'  # Matches full strings like "1221-05" or "9876+12"
-    matches = list(re.finditer(pattern, line))  # Find all matches
-
-    results = []
-
-    if matches:
-      first_match_start = matches[0].start()
-      last_match_end = matches[-1].end()
-
-    # Check for partial string **before** first match
-    if first_match_start > 0:
-      results.append("nan")
-
-    # Add extracted valid strings
-    results.extend(match.group() for match in matches)
-
-    # Check for partial string **after** last match
-    if last_match_end < len(line):
-        results.append("nan")
-    
-    for i,s in enumerate(results):
-      results[i] = s.replace("+", "e+").replace("-", "e-")
-    
-    return [float(s) for s in results]  
+    """ Must be implemented by subclass.  Takes a line of text from
+    energy monitor device and returns a list of energy samples.
+    """
+    pass
     
   def _read_loop(self):
     while self._running:
@@ -68,7 +48,7 @@ class PowerManager(SerialDevice):
       if line.startswith("TimeStamp"):
         self._data_queue.put(line)
       elif re.match("\d\d\d\d[+-]\d\d", line):
-        values = PowerManager.extract_current_values(line)
+        values = self.extract_current_values(line)
         for v in values: 
           self._data_queue.put(v)
       elif re.match(r"event (\d+) ris", line): # event markers indicate an occurence (D7 falling edge here)
@@ -198,18 +178,21 @@ class PowerManager(SerialDevice):
     out_lines = []
     while True:
       line = self._message_queue.get()
-      temp = line.replace(PowerManager.PROMPT, "").strip()
+
+      temp = line.replace(self.PROMPT, "").strip()
       if temp and command in temp and (temp.startswith('ack') or temp.startswith('error')):
         out_lines.extend(r for r in temp.replace(command, "").split(" ", 2) if r)
         break
       elif temp and not temp.startswith("ack") and not temp.startswith("error"):
         out_lines.append(temp)
+       
+      print(f"pwr mgr rxd: {line} => {temp}")
     return out_lines
 
   def _read_error_output(self):
     while True:
       line = self._message_queue.get()
-      line = line.replace(PowerManager.PROMPT, "").strip()
+      line = line.replace(self.PROMPT, "").strip()
       if line.startswith("Error detail"):
         return [line.replace("Error detail:", "").strip()]
 
@@ -217,9 +200,9 @@ class PowerManager(SerialDevice):
     while True:
       line = self._message_queue.get()
       # print(f"OUT: {line}")
-      if line == PowerManager.PROMPT:
+      if line == self.PROMPT:
         return
-      line = line.replace(PowerManager.PROMPT, "").strip()
+      line = line.replace(self.PROMPT, "").strip()
       if line:
         yield line
 
