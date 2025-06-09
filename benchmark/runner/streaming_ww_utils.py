@@ -62,7 +62,7 @@ def process_timestamps(raw_result):
 
 
 def process_dutycycle(raw_result):
-    if raw_result[0].find('Duty cycle start times (s)') < 0:
+    if raw_result[0].find('Duty cycle start times') < 0:
         raise ValueError(f"Duty cycle response must start with 'Duty cycle start times (s)'. First element is {raw_result[0]}")
     if raw_result[-1].find('m-ready') < 0:
         raise ValueError(f"List must end with 'm-ready'. Last element is {raw_result[-1]}")
@@ -184,3 +184,9 @@ def summarize_sww_result(results_list, power, results_file=None):
             print_tee(f"    False negatives: {false_neg_sec}", outfile=results_file)
             print_tee(f"    False positives: {false_pos_sec}", outfile=results_file)
             print_tee(f"{len(true_pos_sec)} True positives, {len(false_neg_sec)} False negatives, {len(false_pos_sec)} False positives", outfile=results_file)
+
+        if 'dutycycle' in res:
+            print_tee(f"    Average duty cycle: {res['dutycycle'].get('duty_cycle'):1.5}")
+            print_tee(f"    Average period: {res['dutycycle'].get('period'):1.5} s")
+        else:
+            print_tee(f"No duty cycle data recorded")

@@ -324,7 +324,7 @@ class _ScriptStreamStep(_ScriptStep):
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
         detected_timestamps = sww_util.process_timestamps(detected_timestamps)
 
-        dutycycle_response = io.print_dutycycle()
+        dutycycle_response = io.print_dutycycle() # direct the interface board to print out dutycycle timestamps
         dutycycle_info = sww_util.process_dutycycle(dutycycle_response)
         
         infer_results = {}
@@ -332,6 +332,7 @@ class _ScriptStreamStep(_ScriptStep):
         infer_results["detections"] = detected_timestamps
         infer_results["iterations"] = 1 # always 1, but keep for consistency w/ other tests
         infer_results["warmups"] = 0 # same but 0
+        
         result = dict(infer=infer_results, 
                       dutycycle=dutycycle_info,
                       activations=activations
