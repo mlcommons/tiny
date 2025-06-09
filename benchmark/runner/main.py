@@ -88,10 +88,10 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     result = script.run(io, dut, set, mode)
     if io:
         io.__exit__()
-
-
-    if 'power' in result:
-        result['power']['voltage'] = dut_config.get("voltage")
+    
+    for r in result:
+        if 'power' in r:
+            r['power']['voltage'] = power._voltage
     
     return result, power
 
