@@ -20,7 +20,7 @@ def get_baud_rate(device_name, mode=None, yaml_path="devices.yaml"):
     raise ValueError(f"No baud rate found for device: {device_name}")
 
 
-def print_tee(str_to_print, outfile=None):
+def print_tee(str_to_print, outfile=None, line_end="\n"):
     """
     prints str_to_print to the stdout and optionally also to a file
     If outfile is a string, it opens that file and writes str_to_print
@@ -29,6 +29,6 @@ def print_tee(str_to_print, outfile=None):
     print(str_to_print)
     if outfile and isinstance(outfile, str):
         with open(outfile, 'a') as fpo:
-            fpo.write(str_to_print)
+            fpo.write(str_to_print+line_end)
     elif outfile and isinstance(outfile, io.IOBase) and not outfile.closed:
-        outfile.write(str_to_print)
+        outfile.write(str_to_print+line_end)

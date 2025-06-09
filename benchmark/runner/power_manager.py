@@ -194,6 +194,7 @@ class PowerManager(SerialDevice):
     return output if result else None
 
   def _read_response(self, command):
+    # should probably add a timeout to this function
     out_lines = []
     while True:
       line = self._message_queue.get()
