@@ -1,5 +1,6 @@
 #include "InterfaceMenu.hpp"
 #include "../IDataSource.hpp"
+#include "../Audio/WaveSink.hpp"
 #include "../ResourceManager.hpp"
 #include "usart.h"
 #include "baud_config.h"
@@ -233,13 +234,27 @@ namespace CLI
    */
   void InterfaceMenu::Play(const std::string &args)
   {
+	Audio::PlayerResult result;
     IDataSource *source = file_system.OpenFile(args);
     Audio::WaveSource wav(*source);
-    std::string *msg = new std::string("Playing ");
+//    if( !wav.valid_wave ) {
+//    	std::string *msg = new std::string("Error. Not a valid wav file: ");
+//		msg->append(source->GetName());
+//		msg->append("\n");
+//		SendString(msg->c_str());
+//    }
+    std::string *msg = new std::string("Attempting to play ");
     msg->append(source->GetName());
     msg->append("\n");
     SendString(msg->c_str());
-    player.Play(wav);
+    result = player.Play(wav);
+    if( result == Audio::ERROR ) {
+    	SendString("Error playing file. Check that the file exists and is a 2-channel wav file.\n");
+    }
+    else {
+    	SendString("succeeded.\n");
+    }
+
     SendEnd();
     delete source;
   }
