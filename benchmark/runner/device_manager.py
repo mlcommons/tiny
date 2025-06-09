@@ -42,8 +42,8 @@ class DeviceManager:
       "port_device": definition.get("port")
     }
     if definition.get("baud"):
-      if definition.get("name") == "l4r5zi":
-        args["baud_rate"] = get_baud_rate("l4r5zi", self.mode, yaml_path="devices.yaml")
+      if definition.get("type") == "dut":
+        args["baud_rate"] = get_baud_rate(definition["name"], self.mode, yaml_path="devices.yaml")
       else:
         args["baud_rate"] = definition.get("baud")
     if definition.get("echo"):

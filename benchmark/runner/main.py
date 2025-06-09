@@ -49,8 +49,8 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     :param dataset_path:
     """
     
-    desired_baud = get_baud_rate("l4r5zi", mode, yaml_path="devices.yaml")
-    manager = DeviceManager(devices_config, desired_baud, mode)
+    desired_dut_baud = get_baud_rate(dut_config, mode)
+    manager = DeviceManager(devices_config, desired_dut_baud, mode)
     manager.scan()
     
     if not any([d['type'] == 'interface' for d in manager.values()]) and not any([d['type'] == 'dut' for d in manager.values()]):
@@ -70,9 +70,9 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     io = manager.get("interface", {}).get("instance")
     if io:
         io.__enter__()
-        io.sync_baud(desired_baud)
+        io.sync_baud(desired_dut_baud)
     
-    identify_dut(manager, desired_baud)
+    identify_dut(manager, desired_dut_baud)
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
     # with io:
@@ -88,7 +88,7 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     result = script.run(io, dut, set, mode)
     if io:
         io.__exit__()
-    
+
     for r in result:
         if 'power' in r:
             r['power']['voltage'] = power._voltage
