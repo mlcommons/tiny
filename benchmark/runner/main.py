@@ -107,26 +107,6 @@ def parse_device_config(device_list_file, device_yaml):
         with open(device_list_file) as dev_file:
             return yaml.load(dev_file, Loader=yaml.CLoader)
 
-
-def parse_dut_config(dut_cfg_file, dut_voltage, dut_baud):
-    """ Parse the dut configuration file and override values
-
-    :param dut: path to device config file
-    :param dut_voltage: dut voltage in mV
-    :param dut_baud: dut baud rate
-    """
-    config = {}
-    if dut_cfg_file:
-        with open(dut_cfg_file) as dut_file:
-            dut_config = yaml.load(dut_file, Loader=yaml.CLoader)
-            config.update(**dut_config)
-    if dut_voltage:
-        config.update(voltage=dut_voltage)
-    if dut_baud:
-        config.update(baud=dut_baud)
-    return config
-
-
 def parse_test_script(test_script):
     """Load the test script
 
@@ -377,13 +357,11 @@ def summarize_result(result, power, mode, results_file=None):
         print_tee(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}", outfile=results_file)
         print_tee(f"{formatted_time}ulp-mlperf: AUC = {auc:.3f}", outfile=results_file)
     
-        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
     parser.add_argument("-d", "--device_list", default="devices.yaml", help="Device definition YAML file")
     parser.add_argument("-y", "--device_yaml", required=False, help="Raw YAML to interpret as the target device")
-    parser.add_argument("-u", "--dut_config", required=False, help="Target device")
     parser.add_argument("-v", "--dut_voltage", required=False, help="Voltage set during test")
     parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
     parser.add_argument("-t", "--test_script", default=None, help="File containing test scripts")
