@@ -1,4 +1,25 @@
 [[_TOC_]]
+
+## General Operation
+The runner software in this directory coordinates the running of the MLPerf Tiny benchmarks.  It communicates with the DUT, either directly or through the interface board, as well as with the power monitoring device (e.g. LPM01a, optional except for energy benchmarks) to transmit test data and collect results.  The required connections are described below. The outputs are recorded to a directory "./sessions/YYYYMMDD_HHMMSS/", where YYYYMMDD_HHMMSS is a timestamp.  Messages to and from the connected devices are recorded to "log.txt" in that directory.  The results for submission are in "results.txt" and additional results data is recorded in "results.json" in case additional analysis is desired.  
+
+The main executable is "main.py" and the command line options can be seen by running `main.py --help`.  The options are mainly provided through two yaml files, which describe the devices and the test(s) to be run, respectively.
+
+## Configuration Files
+
+### `devices.yaml`
+Specified by the command line option `-d` or `--device_list`, this yaml file lists all of the devices used in the test, specifically the energy monitor board, the DUT, and the interface board.  Defaults to `devices.yaml`, which is the default/example  file is provided in the repo.  Each device has several attributes:
+* **name** Largely arbitrary but should be unique within the yaml file.
+* **type** Either `interface`, `power`, or `dut`. 
+* **preference** If there are multiple interface boards connected and specified in the file, the one with the _highest_ preference will be used.
+* **echo** Optional, defaults to False.  If set to True, all of the commands sent to and received from this device will be printed to the terminal and recorded to the log file.
+* **baud** The baud rate between this device and its immediate upstream connection.  I.e. for the power manager or the interface board, this is the baud rate of connection between that device and the host.  For the DUT, this is the baud rate between the DUT and either the host (for a direct connection) or the interface board (for an indirect connection).
+* usb: A pair of hex values specifying the VID and PID of the devices usb connection.
+
+### `tests.yaml`
+
+
+
 ## Performance/Accuracy Metrics
 ### Device Configurations
 Connect just the device (L4R5ZI) to the computer
@@ -20,7 +41,7 @@ Mode for accuracy is a, mode for performance is p. This needs to be lowercase an
 The dataset path is the location of the dataset files.  If you have used the EEMBC runner previously the dataset files would have a path like `${HOME}$/eembc/runner/benchmarks/ulp-mlperf/datasets`.  Under the datasets directory you should have subdirectories for each of the benchmarks: ad01 (anomaly detection), ic01 (image classification), kws01 (keyword spotting), vww01 (visual wakeword), sww01 (streaming wakeword).
 
 ## Energy Test Connections
-
+The hardware connections are illustrated here. Not all connections will be needed for every trial.  For tests other than the audio streaming benchmark, the I2S connections, "PROCESSING", and "WW_DETECTED" can be omitted.  For those tests (KWS, IC, AD, VWW) run in accuracy or performance mode, the interface board can also be removed from the system.  In that scenario, the only connection needed is to connect the host to the DUT via USB.  If the DUT does not have a USB connection, or you wish to use a UART that is not connected to a USB port, you can use a USB-UART bridge, such as the [FTDI Friend](https://www.adafruit.com/product/284).
 ### Power Board (LPM01A)
 ![LPM01A Wiring](img/LPM01A.png)
 
@@ -53,7 +74,7 @@ Steps to run the streaming benchmark:
 1. Ensure the power board, the interface board, and the DUT are all connected as shown above.
 2. Ensure that the SD card in the interface board holds the wav files in the `runner/sd_card` directory.
 3. The json files from the `runner/sww_data_dir` directory are in `DATA_DIRECTORY/sww01`, where `DATA_DIRECTORY` will be specified with the `--dataset_path` on the command line.
-4. The test you run will be determined by the `sww01.truth_file` value in `tests.yaml`.  It is recommended to start with the the short test (`truth_file: sww_short_test.json`), a 10-second wav file.  The current model has 1 true positive and 2 false negatives on this file.
+4. The test you run will be determined by the `sww01.truth_file` value in `tests.yaml`.  It is recommended to start with the the short test (`truth_file: sww_short_test.json`), a 10-second wav file.  The current model has 2 true positive and 1 false negatives on this file.
 5. Run the test with `main.py --dataset_path=DATA_DIRECTORY --test_script=tests.yaml`.
 
 ---
