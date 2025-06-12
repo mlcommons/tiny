@@ -4,7 +4,7 @@ from queue import Queue
 from serial_device import SerialDevice
 from threading import Thread
 
-class PowerManager(SerialDevice):
+class LPMManager(SerialDevice):
   PROMPT = "PowerShield > "
 
   def __init__(self, port_device, baud_rate=3686400, voltage=3.3, echo=False):
@@ -68,7 +68,7 @@ class PowerManager(SerialDevice):
       if line.startswith("TimeStamp"):
         self._data_queue.put(line)
       elif re.match("\d\d\d\d[+-]\d\d", line):
-        values = PowerManager.extract_current_values(line)
+        values = LPMManager.extract_current_values(line)
         for v in values: 
           self._data_queue.put(v)
       elif re.match(r"event (\d+) ris", line): # event markers indicate an occurence (D7 falling edge here)
@@ -198,7 +198,7 @@ class PowerManager(SerialDevice):
     out_lines = []
     while True:
       line = self._message_queue.get()
-      temp = line.replace(PowerManager.PROMPT, "").strip()
+      temp = line.replace(LPMManager.PROMPT, "").strip()
       if temp and command in temp and (temp.startswith('ack') or temp.startswith('error')):
         out_lines.extend(r for r in temp.replace(command, "").split(" ", 2) if r)
         break
@@ -209,7 +209,7 @@ class PowerManager(SerialDevice):
   def _read_error_output(self):
     while True:
       line = self._message_queue.get()
-      line = line.replace(PowerManager.PROMPT, "").strip()
+      line = line.replace(LPMManager.PROMPT, "").strip()
       if line.startswith("Error detail"):
         return [line.replace("Error detail:", "").strip()]
 
@@ -217,9 +217,9 @@ class PowerManager(SerialDevice):
     while True:
       line = self._message_queue.get()
       # print(f"OUT: {line}")
-      if line == PowerManager.PROMPT:
+      if line == LPMManager.PROMPT:
         return
-      line = line.replace(PowerManager.PROMPT, "").strip()
+      line = line.replace(LPMManager.PROMPT, "").strip()
       if line:
         yield line
 

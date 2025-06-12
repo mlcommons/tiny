@@ -1,0 +1,52 @@
+Logging initialized. Writing output to sessions\20250612_122118\log.txt
+Initializing SerialDevice on port: COM3 at 115200 baud
+Initializing SerialDevice on port: COM4 at 3686400 baud
+SerialDevice entering port COM4, entry_count (before increment) = 0
+pwr htc
+LPM01A Power Monitor Board
+pwr powershield
+BoardID: 540554545-1430736921-1900587
+pwr version
+Version: 1.0.7
+pwr status
+Status: ok
+pwr lcd 1 "MLPerf Tiny"
+pwr lcd 2 "     monitor    "
+pwr pwr off
+pwr acqtime inf
+pwr trigdelay 0
+pwr trigsrc sw
+pwr eventsrc d7 fal
+pwr output energy
+pwr format ascii_dec
+pwr freq 1k
+pwr volt 3300m
+pwr lcd 2 "           3.3V "
+pwr pwr on nostatus
+Dropping message: PowerShield > ack pwr on nostatus
+pwr start
+SerialDevice entering port COM3, entry_count (before increment) = 0
+Device name retrieved: STMicroelectronics
+Device profile retrieved: ULPMark for tinyML Firmware V0.0.1
+Device model retrieved: ic01
+samples:13839 timestamps:2
+samples:11686 timestamps:2
+samples:11680 timestamps:2
+samples:11683 timestamps:2
+samples:11679 timestamps:2
+SerialDevice exiting port COM3, entry_count (before decrement) = 1
+pwr pwr off
+PM: stop
+Done with PM.stop()
+pwr pwr off
+pwr hrc
+SerialDevice exiting port COM4, entry_count (before decrement) = 1
+Power Edition Output
+Traceback (most recent call last):
+File "C:\Users\Tim Niven\GitHubRepos\tiny\benchmark\runner\main.py", line 408, in <module>
+    summarize_result(result, power, mode=config["mode"], results_file=results_file)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+File "C:\Users\Tim Niven\GitHubRepos\tiny\benchmark\runner\main.py", line 296, in summarize_result
+    print_energy_results(result, energy_sampling_freq=1000, outfile=results_file)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: print_energy_results() got an unexpected keyword argument 'outfile'

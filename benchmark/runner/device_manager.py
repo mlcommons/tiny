@@ -5,7 +5,7 @@ from serial.tools import list_ports
 from device_under_test import DUT
 from io_manager import IOManager
 from io_manager_enhanced import IOManagerEnhanced
-from power_manager import PowerManager
+from power_manager.power_manager import PowerManager
 from runner_utils import get_baud_rate
 
 
@@ -57,7 +57,7 @@ class DeviceManager:
       definition["instance"] = IOManagerEnhanced(**args) if definition.get("name") == "stm32h573i-dk" \
         else IOManager(**args)
     elif definition.get("type") == "power":
-      definition["instance"] = PowerManager(**args)
+        definition["instance"] = PowerManager(definition["name"], **args)
     elif definition.get("type") == "dut":
       definition["instance"] = DUT(**args)
 

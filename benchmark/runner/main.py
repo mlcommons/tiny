@@ -5,7 +5,7 @@ from sklearn.metrics import roc_auc_score
 from collections import Counter
 import matplotlib.pyplot as plt
 
-from power_manager import PowerManager
+from power_manager.power_manager import PowerManager
 from datasets import DataSet, StreamingDataSet
 
 from device_manager import DeviceManager
@@ -293,7 +293,7 @@ def summarize_result(result, power, mode, results_file=None):
     
     if mode == "e":
         print_tee("Power Edition Output", outfile=results_file)
-        print_energy_results(result, energy_sampling_freq=1000, outfile=results_file)
+        print_energy_results(result, energy_sampling_freq=1000, results_file=results_file)
         return
 
     for r in result:
