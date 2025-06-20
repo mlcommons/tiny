@@ -30,6 +30,6 @@
     0x0483: 0x374B
 - name: js220
   type: power
-  baud: 0  # JS220 typically uses USB and not UART for control
   usb:
-    0x2EEF: 0x0003
+    0x16D0: 0x10BA
+
