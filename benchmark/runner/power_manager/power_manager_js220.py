@@ -31,7 +31,10 @@ class JoulescopeCommands:
         self._device.parameter_set("source", "raw")
         self._device.parameter_set("sensor_power", "on")
         self._device.parameter_set("sampling_frequency", 1000)
+        self._device.parameter_set("io_voltage", "3.3V")
         self._device.parameter_set("trigger_source", "gpi0")
+        self._device.parameter_set("current_lsb", "gpi0")
+
         try:
             self._device.start()
         except Exception as e:
@@ -59,6 +62,7 @@ class JoulescopeCommands:
     def read_loop(self):
         sb = self._device.stream_buffer
         last_sample_id = None
+        last_gpi = None
 
         print("[JS220] Stream reading started (raw)...")
         while self.m._running:
@@ -80,7 +84,7 @@ class JoulescopeCommands:
                 continue
 
             try:
-                data = sb.samples_get(last_sample_id, end_id, fields=["current", "voltage"])
+                data = sb.samples_get(last_sample_id, end_id, fields=["current", "voltage", "current_lsb"])
             except ValueError:
                 last_sample_id = None
                 continue
@@ -88,13 +92,31 @@ class JoulescopeCommands:
             t0 = time.time()
             current = data["signals"]["current"]["value"]
             voltage = data["signals"]["voltage"]["value"]
-            count = min(len(current), len(voltage))
+            gpi0_vals = data["signals"]["current_lsb"]["value"]
+            count = min(len(current), len(voltage), len(gpi0_vals))
             last_sample_id = end_id
 
             for i in range(count):
+                # Always put sample
                 self.m._data_queue.put([t0, current[i], voltage[i]])
 
+                # Edge detection logic
+                gpi = int(gpi0_vals[i] > 0)
+                if last_gpi is None:
+                    last_gpi = gpi
+                    continue
+
+                if gpi != last_gpi:
+                    if last_gpi == 1 and gpi == 0:  # Falling edge only
+                        # Queue TimeStamp line
+                        timestamp_line = f"TimeStamp: >000s {int((t0 % 1) * 1000):03}ms, buff 00%"
+                        event_line = f"event {int(t0 * 1000)} ris"
+                        print("[GPI0] Falling edge detected!")
+                        self.m._data_queue.put(timestamp_line)
+                        self.m._data_queue.put(event_line)
+                    last_gpi = gpi
         print("[JS220] Stream reading loop exited.")
+
 
     def power_on(self):
         return True
