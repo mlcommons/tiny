@@ -50,7 +50,8 @@ The hardware connections are illustrated here. Not all connections will be neede
 ![STM32H573I-DK Bottom Wiring](img/STM32H573I-DK-Bottom.png)
 
 The interface board runs at 3.3V, so if the DUT is running at any other supply voltage, the logic levels must be shifted.  The TXB0108, available in a [breakout board](https://www.adafruit.com/product/395) from Adafruit, support low-side voltages from 1.2V to 3.6V.
-The contents of the SD card are only required for the streaming test, but a card must be present in the interface board for it to function for any of the benchmarks.
+
+The STM32H573I-DK board has a slot for a micro-SD card. The contents of the SD card are only required for the streaming test, but a card must be present in the interface board for it to function for any of the benchmarks. Ensure that it is formatted as an MS-DOS (FAT32) disk.  A 1GB card is plenty for the current benchmarks.
 
 ### Device Under Test (L4R5ZI)
 ![DUT Wiring](img/L4R5Zi.png)
@@ -162,6 +163,9 @@ You must define mode as e and if for some reason the PowerBoard is not detecting
 
 If you encounter errors while running the test, refer to the guide below.
 
+### General Troubleshooting
+* If your device can operate on a 3.3V supply, you may find it helpful to run at 3.3V initially, and omit the level shifters.  This will increase the energy consumption, but remove the level shifters as a potential problem.
+
 ### **Error: 'NoneType' Appears**
 This typically indicates a **UART transmission error**.
 
@@ -172,6 +176,11 @@ This typically indicates a **UART transmission error**.
    - Open **PowerShell** as an **administrator** and retry the test.
 3. **Ensure no other application is using the device ports** –  
    - If another process has locked the ports, the above fixes will not work. This can often happen if you have a terminal (e.g. PuTTY) connected for debug purposes.
+
+### Error: SerialException
+The full text of this error (at least on a Mac) is : "Exception has occurred: SerialException
+device reports readiness to read but returned no data (device disconnected or multiple access on port?)".  
+It is typically caused by having a serial terminal (e.g. putty, picocom) open on the power manager.
 
 ---
 
