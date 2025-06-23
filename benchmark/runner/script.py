@@ -236,6 +236,8 @@ class _ScriptInferStep(_ScriptStep):
         result = {}
         total_inferences = 0
         for res in cmd_results:
+            if res is None:
+                continue
             match = re.match(r'^m-results-\[([^]]+)\]$', res)
             if match:
                 try:
