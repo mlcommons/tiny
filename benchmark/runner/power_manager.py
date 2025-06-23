@@ -237,6 +237,8 @@ class PowerManager(SerialDevice):
     result = lines and lines[0] == 'ack'
     output = lines[1:] if lines and len(lines) > 1 else []
     if not result:
+      print(f"Power Manager did not acknowledge.  PM Response:")
+      print(lines)
       output = self._read_error_output()
       if err_message is not None:
         print(f"{err_message}: {output[0]}", file=sys.stderr)
