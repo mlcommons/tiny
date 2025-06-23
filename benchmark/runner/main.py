@@ -350,8 +350,8 @@ def summarize_result(result, power, mode, results_file=None):
 
             total_files += 1
 
-        auc = calculate_accuracy(np.array(y_pred), np.array(y_true))
-        accuracy = calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
+        accuracy = calculate_accuracy(np.array(y_pred), np.array(y_true))
+        auc = calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
         current_time = datetime.now()
         formatted_time = current_time.strftime("%m%d.%H%M%S ") 
         print_tee(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}", outfile=results_file)
