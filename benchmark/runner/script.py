@@ -318,7 +318,7 @@ class _ScriptStreamStep(_ScriptStep):
         try:
             activations = sww_util.array_from_strings(detection_info, 'target activations:', end_str='m-ready')
         except ValueError as e:
-            if re.match(r"expected but not found\.", e):
+            if re.match(r"expected but not found\.", str(e)):
                 print("No activation data found.")
                 activations = []
 
