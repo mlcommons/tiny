@@ -37,7 +37,11 @@ class SerialDevice:
   def _read_loop(self):
     msg = ""
     while self._running:
-      char = self._port.read(1).decode()
+      try:
+        raw_char = self._port.read(1)
+        char = raw_char.decode()
+      except UnicodeDecodeError:
+        print(f"WARNING: Ignoring undecodeable byte: {raw_char}")
       if char and char not in '\n\r\0':
         msg = msg + char
       elif char == '\n':
