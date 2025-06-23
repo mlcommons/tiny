@@ -43,7 +43,7 @@ class DeviceManager:
     }
     if definition.get("baud"):
       if definition.get("type") == "dut":
-        args["baud_rate"] = get_baud_rate(definition["name"], self.mode, yaml_path="devices.yaml")
+        args["baud_rate"] = get_baud_rate(definition, self.mode)
       else:
         args["baud_rate"] = definition.get("baud")
     if definition.get("echo"):
