@@ -166,6 +166,12 @@ If you encounter errors while running the test, refer to the guide below.
 ### General Troubleshooting
 * If your device can operate on a 3.3V supply, you may find it helpful to run at 3.3V initially, and omit the level shifters.  This will increase the energy consumption, but remove the level shifters as a potential problem.
 
+### "RuntimeError: No response to command name"
+*  This typically means that the host or interface board cannot communicate with the DUT, because the "name" command is the first 
+command sent to the DUT.  Make sure that the DUT is correctly powered, the baud rate is correctly specified (noting that you may specify 
+different baud rates for energy/performance/accuracy modes), and that the UART wires are correctly connected if not connecting directly to the DUT.
+If you're using the L4R5zi reference board, remember that the Tx/Rx lines are labeled backwards.
+
 ### **Error: 'NoneType' Appears**
 This typically indicates a **UART transmission error**.
 
@@ -177,10 +183,11 @@ This typically indicates a **UART transmission error**.
 3. **Ensure no other application is using the device ports** –  
    - If another process has locked the ports, the above fixes will not work. This can often happen if you have a terminal (e.g. PuTTY) connected for debug purposes.
 
-### Error: SerialException
+### Error: SerialException or ResourceBusy
 The full text of this error (at least on a Mac) is : "Exception has occurred: SerialException
 device reports readiness to read but returned no data (device disconnected or multiple access on port?)".  
-It is typically caused by having a serial terminal (e.g. putty, picocom) open on the power manager.
+It is typically caused by having a serial terminal (e.g. putty, picocom) open on the power manager.  Similarly, if another application
+has the DUT or interface board open, you may receive an error like this: "[Errno 16] could not open port /dev/cu.usbmodem1403: [Errno 16] Resource busy: '/dev/cu.usbmodem1403'"
 
 ---
 
