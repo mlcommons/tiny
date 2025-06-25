@@ -5,7 +5,7 @@ from sklearn.metrics import roc_auc_score
 from collections import Counter
 import matplotlib.pyplot as plt
 
-from power_manager import PowerManager
+from power_manager.power_manager import PowerManager
 from datasets import DataSet, StreamingDataSet
 
 from device_manager import DeviceManager

@@ -18,6 +18,7 @@
 - name: lpm01a
   type: power
   baud: 3686400
+  voltage: 1.8   # <-- Voltage for LPM
   usb:
     0x0483: 0x5740  # Ensures detection by VID/PID (1155 / 22336)
 - name: l4r5zi
@@ -28,3 +29,10 @@
     accuracy: 921600
   usb:
     0x0483: 0x374B
+- name: js220
+  type: power
+  raw_sampling_rate: 1000000
+  virtual_sampling_rate: 1000
+  usb:
+    0x16D0: 0x10BA
+
