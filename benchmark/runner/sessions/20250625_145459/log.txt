@@ -1,4 +1,4 @@
-Logging initialized. Writing output to sessions\20250625_144340\log.txt
+Logging initialized. Writing output to sessions\20250625_145459\log.txt
 Initializing SerialDevice on port: COM3 at 115200 baud
 open_ll(opt=0)
 device_open(u/js220/004079) \\?\usb#vid_16d0&pid_10ba#004079#{e27188c8-98ff-41de-be50-653324c6b19c}
@@ -19,14 +19,14 @@ SerialDevice entering port COM3, entry_count (before increment) = 0
 Device name retrieved: STMicroelectronics
 Device profile retrieved: ULPMark for tinyML Firmware V0.0.1
 Device model retrieved: ic01
-samples:17194 timestamps:2
-samples:13899 timestamps:2
-samples:14166 timestamps:2
-samples:13857 timestamps:2
-samples:13910 timestamps:2
+samples:17035 timestamps:2
+samples:13906 timestamps:2
+samples:13965 timestamps:2
+samples:14112 timestamps:2
+samples:16225 timestamps:2
 SerialDevice exiting port COM3, entry_count (before decrement) = 1
 [JS220] Shutting down stream...
-_on_cmd_publish_cbk(u/js220/004079/s/gpi/0/!data)
+_on_cmd_publish_cbk(u/js220/004079/s/gpi/1/!data)
 Traceback (most recent call last):
   File "pyjoulescope_driver/binding.pyx", line 1027, in pyjoulescope_driver.binding._on_cmd_publish_cbk
   File "C:\Users\Tim Niven\AppData\Roaming\Python\Python311\site-packages\joulescope\v1\device.py", line 461, in _on_stream
@@ -35,28 +35,28 @@ Traceback (most recent call last):
 AttributeError: 'NoneType' object has no attribute 'is_duration_max'
 [JS220] Stream reading loop exited.
 close
-[JS220] Shutdown complete.
 device_close(u/js220/004079)
-Power Edition Output
 bulk_in_finalize ep=0x82
-10 iterations. Elapsed time = 1.6610000000000014,total energy = 0.13456240576851997
-Per inference: time = 0.16610000000000014, energy = 0.013456240576851996
-Average Power = 81.01 mW.
-10 iterations. Elapsed time = 1.6610000000000014,total energy = 0.13466383234481327
-Per inference: time = 0.16610000000000014, energy = 0.013466383234481327
-Average Power = 81.07 mW.
-10 iterations. Elapsed time = 1.6600000000000001,total energy = 0.13462922105100006
-Per inference: time = 0.166, energy = 0.013462922105100006
-Average Power =  81.1 mW.
-10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.13454391049890546
-Per inference: time = 0.16609999999999997, energy = 0.013454391049890546
-Average Power =  81.0 mW.
-10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.13449304486857727
-Per inference: time = 0.16609999999999997, energy = 0.013449304486857726
-Average Power = 80.97 mW.
-Session logged in file sessions\20250625_144340\log.txt
+[JS220] Shutdown complete.
+Power Edition Output
+10 iterations. Elapsed time = 1.6620000000000008,total energy = 0.07352869005626417
+Per inference: time = 0.16620000000000007, energy = 0.007352869005626417
+Average Power = 44.24 mW.
+10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.07355358861605055
+Per inference: time = 0.16609999999999997, energy = 0.007355358861605055
+Average Power = 44.28 mW.
+10 iterations. Elapsed time = 1.6620000000000008,total energy = 0.07362346827721922
+Per inference: time = 0.16620000000000007, energy = 0.007362346827721922
+Average Power =  44.3 mW.
+10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.07349427126973751
+Per inference: time = 0.16609999999999997, energy = 0.007349427126973751
+Average Power = 44.25 mW.
+10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.07350623479214846
+Per inference: time = 0.16609999999999997, energy = 0.007350623479214846
+Average Power = 44.25 mW.
+Session logged in file sessions\20250625_145459\log.txt
 close
-jsdrv_finalize 00000212855E9980
+jsdrv_finalize 00000208020C98D0
 USB backend finalize
 JS220 USB upper-level thread done u/js220/004079
 finalize usb backend
