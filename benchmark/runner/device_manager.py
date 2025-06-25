@@ -70,7 +70,7 @@ class DeviceManager:
                     raise RuntimeError("No JS220 found during instantiation")
                 js_device = devices[0].open()
                 args["js_device"] = js_device  # 👈 Pass to JS220Commands via PowerManager
-            definition["instance"] = PowerManager(definition["name"], **args)
+            definition["instance"] = PowerManager(definition["name"], config=definition, **args)
         elif dev_type == "dut":
             definition["instance"] = DUT(**args)
 

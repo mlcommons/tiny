@@ -1,0 +1,27 @@
+Logging initialized. Writing output to sessions\20250625_142102\log.txt
+Traceback (most recent call last):
+File "C:\Users\Tim Niven\GitHubRepos\tiny\benchmark\runner\main.py", line 392, in <module>
+result, power = run_test(**config)  # Unpack power from run_test
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+^
+File "C:\Users\Tim Niven\GitHubRepos\tiny\benchmark\runner\main.py", line 57, in run_test
+raise RuntimeError("No interface or DUT detected. One must be present to run test")
+RuntimeError
+:
+No interface or DUT detected. One must be present to run test

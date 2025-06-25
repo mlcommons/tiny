@@ -12,7 +12,7 @@ from .power_manager_js220 import JoulescopeCommands
 class PowerManager:
     PROMPT = "PowerShield > "
 
-    def __init__(self, device_type, port_device=None, baud_rate=None, voltage=3.3, echo=False, js_device=None):
+    def __init__(self, device_type, port_device=None, baud_rate=None, voltage=3.3, echo=False, js_device=None, config=None):
         self._device_type = device_type
         self._voltage = voltage
         self._board_id = None
@@ -31,7 +31,7 @@ class PowerManager:
             if js_device is None:
                 from joulescope import scan_require_one
                 js_device = scan_require_one(config="ignore")
-            self._commands = JoulescopeCommands(self, js_device=js_device)
+            self._commands = JoulescopeCommands(self, js_device=js_device, config=config)
             self._port = self._commands.get_port()
         else:
             raise ValueError(f"Unsupported device type: {device_type}")
@@ -40,8 +40,8 @@ class PowerManager:
 
     def __enter__(self):
         self._port.__enter__()
-        self._commands.setup()
-        self._start_read_thread()
+        self._start_read_thread()           # ✅ move this up
+        self._commands.setup()              # ✅ now it's safe like the old code
         return self
 
     def __exit__(self, *args):
@@ -61,6 +61,10 @@ class PowerManager:
     def get_results(self):
         while not self._data_queue.empty():
             yield self._data_queue.get()
+            
+    def should_stop(self):
+        return not self._running
+
 
     # Pass-throughs
     def power_on(self): return self._commands.power_on()

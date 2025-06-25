@@ -1,6 +1,6 @@
 import time
 from joulescope import scan
-
+import numpy as np
 
 class JS220PortWrapper:
     def __init__(self, device):
@@ -23,14 +23,20 @@ class JS220PortWrapper:
 
 
 class JoulescopeCommands:
-    def __init__(self, manager, js_device):
+    def __init__(self, manager, js_device, config=None):
         self.m = manager
         self._device = js_device
+        self._triggered = False
+        self._last_sample_id = None
+        self._last_gpi = None
+        js_config = config or {}
+        self.raw_rate = js_config.get("raw_sampling_rate", 1000000)
+        self.virtual_rate = js_config.get("virtual_sampling_rate", 1000)
+        self.emit_stride = max(1, self.raw_rate // self.virtual_rate)
 
-        # ✅ Configure and start streaming
         self._device.parameter_set("source", "raw")
         self._device.parameter_set("sensor_power", "on")
-        self._device.parameter_set("sampling_frequency", 1000)
+        self._device.parameter_set("sampling_frequency", self.raw_rate)
         self._device.parameter_set("io_voltage", "3.3V")
         self._device.parameter_set("trigger_source", "gpi0")
         self._device.parameter_set("current_lsb", "gpi0")
@@ -44,7 +50,7 @@ class JoulescopeCommands:
         return JS220PortWrapper(self._device)
 
     def setup(self):
-        pass  # Setup handled in __init__
+        pass
 
     def tear_down(self):
         print("[JS220] Shutting down stream...")
@@ -61,61 +67,79 @@ class JoulescopeCommands:
 
     def read_loop(self):
         sb = self._device.stream_buffer
-        last_sample_id = None
-        last_gpi = None
+        print("[JS220] Stream reading started (trigger mimic)...")
 
-        print("[JS220] Stream reading started (raw)...")
+        current_buffer = []
+        voltage_buffer = []
+        timestamp_buffer = []
+
+        ts_counter = 0
+        last_emit_time = time.time()
+        event_counter = 0
+
         while self.m._running:
+
             sample_id_range = sb.sample_id_range
             if sample_id_range is None:
                 time.sleep(0.001)
                 continue
 
             start_id, end_id = sample_id_range
-            if last_sample_id is None:
-                last_sample_id = start_id
+            if self._last_sample_id is None or end_id < self._last_sample_id:
+                self._last_sample_id = start_id
 
-            if end_id <= last_sample_id:
+            if end_id <= self._last_sample_id:
                 time.sleep(0.001)
                 continue
 
-            if end_id < last_sample_id:
-                last_sample_id = end_id
-                continue
-
             try:
-                data = sb.samples_get(last_sample_id, end_id, fields=["current", "voltage", "current_lsb"])
+                data = sb.samples_get(self._last_sample_id, end_id, fields=["current", "voltage", "current_lsb"])
             except ValueError:
-                last_sample_id = None
+                self._last_sample_id = None
                 continue
 
-            t0 = time.time()
             current = data["signals"]["current"]["value"]
             voltage = data["signals"]["voltage"]["value"]
             gpi0_vals = data["signals"]["current_lsb"]["value"]
+            t0 = time.time()
             count = min(len(current), len(voltage), len(gpi0_vals))
-            last_sample_id = end_id
+            self._last_sample_id = end_id
 
             for i in range(count):
-                # Always put sample
-                self.m._data_queue.put([t0, current[i], voltage[i]])
+                current_buffer.append(current[i])
+                voltage_buffer.append(voltage[i])
+                timestamp_buffer.append(t0)
 
-                # Edge detection logic
                 gpi = int(gpi0_vals[i] > 0)
-                if last_gpi is None:
-                    last_gpi = gpi
+                if self._last_gpi is None:
+                    self._last_gpi = gpi
                     continue
 
-                if gpi != last_gpi:
-                    if last_gpi == 1 and gpi == 0:  # Falling edge only
-                        # Queue TimeStamp line
-                        timestamp_line = f"TimeStamp: >000s {int((t0 % 1) * 1000):03}ms, buff 00%"
-                        event_line = f"event {int(t0 * 1000)} ris"
-                        print("[GPI0] Falling edge detected!")
-                        self.m._data_queue.put(timestamp_line)
+                # ✅ Emit event string (on rising edge only)
+                if self._triggered:
+                    if self._last_gpi == 0 and gpi == 1:
+                        event_line = f"event {event_counter:02} ris"
                         self.m._data_queue.put(event_line)
-                    last_gpi = gpi
+                        event_counter += 1
+                        self._triggered = False
+                else:
+                    if self._last_gpi == 1 and gpi == 0:
+                        self._triggered = True
+
+                self._last_gpi = gpi
+
+                if len(current_buffer) >= self.emit_stride:
+                    avg_time = float(np.mean(timestamp_buffer))
+                    # ✅ Compute energy over 1ms: E = I * V * dt
+                    energy = float(np.mean([i * v * 0.001 for i, v in zip(current_buffer, voltage_buffer)]))
+                    self.m._data_queue.put(energy)
+                    current_buffer.clear()
+                    voltage_buffer.clear()
+                    timestamp_buffer.clear()
+
         print("[JS220] Stream reading loop exited.")
+
+
 
 
     def power_on(self):
@@ -144,6 +168,8 @@ class JoulescopeCommands:
 
     def set_lcd(self, *args):
         return [None, None]
+
+
 
 
 """

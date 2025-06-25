@@ -30,6 +30,8 @@
     0x0483: 0x374B
 - name: js220
   type: power
+  raw_sampling_rate: 1000000
+  virtual_sampling_rate: 1000
   usb:
     0x16D0: 0x10BA
 

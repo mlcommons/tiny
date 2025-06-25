@@ -1,0 +1,16 @@
+Power Edition Output
+10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.1343941638187971
+Per inference: time = 0.16609999999999997, energy = 0.01343941638187971
+Average Power = 80.91 mW.
+10 iterations. Elapsed time = 1.6600000000000001,total energy = 0.13443365774583071
+Per inference: time = 0.166, energy = 0.013443365774583072
+Average Power = 80.98 mW.
+10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.13457696489058435
+Per inference: time = 0.16609999999999997, energy = 0.013457696489058434
+Average Power = 81.02 mW.
+10 iterations. Elapsed time = 1.6600000000000001,total energy = 0.13435734587255865
+Per inference: time = 0.166, energy = 0.013435734587255865
+Average Power = 80.94 mW.
+10 iterations. Elapsed time = 1.6609999999999996,total energy = 0.13438836437126156
+Per inference: time = 0.16609999999999997, energy = 0.013438836437126156
+Average Power = 80.91 mW.
