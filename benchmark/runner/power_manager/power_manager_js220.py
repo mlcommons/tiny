@@ -30,8 +30,8 @@ class JoulescopeCommands:
         self._last_sample_id = None
         self._last_gpi = None
         js_config = config or {}
-        self.raw_rate = js_config.get("raw_sampling_rate", 1000000)
-        self.virtual_rate = js_config.get("virtual_sampling_rate", 1000)
+        self.raw_rate = int(js_config.get("raw_sampling_rate", 1000000))
+        self.virtual_rate = int(js_config.get("virtual_sampling_rate", 1000))
         self.emit_stride = max(1, self.raw_rate // self.virtual_rate)
 
         self._device.parameter_set("source", "raw")

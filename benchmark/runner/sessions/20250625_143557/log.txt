@@ -1,3 +1,0 @@
-Logging initialized. Writing output to sessions\20250625_143557\log.txt
-usage: TestRunner [-h] [-d DEVICE_LIST] [-y DEVICE_YAML] [-t TEST_SCRIPT] [-s DATASET_PATH] [-m {e,p,a}]
-TestRunner: error: argument -m/--mode: invalid choice: 'e\\' (choose from 'e', 'p', 'a')
