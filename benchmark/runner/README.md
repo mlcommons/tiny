@@ -5,6 +5,19 @@ The runner software in this directory coordinates the running of the MLPerf Tiny
 
 The main executable is "main.py" and the command line options can be seen by running `main.py --help`.  The options are mainly provided through two yaml files, which describe the devices and the test(s) to be run, respectively.
 
+## Environment
+In addition to the python libraries listed in `benchmark/training/streaming_wakeword/requirements.txt`, the runner requires pyusb and libusb.  This dependency is required in order to support the JouleScope JS220, whose USB interface does not behave like a virtual serial port, unlike the LPM01a. 
+* **libusb** is the underlying library used to communicate with USB devices.
+   * On Windows see [here](https://github.com/pyusb/pyusb/blob/master/docs/faq.rst#how-do-i-install-libusb-on-windows) for installation guidance.
+   * On a Mac install it with `$ brew install libusb` (if you have homebrew installed).
+      * pyusb will only work with a native libusb library. So if you have an M1/Mx Mac and you have previously installed an x86 version of libusb under Rosetta (typically in `/usr/local/lib/libusb-x.y.z.dylib`) that appears before the native libraries in python's library search order, it will cause a `No backend available` error.
+   * On Linux it should already be installed with most distributions.
+* **pyusb** is a python wrapper to libusb.  It should typically install with `python -m pip install pyusb`
+   * See the package [FAQ](https://github.com/pyusb/pyusb/blob/master/docs/faq.rst) for troubleshooting tips.
+* If you are using the JouleScope you will also need to install its python API, pyjoulescope, with `python -m pip install joulescope`.  See [this page](https://joulescope.readthedocs.io/en/latest/user/install.html) for more information.
+
+
+
 ## Configuration Files
 
 ### `devices.yaml`

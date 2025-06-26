@@ -18,6 +18,8 @@
 - name: lpm01a
   type: power
   baud: 3686400
+  echo: True
+  preference: 2 # set to higher preference thatn js220 to use lpm01a
   voltage: 1.8   # <-- Voltage for LPM
   usb:
     0x0483: 0x5740  # Ensures detection by VID/PID (1155 / 22336)
@@ -31,6 +33,7 @@
     0x0483: 0x374B
 - name: js220
   type: power
+  preference: 1 # set to higher preference thatn lpm01a to use js220
   raw_sampling_rate: 1000000
   virtual_sampling_rate: 1000
   usb:

@@ -5,8 +5,6 @@ import sys
 from queue import Queue
 from threading import Thread
 from serial_device import SerialDevice
-from .power_manager_lpm import LPMCommands
-from .power_manager_js220 import JoulescopeCommands
 
 
 class PowerManager:
@@ -25,9 +23,11 @@ class PowerManager:
         self._running = False
 
         if device_type == "lpm01a":
+            from .power_manager_lpm import LPMCommands # only import this file if we're using this device
             self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n", echo=echo)
             self._commands = LPMCommands(self, self._port)
         elif device_type == "js220":
+            from .power_manager_js220 import JoulescopeCommands
             if js_device is None:
                 from joulescope import scan_require_one
                 js_device = scan_require_one(config="ignore")
