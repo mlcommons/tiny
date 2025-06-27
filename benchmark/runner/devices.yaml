@@ -18,9 +18,9 @@
 - name: lpm01a
   type: power
   baud: 3686400
-  echo: True
+  echo: False
   preference: 2 # set to higher preference thatn js220 to use lpm01a
-  voltage: 1.8   # <-- Voltage for LPM
+  voltage: 1.8   # <-- Voltage for DUT
   usb:
     0x0483: 0x5740  # Ensures detection by VID/PID (1155 / 22336)
 - name: l4r5zi
