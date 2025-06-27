@@ -89,6 +89,11 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     if io:
         io.__exit__()
 
+    if not isinstance(result, list):
+        # if the test does not contain a loop, then result will just be a dict
+        # rather than a list of dicts.  So make it a list
+        result = [result]  
+
     for r in result:
         if 'power' in r:
             r['power']['voltage'] = power._voltage
