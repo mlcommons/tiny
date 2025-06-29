@@ -221,11 +221,16 @@ def calculate_auc(y_pred, labels, n_classes):
 
 
 def print_energy_results(l_results, energy_sampling_freq=1000, results_file=None):
-    
+    # Make sure it has a line that matches this regex
+    #   m = re.match(r".* Median energy cost is ([\d\.]+) uJ/inf\..*", line)
     if results_file:
         results_dir = os.path.dirname(results_file)
     else:
         results_dir = os.getcwd()
+
+    inf_energies = np.nan*np.zeros(len(l_results))
+    inf_times = np.nan*np.zeros(len(l_results))
+    
 
     for inf_num,res in enumerate(l_results):
         plt.clf()
@@ -265,11 +270,27 @@ def print_energy_results(l_results, energy_sampling_freq=1000, results_file=None
         num_inferences = res['infer']['iterations']
         energy_per_inf = total_inference_energy / num_inferences
         latency_per_inf = elapsed_time / num_inferences
-        results_file
-        print_tee(f"{num_inferences} iterations. Elapsed time = {elapsed_time},"+
-              f"total energy = {total_inference_energy}", outfile=results_file)
-        print_tee(f"Per inference: time = {latency_per_inf}, energy = {energy_per_inf}", outfile=results_file)
-        print_tee(f"Average Power = {1e3*energy_per_inf/latency_per_inf:5.4} mW.", outfile=results_file)
+        inf_energies[inf_num] = energy_per_inf
+        inf_times[inf_num] = elapsed_time
+        
+        time_warning = "" if elapsed_time >= 10.0 else "  <<<< below minimum duration"
+        print_tee(f"Energy data for trial {inf_num}", outfile=results_file)
+        print_tee(f"  Elapsed time  : {elapsed_time}{time_warning}", outfile=results_file)
+        print_tee(f"  Inferences    : {num_inferences}", outfile=results_file)
+        print_tee(f"  Power         : {1e3*total_inference_energy/elapsed_time:5.4f} mW.", outfile=results_file)
+        print_tee(f"  Total Energy  : {total_inference_energy*1e6:.3f} uJ", outfile=results_file)
+        print_tee(f"  Energy/Inf    : {energy_per_inf*1e6:.3f} uJ/inf", outfile=results_file)
+    
+    print_tee("---------------------------------------------------------")
+    print_tee(f"Median energy cost is {1e6*np.median(inf_energies):5.4f} uJ/inf.")
+    print_tee("---------------------------------------------------------")
+
+    if np.any(inf_times<10.0):
+        print_tee(f"ERROR: Not valid for submission.  All inference times must be at least 10 seconds.")
+    if len(l_results) != 5:
+        print_tee(f"ERROR: Not valid for submission.  Energy mode must include exactly 5 measurements.")
+
+
 
 
 
@@ -329,9 +350,9 @@ def summarize_result(result, power, mode, results_file=None):
         has_error_1 = any(r.get("error") == "error 1" for r in result)
         has_error_2 = any(r.get("error") == "error 2" for r in result)
         if has_error_1:
-            print_tee(f"{formatted_time}ulp-mlperf: ERROR 1 – loop_count was not exactly 5.", outfile=results_file)
+            print_tee(f"{formatted_time}ulp-mlperf: ERROR 1 - loop_count was not exactly 5.", outfile=results_file)
         elif has_error_2:
-            print_tee(f"{formatted_time}ulp-mlperf: ERROR 2 – loop exited before 10 seconds elapsed.", outfile=results_file)
+            print_tee(f"{formatted_time}ulp-mlperf: ERROR 2 - loop exited before 10 seconds elapsed.", outfile=results_file)
         else:
             median_throughput = np.median(throughput_values)
             print_tee(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------", outfile=results_file)
