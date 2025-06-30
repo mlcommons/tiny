@@ -34,6 +34,7 @@ vww01:
 sww01:
   name: streaming_wakeword
   model: sww01
-  truth_file: sww_short_test.json
+  truth_file: sww_long_test.json
   script:
-    - stream
+    - loop:
+      - stream

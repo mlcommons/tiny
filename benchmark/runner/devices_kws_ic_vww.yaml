@@ -28,7 +28,7 @@
   baud:
     energy: 9600
     performance: 115200
-    accuracy: 921600
+    accuracy: 115200
   usb:
     0x0483: 0x374B
 - name: js220
