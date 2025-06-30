@@ -11,6 +11,8 @@ In addition to the python libraries listed in `benchmark/training/streaming_wake
    * On Windows see [here](https://github.com/pyusb/pyusb/blob/master/docs/faq.rst#how-do-i-install-libusb-on-windows) for installation guidance.
    * On a Mac install it with `$ brew install libusb` (if you have homebrew installed).
       * pyusb will only work with a native libusb library. So if you have an M1/Mx Mac and you have previously installed an x86 version of libusb under Rosetta (typically in `/usr/local/lib/libusb-x.y.z.dylib`) that appears before the native libraries in python's library search order, it will cause a `No backend available` error.
+      * STM32 Cube IDE on an M1 Mac installs the Rosetta files, so if you are using that for STM32 development (e.g. if you want to compile the SWW reference or the interface software), you cannot delete the files.  It will cause a "No ST-Link found" error.  You can direct python to prioritize the native library by running the code with the `DYLD_LIBRARY_PATH` variable set.  
+         `DYLD_LIBRARY_PATH=/opt/homebrew/lib python main.py ...`.
    * On Linux it should already be installed with most distributions.
 * **pyusb** is a python wrapper to libusb.  It should typically install with `python -m pip install pyusb`
    * See the package [FAQ](https://github.com/pyusb/pyusb/blob/master/docs/faq.rst) for troubleshooting tips.
@@ -32,6 +34,15 @@ Specified by the command line option `-d` or `--device_list`, this yaml file lis
 ### `tests.yaml`
 
 
+## Communications
+### Host <==> DUT
+For performance and accuracy tests, the host can be directly connected to the DUT. The baud rate is configurable by setting the `baud` parameter in the appropriate element in `devices.yaml`.  The baud rate can either be a single integer baud rate, which will be used for all tests, or a dictionary with keys `energy`, `performance`, `accuracy`.  The default `devices.yaml` included in this repo uses the dictionary for the L4R5zi reference DUT.  If you need different baud rates for different benchmarks (e.g. for anomaly detection vs. streaming wakeword) you can use different devices files (e.g. `devices_ad.yaml` and `devices_sww.yaml`) and pass them on the command line using the `--device_list` flag.  
+
+### Host <==> Interface Board
+The host communicates with the interface board via a 115200 baud virtual serial port over USB.
+
+### Interface Board <==> DUT
+For the energy mode measurements, the interface board communicates with the DUT over a UART.
 
 ## Performance/Accuracy Metrics
 ### Device Configurations
@@ -55,6 +66,7 @@ The dataset path is the location of the dataset files.  If you have used the EEM
 
 ## Energy Test Connections
 The hardware connections are illustrated here. Not all connections will be needed for every trial.  For tests other than the audio streaming benchmark, the I2S connections, "PROCESSING", and "WW_DETECTED" can be omitted.  For those tests (KWS, IC, AD, VWW) run in accuracy or performance mode, the interface board can also be removed from the system.  In that scenario, the only connection needed is to connect the host to the DUT via USB.  If the DUT does not have a USB connection, or you wish to use a UART that is not connected to a USB port, you can use a USB-UART bridge, such as the [FTDI Friend](https://www.adafruit.com/product/284).
+
 ### Power Board (LPM01A)
 ![LPM01A Wiring](img/LPM01A.png)
 
