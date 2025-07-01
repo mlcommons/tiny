@@ -281,9 +281,9 @@ def print_energy_results(l_results, energy_sampling_freq=1000, results_file=None
         print_tee(f"  Total Energy  : {total_inference_energy*1e6:.3f} uJ", outfile=results_file)
         print_tee(f"  Energy/Inf    : {energy_per_inf*1e6:.3f} uJ/inf", outfile=results_file)
     
-    print_tee("---------------------------------------------------------")
-    print_tee(f"Median energy cost is {1e6*np.median(inf_energies):5.4f} uJ/inf.")
-    print_tee("---------------------------------------------------------")
+    print_tee("---------------------------------------------------------", outfile=results_file)
+    print_tee(f"Median energy cost is {1e6*np.median(inf_energies):5.4f} uJ/inf.", outfile=results_file)
+    print_tee("---------------------------------------------------------", outfile=results_file)
 
     if np.any(inf_times<10.0):
         print_tee(f"ERROR: Not valid for submission.  All inference times must be at least 10 seconds.")
