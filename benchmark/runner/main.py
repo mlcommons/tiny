@@ -220,7 +220,7 @@ def calculate_auc(y_pred, labels, n_classes):
     return roc_auc_avg
 
 
-def print_energy_results(l_results, energy_sampling_freq=1000, results_file=None):
+def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, results_file=None):
     # Make sure it has a line that matches this regex
     #   m = re.match(r".* Median energy cost is ([\d\.]+) uJ/inf\..*", line)
     if results_file:
@@ -287,12 +287,8 @@ def print_energy_results(l_results, energy_sampling_freq=1000, results_file=None
 
     if np.any(inf_times<10.0):
         print_tee(f"ERROR: Not valid for submission.  All inference times must be at least 10 seconds.")
-    if len(l_results) != 5:
-        print_tee(f"ERROR: Not valid for submission.  Energy mode must include exactly 5 measurements.")
-
-
-
-
+    if len(l_results) != req_cycles:
+        print_tee(f"ERROR: Not valid for submission.  Energy mode must include exactly {req_cycles} measurements.")
 
 # Summarize results
 def summarize_result(result, power, mode, results_file=None):
@@ -428,7 +424,7 @@ if __name__ == '__main__':
             power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
         if config["mode"] == "e":
             print_tee("Power Edition Output", outfile=results_file)
-            print_energy_results(result, energy_sampling_freq=1000, results_file=results_file)
+            print_energy_results(result, energy_sampling_freq=1000, req_cycles=1, results_file=results_file)
         sww_util.summarize_sww_result(result, power, results_file=results_file)
     else:
         summarize_result(result, power, mode=config["mode"], results_file=results_file)
