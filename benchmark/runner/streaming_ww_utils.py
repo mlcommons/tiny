@@ -40,8 +40,14 @@ def array_from_strings(raw_info, header_str, end_str='m-ready', data_type=None):
     ## Now extract the data
     number_lists = []
     for s in array_strings:
-        number_lists.append([converter(val) for val in s.split(',')])
-    
+        for val in s.split(','):
+            try:
+                number_lists.append(converter(val))
+            except ValueError:
+                # Just replace an invalid value with the previous value to avoid corrupting the timing
+                print(f"WARNING: Invalid element '{val}' for conversion to {converter} at element {len(number_lists)}.  Replacing with previous value.")
+                number_lists.append(number_lists[-1])
+
     if len(number_lists) == 1:
         number_lists = number_lists[0] # only 1 array, don't make it 2D
 
