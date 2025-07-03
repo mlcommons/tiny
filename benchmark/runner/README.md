@@ -64,6 +64,29 @@ Mode for accuracy is a, mode for performance is p. This needs to be lowercase an
 
 The dataset path is the location of the dataset files.  If you have used the EEMBC runner previously the dataset files would have a path like `${HOME}$/eembc/runner/benchmarks/ulp-mlperf/datasets`.  Under the datasets directory you should have subdirectories for each of the benchmarks: ad01 (anomaly detection), ic01 (image classification), kws01 (keyword spotting), vww01 (visual wakeword), sww01 (streaming wakeword).
 
+#### Running Specific Benchmarks
+
+* Image Classification
+   * Energy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_energy.yaml --device_list=devices_kws_ic_vww.yaml --mode=e`
+   * Performance: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_performance.yaml --device_list=devices_kws_ic_vww.yaml --mode=p`
+   * Accuracy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_accuracy.yaml --device_list=devices_kws_ic_vww.yaml --mode=a`
+* Keyword Spotting
+   * Energy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_energy.yaml --device_list=devices_kws_ic_vww.yaml --mode=e`
+   * Performance: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_performance.yaml --device_list=devices_kws_ic_vww.yaml --mode=p`
+   * Accuracy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_accuracy.yaml --device_list=devices_kws_ic_vww.yaml --mode=a`
+* Visual Wakewords:
+   * Energy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_energy.yaml --device_list=devices_kws_ic_vww.yaml --mode=e`
+   * Performance: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_performance.yaml --device_list=devices_kws_ic_vww.yaml --mode=p`
+   * Accuracy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_accuracy.yaml --device_list=devices_kws_ic_vww.yaml --mode=a`
+* Anomaly Detection:
+   * Energy:  `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_energy.yaml --device_list=devices_ad.yaml --mode=e`
+   * Performance: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_performance.yaml --device_list=devices_ad.yaml --mode=p`
+   * Accuracy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_accuracy.yaml --device_list=devices_ad.yaml --mode=a`
+* Streaming Wakeword
+   * SWW measures performance, accuracy, and accuracy in one run.  It should be run in energy mode.
+   * Energy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_energy.yaml --device_list=devices_sww.yaml --mode=e`
+
+
 ## Energy Test Connections
 The hardware connections are illustrated here. Not all connections will be needed for every trial.  For tests other than the audio streaming benchmark, the I2S connections, "PROCESSING", and "WW_DETECTED" can be omitted.  For those tests (KWS, IC, AD, VWW) run in accuracy or performance mode, the interface board can also be removed from the system.  In that scenario, the only connection needed is to connect the host to the DUT via USB.  If the DUT does not have a USB connection, or you wish to use a UART that is not connected to a USB port, you can use a USB-UART bridge, such as the [FTDI Friend](https://www.adafruit.com/product/284).
 
@@ -213,6 +236,11 @@ The full text of this error (at least on a Mac) is : "Exception has occurred: Se
 device reports readiness to read but returned no data (device disconnected or multiple access on port?)".  
 It is typically caused by having a serial terminal (e.g. putty, picocom) open on the power manager.  Similarly, if another application
 has the DUT or interface board open, you may receive an error like this: "[Errno 16] could not open port /dev/cu.usbmodem1403: [Errno 16] Resource busy: '/dev/cu.usbmodem1403'"
+
+### Error: Power Manager did not acknowledge.
+This will then often be followed with a list of strings, which are messages from the power manager, such as `['33930-08','33340-08','ack']`.  If this is the case, it is typically because the power manager had messages in its output queue from a previous run.  Those cause the runner to miss the acknowledgement the power manager and fail.  Simply run the runner again.
+
+If there are no messages in the list, then the power manager may be disconnected.  Make sure it is connected and powered.  You may find it helpful to connect to it with a serial terminal to check that it is present and communicating.
 
 ---
 

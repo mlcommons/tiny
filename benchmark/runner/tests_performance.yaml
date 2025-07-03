@@ -5,7 +5,7 @@ ad01:
   script:
     - loop 10: 
       - download
-      - infer 1 0 
+      - infer 1500 10 
 ic01:
   name: image_classification
   model: ic01
@@ -13,7 +13,7 @@ ic01:
   script:
     - loop 10: 
       - download
-      - infer 1 0
+      - infer 20 5
 kws01:
   name: keyword_spotting
   model: kws01
@@ -21,7 +21,7 @@ kws01:
   script:
     - loop 10: 
       - download
-      - infer 1 0
+      - infer 70 10
 vww01:
   name: person_detection
   model: vww01
@@ -29,7 +29,7 @@ vww01:
   script:
     - loop 10: 
       - download
-      - infer 1 0
+      - infer 20 5
 sww01:
   name: streaming_wakeword
   model: sww01
