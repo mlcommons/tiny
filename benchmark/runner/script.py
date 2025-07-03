@@ -104,16 +104,15 @@ class _ScriptDownloadStep(_ScriptStep):
             
         # Conditional print statements based on 'mode'
         if data:
-            if mode == "a":
-                print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
-            elif mode == "p":
-                print(f"{formatted_time} ulp-mlperf: Running Performance Metrics")
+            print(f"{formatted_time} ulp-mlperf: Loading file {file_truth['file']} segment {self._current_segment_index}")
             if(self.model == "ad01"):
                 segment = self._segments[self._current_segment_index]
                 dut.load(segment)
                 self._current_segment_index += 1
             else:
                 dut.load(data)
+            formatted_time = datetime.now().strftime("%m%d.%H%M%S")
+            print(f"{formatted_time} ulp-mlperf: Load complete.")
         else:
             print(f"WARNING: No data returned from dataset read. Script index = {self._index}, Dataset index = {dataset._current_index}")
         file_truth['total_length'] = self.total_length if self.model == "ad01" else None
@@ -184,7 +183,9 @@ class _ScriptInferStep(_ScriptStep):
 
     def run(self, io, dut, dataset, mode):  # mode passed to run
         raw_result = dut.infer(self._iterations, self._warmups)
+        print(f"Running inference with {self._warmups}/{self._iterations} (warmup/measured) iterations ...  ", end="")
         infer_results = _ScriptInferStep._gather_infer_results(raw_result, mode)
+        print(f" done")
         infer_results["iterations"] = self._iterations
         infer_results["warmups"] = self._warmups
 
@@ -192,8 +193,7 @@ class _ScriptInferStep(_ScriptStep):
 
         if mode == "e":
             timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
-            print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
-
+            print(f"  Captured samples:{len(samples)} timestamps:{len(timestamps)}")
             # Read power values from the log file using timestamps
             power_values = None
 
@@ -318,9 +318,11 @@ class _ScriptStreamStep(_ScriptStep):
         try:
             activations = sww_util.array_from_strings(detection_info, 'target activations:', end_str='m-ready')
         except ValueError as e:
-            if re.match(r"expected but not found\.", str(e)):
+            if re.search(r"expected but not found\.", str(e)):
                 print("No activation data found.")
-                activations = []
+            else:
+                raise e
+            activations = []
 
         
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
