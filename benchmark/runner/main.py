@@ -154,72 +154,6 @@ def calculate_accuracy(y_pred, labels):
     return accuracy
 
 
-def calculate_auc(y_pred, labels, n_classes):
-    # Check if y_pred has only one value per instance (Anomaly Detection case)
-    if y_pred.shape[1] == 1:
-        thresholds = np.amin(y_pred) + np.arange(0.0, 1.01, .01) * (np.amax(y_pred) - np.amin(y_pred))
-        roc_auc = 0
-
-        n_normal = np.sum(labels == 0)  # Assuming normal instances are labeled as 0
-        tpr = np.zeros(len(thresholds))
-        fpr = np.zeros(len(thresholds))
-
-        for threshold_item in range(1, len(thresholds)):
-            threshold = thresholds[threshold_item]
-            y_pred_binary = (y_pred > threshold).astype(int)
-
-            tpr[threshold_item] = np.sum(y_pred_binary[labels == 1]) / float(np.sum(labels == 1))
-            fpr[threshold_item] = np.sum(y_pred_binary[labels == 0]) / float(n_normal)
-
-        # Force boundary condition
-        fpr[0] = 1
-        tpr[0] = 1
-
-        # Compute AUC using trapezoidal rule
-        for threshold_item in range(len(thresholds) - 1):
-            roc_auc += 0.5 * (tpr[threshold_item] + tpr[threshold_item + 1]) * (
-                        fpr[threshold_item] - fpr[threshold_item + 1])
-        return roc_auc
-
-    # Multiclass Case (Existing Logic)
-    thresholds = np.arange(0.0, 1.01, 0.01)
-    fpr = np.zeros([n_classes, len(thresholds)])
-    tpr = np.zeros([n_classes, len(thresholds)])
-    roc_auc = np.zeros(n_classes)
-
-    for class_item in range(n_classes):
-        all_positives = sum(labels == class_item)
-        all_negatives = len(labels) - all_positives
-
-        for threshold_item in range(1, len(thresholds)):
-            threshold = thresholds[threshold_item]
-            false_positives = 0
-            true_positives = 0
-            for i in range(len(y_pred)):
-                if y_pred[i, class_item] > threshold:
-                    if labels[i] == class_item:
-                        true_positives += 1
-                    else:
-                        false_positives += 1
-            if all_negatives == 0:
-                fpr[class_item, threshold_item] = 0
-            else:
-                fpr[class_item, threshold_item] = false_positives / float(all_negatives)
-            if all_positives == 0:
-                tpr[class_item, threshold_item] = 0
-            else:                    
-                tpr[class_item, threshold_item] = true_positives / float(all_positives)
-
-        fpr[class_item, 0] = 1
-        tpr[class_item, 0] = 1
-        for threshold_item in range(len(thresholds) - 1):
-            roc_auc[class_item] += 0.5 * (tpr[class_item, threshold_item] + tpr[class_item, threshold_item + 1]) * (
-                        fpr[class_item, threshold_item] - fpr[class_item, threshold_item + 1])
-
-    roc_auc_avg = np.mean(roc_auc)
-    return roc_auc_avg
-
-
 def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, results_file=None):
     # Make sure it has a line that matches this regex
     #   m = re.match(r".* Median energy cost is ([\d\.]+) uJ/inf\..*", line)
@@ -325,10 +259,10 @@ def summarize_result(result, power, mode, results_file=None):
         infer_results = infer_data['results']
         file_name = r['file']
         true_class = int(r['class'])
-        for r in result:
-            errors = r.get('error')  # Safe access
-            if errors:
-                continue  # Skip error entries entirely here
+
+        errors = r.get('error')  # Safe access
+        if errors:
+            continue  # Skip error entries entirely here
         
         if 'throughput' in infer_data:
             throughput_values.append(infer_data['throughput'])
@@ -373,7 +307,9 @@ def summarize_result(result, power, mode, results_file=None):
             total_files += 1
 
         accuracy = calculate_accuracy(np.array(y_pred), np.array(y_true))
-        auc = calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
+        auc = roc_auc_score(np.array(y_pred), np.array(y_true))
+        
+        
         current_time = datetime.now()
         formatted_time = current_time.strftime("%m%d.%H%M%S ") 
         print_tee(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}", outfile=results_file)
