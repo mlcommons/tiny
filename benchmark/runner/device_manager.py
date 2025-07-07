@@ -1,5 +1,6 @@
 import yaml
 from serial.tools import list_ports
+import serial, re
 import usb.core
 
 from device_under_test import DUT
@@ -7,6 +8,55 @@ from io_manager import IOManager
 from io_manager_enhanced import IOManagerEnhanced
 from power_manager.power_manager import PowerManager
 from runner_utils import get_baud_rate
+
+def precheck_device_name(dev_cfg, serial_device, mode):
+    """
+    Called before constructing a device to check if a potential match provides
+    the correct name.  Mainly used to disambiguate multiple devices with a common
+    USB vid and pid.  If the dev_cfg does not have a "check_name" property, 
+    return True.  If the device on <serial_device> does not respond to the
+    "name%" command, or responds but the name does not match check_name return
+    False. If the response matches check_name, return True.
+    Note that this function uses teh 'check_name' property, not 'name', which
+    is mostly arbitrary
+    ** Arguments:
+    - dev_cfg: device configuration dict from devices.yaml
+    - serial_device: serial port name (e.g. "/dev/cu.usbmodel1103" on a Mac)
+    - mode: Test mode, "a", "p", or "e".  Used to determine correct baud rate.
+    """
+    if "check_name" not in dev_cfg:
+         # no check_name specified, so skip this test.
+         return True
+    baud = get_baud_rate(dev_cfg, mode=mode)
+    with serial.Serial(serial_device, baud, timeout=1) as port:
+        port.write("name%".encode())
+        response = ""
+        while True:
+            # read until there is nothing available or until an undecodable character is received.
+            raw_char = port.read(1)
+            if raw_char is None or raw_char == b'':
+                # nothing available, so break
+                break
+            try:
+                char = raw_char.decode()
+            except UnicodeDecodeError as e:
+                print("WARNING: Character decoding error while pre-checking name on {serial_device}")
+                print(str(e))
+                break
+            response += char
+    match = re.search(r"m-name-dut-\[(.*)\]", response)
+    if match:
+        received_name = match.group(1)
+    else:
+        print(f"Device on {serial_device} matches pid/vid to {dev_cfg['name']} but failed to respond to 'name%' command.")
+        print(f"Will not associate this device. If this is unexpected, check baud rate and connection.")
+        return False
+    
+    if dev_cfg["check_name"] == received_name:
+        return True
+    else:
+        print(f"Device on {serial_device} matches pid/vid to {dev_cfg['name']} but gave non-matching check_name {received_name} (expected {dev_cfg['check_name']}). Will not associate.")
+        return False
 
 
 class DeviceManager:
@@ -79,13 +129,15 @@ class DeviceManager:
         """Scan for both serial and USB-only devices and initialize them."""
         pending_serial = [p for p in list_ports.comports(True) if p.vid]
         matched = []
+        comport_serial_numbers = []
 
         for p in pending_serial:
+            comport_serial_numbers.append(p.serial_number)
             for d in self._device_defs:
                 found = False
                 for vid, pids in d.get("usb", {}).items():
                     for pid in (pids if isinstance(pids, list) else [pids]):
-                        if pid == p.pid and vid == p.vid:
+                        if pid == p.pid and vid == p.vid and precheck_device_name(d, p.device, self.mode):
                             self._add_device(p, d)
                             matched.append(p)
                             found = True
@@ -102,6 +154,9 @@ class DeviceManager:
         # Additional scan for USB-only devices (non-serial)
         all_usb = usb.core.find(find_all=True)
         for dev in all_usb:
+            if dev.serial_number in comport_serial_numbers:
+                # we already handled this device in the loop on list_ports.comports()
+                continue
             vid = dev.idVendor
             pid = dev.idProduct
             for d in self._device_defs:
