@@ -307,7 +307,7 @@ def summarize_result(result, power, mode, results_file=None):
             total_files += 1
 
         accuracy = calculate_accuracy(np.array(y_pred), np.array(y_true))
-        auc = roc_auc_score(np.array(y_true), np.array(y_pred))
+        auc = roc_auc_score(np.array(y_true), np.array(y_pred), multi_class='ovr')
         
         
         current_time = datetime.now()
