@@ -1,0 +1,41 @@
+- name: stm32h573i-dk
+  type: interface
+  preference: 2
+  baud: 115200 # Baud Rate for the interface (IO) board
+  usb:
+    0x0483: 0x374E
+- name: arduino
+  type: interface
+  preference: 1
+  baud: 115200 # Baud Rate for the interface board
+  usb:
+    0x2341:
+      - 0x0043
+      - 0x0001
+    0x2a03:
+      - 0x0043
+      - 0x0243
+- name: lpm01a
+  type: power
+  baud: 3686400
+  echo: False
+  preference: 2 # set to higher preference thatn js220 to use lpm01a
+  voltage: 1.8   # <-- Voltage for DUT
+  usb:
+    0x0483: 0x5740  # Ensures detection by VID/PID (1155 / 22336)
+- name: l4r5zi
+  type: dut
+  baud:
+    energy: 9600
+    performance: 921600
+    accuracy: 921600
+  usb:
+    0x0483: 0x374B
+- name: js220
+  type: power
+  preference: 1 # set to higher preference thatn lpm01a to use js220
+  raw_sampling_rate: 1000000
+  virtual_sampling_rate: 1000
+  usb:
+    0x16D0: 0x10BA
+

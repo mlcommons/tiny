@@ -1,0 +1,10 @@
+[
+  {
+      "wav_file": "short_wav_easy10s.wav",
+      "sample_rate": 16000,
+      "length_sec": 10.0,
+      "detection_windows": [[1.0, 1.6476250000000001], [4.0, 4.76175], [7.0, 7.358625]
+                 ]
+  }
+]
+

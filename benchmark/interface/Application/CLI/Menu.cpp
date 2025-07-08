@@ -1,5 +1,6 @@
 #include "Menu.hpp"
 #include "usart.h"
+#include "tim.h" // jhdbg only needed for debug
 
 #define RESPONSE_QUEUE_SIZE     20 * sizeof(ULONG)
 
@@ -20,6 +21,17 @@ namespace CLI
       const std::string *buffer = uart.ReadUntil("%");
       HandleCommand(*buffer);
       delete buffer;
+
+	  // HAL_GPIO_WritePin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin, GPIO_PIN_SET);
+      // int delay_start = __HAL_TIM_GET_COUNTER(&htim2);
+      // while(__HAL_TIM_GET_COUNTER(&htim2) < delay_start + 100 ){
+      // 	;
+      // }
+      // HAL_GPIO_WritePin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin, GPIO_PIN_RESET);
+
+      // int pin_val = HAL_GPIO_ReadPin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin);
+      // std::string message = "pin is " + std::to_string(pin_val);
+      // uart.SendString(message);
     }
   }
 

@@ -6,53 +6,76 @@ from serial_device import SerialDevice
 
 
 class DUT:
-  def __init__(self, port_device, baud_rate=115200, power_manager=None):
+  def __init__(self, port_device, baud_rate, power_manager=None, echo=None):
     interface = port_device
+    
+    port_kwargs = {"echo":echo} if echo else {}
     if not isinstance(port_device, InterfaceDevice):
-      interface = SerialDevice(port_device, baud_rate, "m-ready", '%')
+      interface = SerialDevice(port_device, baud_rate, "m-ready", '%', **port_kwargs)
     self._port = interface
     self.power_manager = power_manager
-    self._profile = None
-    self._model = None
-    self._name = None
+    self._profile = None  # Device profile
+    self._model = None    # Device model
+    self._name = None     # Device name
     self._max_bytes = 26 if power_manager else 31
 
+
   def __enter__(self):
-    if self.power_manager:
-      self.power_manager.__enter__()
+    #if self.power_manager:
+      #self.power_manager.__enter__()
     self._port.__enter__()
     return self
 
   def __exit__(self, *args):
     self._port.__exit__(*args)
-    if self.power_manager:
-      self.power_manager.__exit__(*args)
+    #if self.power_manager:
+      #self.power_manager.__exit__(*args)
+
+  def _retry(self, method, retries=3):
+    for attempt in range(retries):
+      if method():
+        return
+      if attempt < retries - 1:
+        print(f"Retrying {method.__name__} ({attempt + 1}/{retries})...")
 
   def _get_name(self):
+    name_retrieved = False
     for l in self._port.send_command("name"):
       match = re.match(r'^m-(name)-dut-\[([^]]+)]$', l)
       if match:
         self.__setattr__(f"_{match.group(1)}", match.group(2))
+        name_retrieved = True
+        print(f"Device name retrieved: {self._name}")  # Print the name when successfully retrieved
+    if not name_retrieved:
+      print(f"WARNING: Failed to get name.")
+    return name_retrieved
 
   def get_name(self):
     if self._name is None:
-      self._get_name()
+      self._retry(self._get_name)
     return self._name
 
   def _get_profile(self):
+    profile_retrieved = False
     for l in self._port.send_command("profile"):
       match = re.match(r'^m-(model|profile)-\[([^]]+)]$', l)
       if match:
         self.__setattr__(f"_{match.group(1)}", match.group(2))
+        profile_retrieved = True
+        if match.group(1) == "profile":
+          print(f"Device profile retrieved: {self._profile}")  # Print the profile when successfully retrieved
+        elif match.group(1) == "model":
+          print(f"Device model retrieved: {self._model}")  # Print the model when successfully retrieved
+    return profile_retrieved
 
   def get_model(self):
     if self._model is None:
-      self._get_profile()
+      self._retry(self._get_profile)
     return self._model
 
   def get_profile(self):
     if self._profile is None:
-      self._get_profile()
+      self._retry(self._get_profile)
     return self._profile
 
   def timestamp(self):
@@ -72,15 +95,30 @@ class DUT:
     return result
 
   def infer(self, number, warmups):
-    command = f"infer {number}"
-    if warmups:
-      command += f" {warmups}"
-    if self.power_manager:
-      print(self.power_manager.start())
-    result = self._port.send_command(command)
-    if self.power_manager:
-      print(self.power_manager.stop())
+    # result = self._port.send_command("db print")
+
+    command = f"infer {number} {warmups}"  # must include warmups, even if 0, because default warmups=10
+    #if self.power_manager:
+      #print(self.power_manager.start())
+    result = self._port.send_command(command, timeout=30.0)
+    #if self.power_manager:
+      #print(self.power_manager.stop())
     return result
+
+  def start_detecting(self):
+    command = f"start"
+    self._port.send_command(command)
+    return
+
+  def stop_detecting(self):
+    command = f"stop"
+    response = self._port.send_command(command)
+    return response
+
+  def print_detections(self):
+    command = f"print_detections"
+    self._port.send_command(command)
+    return    
 
   def get_help(self):
     return self._port.send_command("help")

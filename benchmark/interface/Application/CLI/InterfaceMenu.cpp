@@ -1,6 +1,11 @@
 #include "InterfaceMenu.hpp"
 #include "../IDataSource.hpp"
+#include "../Audio/WaveSink.hpp"
 #include "../ResourceManager.hpp"
+#include "usart.h"
+#include "baud_config.h"
+
+
 
 void CLI_Init(TX_BYTE_POOL *byte_pool, UART_HandleTypeDef *huart)
 {
@@ -14,6 +19,29 @@ void CLI_Run()
   CLI::InterfaceMenu::GetSingleton().Run();
 }
 
+void Record_WW_Detection()
+{
+  CLI::InterfaceMenu::GetSingleton().RecordOneDetection();
+}
+
+void Record_Dutycycle_Start()
+{
+	if( CLI::InterfaceMenu::InstanceInitialized() )
+	{
+		// only call this if the CLI instance is initialized
+		CLI::InterfaceMenu::GetSingleton().DutycycleStart();
+	}
+}
+void Record_Dutycycle_Stop()
+{
+	if( CLI::InterfaceMenu::InstanceInitialized() )
+	{
+		// only call this if the CLI instance is initialized
+		CLI::InterfaceMenu::GetSingleton().DutycycleStop();
+	}
+}
+
+
 namespace CLI
 {
   InterfaceMenu *InterfaceMenu::instance = (InterfaceMenu *)TX_NULL;
@@ -26,7 +54,21 @@ namespace CLI
                                                         {"name", NameWrapper},
                                                         {"ls", ListWrapper},
                                                         {"play", PlayWrapper},
+														{"setbaud", SetBaudWrapper},
+														{"checkbaud", CheckBaudWrapper},
+														{"record_detections", RecDetsWrapper},
+														{"print_detections", PrintDetsWrapper},
+														{"print_dutycycle", PrintDutycycleWrapper},
                                                         {"", DefaultWrapper} };
+
+  bool InterfaceMenu::InstanceInitialized()
+  {
+	  if( instance )
+		  return true;
+	  else
+		  return false;
+  }
+
 
   /**
    * Wrap the singleton function in a static function
@@ -50,6 +92,43 @@ namespace CLI
   void InterfaceMenu::PlayWrapper(const std::string &args)
   {
     instance->Play(args);
+  }
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::SetBaudWrapper(const std::string &args)
+    {
+      instance->SetBaud(args);
+    }
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::CheckBaudWrapper(const std::string &args)
+    {
+      instance->CheckBaud(args);
+    }
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::RecDetsWrapper(const std::string &args)
+  {
+    instance->RecordDetections(args);
+  }
+
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::PrintDetsWrapper(const std::string &args)
+  {
+    instance->PrintDetections(args);
+  }
+
+  /**
+   * Wrap the singleton function in a static function
+   */
+  void InterfaceMenu::PrintDutycycleWrapper(const std::string &args)
+  {
+    instance->PrintDutycycle(args);
   }
 
   /**
@@ -155,14 +234,132 @@ namespace CLI
    */
   void InterfaceMenu::Play(const std::string &args)
   {
+	Audio::PlayerResult result;
     IDataSource *source = file_system.OpenFile(args);
     Audio::WaveSource wav(*source);
-    std::string *msg = new std::string("Playing ");
+//    if( !wav.valid_wave ) {
+//    	std::string *msg = new std::string("Error. Not a valid wav file: ");
+//		msg->append(source->GetName());
+//		msg->append("\n");
+//		SendString(msg->c_str());
+//    }
+    std::string *msg = new std::string("Attempting to play ");
     msg->append(source->GetName());
     msg->append("\n");
     SendString(msg->c_str());
-    player.Play(wav);
+    result = player.Play(wav);
+    if( result == Audio::ERROR ) {
+    	SendString("Error playing file. Check that the file exists and is a 2-channel wav file.\n");
+    }
+    else {
+    	SendString("succeeded.\n");
+    }
+
     SendEnd();
     delete source;
   }
+
+  /**
+   * Set the new baud rate for the board
+   */
+  void InterfaceMenu::SetBaud(const std::string &args)
+  {
+      int baud = std::stoi(args);
+      SaveBaudRateToFlash(baud);  // Save permanently to Flash
+
+      SendString("set baud to: " + args + "\n");
+
+      SendEnd();
+      NVIC_SystemReset();  //Reset the MCU
+  }
+
+
+  /**
+   * Check the current baud rate
+   */
+  void InterfaceMenu::CheckBaud(const std::string &args)
+  {
+      int currentBaud = huart3.Init.BaudRate;
+
+      SendString("baud is: " + std::to_string(currentBaud) + "\n");
+
+      SendEnd();  // End response
+  }
+
+
+
+
+  void InterfaceMenu::RecordDetections(const std::string &args)
+  {
+	  // Sets the interface board into mode to capture detections,
+	  // but the detections are recorded in an interrupt handler,
+	  // so we can return here and proceed to playing the wav file
+
+	  __HAL_TIM_SET_COUNTER(&htim2, 0);
+	  SendString("Now recording detections");
+	  SendEndLine();
+	  dut.StartRecordingDetections();
+	  SendEnd();
+  }
+
+  void InterfaceMenu::PrintDetections(const std::string &args)
+  {
+	  uint32_t *timestamps = dut.GetDetections();
+	  uint32_t num_timestamps = dut.GetNumDetections();
+
+	  SendString("Detection Timestamps (ms)");
+	  SendEndLine();
+	  for(uint32_t i=0; i<num_timestamps; i++)
+	  {
+		  SendString(std::to_string(timestamps[i]) + ",");
+		  SendEndLine();
+	  }
+	  SendEnd();
+  }
+
+  void InterfaceMenu::PrintDutycycle(const std::string &args)
+  {
+	  uint32_t *rising_edges = dut.GetDutycycleRisingEdges();
+	  uint32_t num_rising_edges = dut.GetNumDutycycleRisingEdges();
+	  uint32_t *falling_edges = dut.GetDutycycleFallingEdges();
+	  uint32_t num_falling_edges = dut.GetNumDutycycleFallingEdges();
+
+	  SendString("Duty cycle start times (s)");
+	  SendEndLine();
+	  for(uint32_t i=0; i<num_rising_edges; i++)
+	  {
+		  SendString(std::to_string(rising_edges[i]) + ", ");
+		  if( (i+1) % 8 == 0){
+			  SendEndLine();
+		  }
+	  }
+	  SendEndLine();
+	  SendString("Duty cycle stop times (s)");
+	  SendEndLine();
+	  for(uint32_t i=0; i<num_falling_edges; i++)
+	  {
+		  SendString(std::to_string(falling_edges[i]) + ", ");
+		  if( (i+1) % 8 == 0){
+			  SendEndLine();
+		  }
+	  }
+	  SendEnd();
+  }
+
+
+  void InterfaceMenu::RecordOneDetection()
+  {
+	  dut.RecordDetection();
+  }
+
+  void InterfaceMenu::DutycycleStart()
+  {
+	  dut.RecordDutycycleStart();
+  }
+
+  void InterfaceMenu::DutycycleStop()
+  {
+	  dut.RecordDutycycleStop();
+  }
+
 }

@@ -63,3 +63,5 @@ ResourceManager::ResourceManager(TX_BYTE_POOL &byte_pool): task_runner(new Tasks
                                                            dut(new Test::DeviceUnderTest(*task_runner, new IO::Uart(byte_pool, &huart3)))
 {
 }
+
+
