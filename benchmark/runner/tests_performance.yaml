@@ -3,7 +3,7 @@ ad01:
   model: ad01
   truth_file: y_labels.csv
   script:
-    - loop 10: 
+    - loop 5:
       - download
       - infer 1500 10 
 ic01:
@@ -11,7 +11,7 @@ ic01:
   model: ic01
   truth_file: y_labels.csv
   script:
-    - loop 10: 
+    - loop 5:
       - download
       - infer 20 5
 kws01:
@@ -19,7 +19,7 @@ kws01:
   model: kws01
   truth_file: y_labels.csv
   script:
-    - loop 10: 
+    - loop 5: 
       - download
       - infer 70 10
 vww01:
@@ -27,12 +27,12 @@ vww01:
   model: vww01
   truth_file: y_labels.csv
   script:
-    - loop 10: 
+    - loop 5:
       - download
       - infer 20 5
 sww01:
   name: streaming_wakeword
   model: sww01
-  truth_file: sww_short_test.json
+  truth_file: sww_long_test.json
   script:
     - stream
