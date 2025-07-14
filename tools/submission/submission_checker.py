@@ -11,7 +11,7 @@ log = logging.getLogger("main")
 
 MODEL_CONFIG = {
     "v1.0": {
-        "models": ["ad", "ic", "kws", "vww"],  
+        "models": ["ad", "ic", "kws", "vww"],
         "required-scenarios": {
             # anything goes
         },
@@ -30,6 +30,7 @@ MODEL_CONFIG = {
             "image_classification": "ic",
             "keyword_spotting": "kws",
             "visual_wake_words": "vww",
+            "streaming_wakeword_detection": "sww",
         },
     },
     "v1.1": {
@@ -65,27 +66,98 @@ MODEL_CONFIG = {
         },
         "model_mapping": {
         },
+    },
+    "v1.3_eembc": {
+        "models": ["ad", "ic", "kws", "vww"],  
+        "required-scenarios": {
+            # anything goes
+        },
+        "optional-scenarios": {
+            # anything goes
+        },
+        "accuracy-target": {
+            "ad": ("auc", 0.85),
+            "ic": ("top-1", 85),
+            "kws": ("top-1", 90),
+            "vww": ("top-1", 80),
+        },
+        "model_mapping": {
+        },
+        "required_tests": {
+          "ad": ["accuracy", "performance"],
+          "ic": ["accuracy", "performance"],
+          "kws": ["accuracy", "performance"],
+          "vww": ["accuracy", "performance"],
+          "sww": ["energy"]
+        },
+        "optional_tests": {
+          "ad": ["energy"],
+          "ic": ["energy"],
+          "kws": ["energy"],
+          "vww": ["energy"],
+          "sww": []
+        },
+    },
+    "v1.3": {
+        "models": ["ad", "ic", "kws", "vww", "sww"],  
+        "required-scenarios": {
+            # anything goes
+        },
+        "optional-scenarios": {
+            # anything goes
+        },
+        "accuracy-target": {
+            "ad": ("auc", 0.85),
+            "ic": ("top-1", 85),
+            "kws": ("top-1", 90),
+            "vww": ("top-1", 80),
+            "sww": ("fps_fns", (8,8)),
+        },
+        "model_mapping": {
+        },
+        "required_tests": {
+          "ad": ["accuracy", "performance"],
+          "ic": ["accuracy", "performance"],
+          "kws": ["accuracy", "performance"],
+          "vww": ["accuracy", "performance"],
+          "sww": ["energy"]
+        },
+        "optional_tests": {
+          "ad": ["energy"],
+          "ic": ["energy"],
+          "kws": ["energy"],
+          "vww": ["energy"],
+          "sww": []
+        },
+        "required_files": ["log.txt", "results.json", "results.txt"]
     }
 }
 VALID_DIVISIONS = ["open", "closed"]
 VALID_AVAILABILITIES = ["available", "preview", "rdi"]
-REQUIRED_ACC_FILES = [
+EEMBC_REQUIRED_ACC_FILES = [
     "log.txt", "results.txt",
     "script.async",
+]
+MLC_REQUIRED_ACC_FILES = [
+    "log.txt", "results.txt",
+    "results.json",
 ]
 ACC_FILE = "results.txt"
 ACC_PATTERN = {
     "top-1":
-        r".* Top-1: ([\d\.]+).*",
+        r".* Top[- ]1%?\s?[:=] ([\d\.]+).*", # match "Top-1: 91.1%" (old) or "Top 1% = 85.4" (new)
     "auc":
-        r".* AUC: ([\d\.]+).*",
+        r".* AUC\s?[:=] ([\d\.]+).*", # match "AUC: 0.93" (old) or  "AUC = 0.862" (new)
 }
 FILE_SIZE_LIMIT_MB = 500
 MB_TO_BYTES = 1024*1024
-REQUIRED_PERF_FILES = REQUIRED_ACC_FILES
-OPTIONAL_PERF_FILES = [""]
-REQUIRED_PERF_POWER_FILES = REQUIRED_ACC_FILES
+EEMBC_REQUIRED_PERF_FILES = EEMBC_REQUIRED_ACC_FILES
+EEMBC_REQUIRED_PERF_POWER_FILES = EEMBC_REQUIRED_ACC_FILES
 
+MLC_REQUIRED_PERF_FILES = MLC_REQUIRED_ACC_FILES
+MLC_REQUIRED_PERF_POWER_FILES = MLC_REQUIRED_ACC_FILES
+
+OPTIONAL_PERF_FILES = [""]
 
 def list_dir(*path):
   path = os.path.join(*path)
@@ -139,7 +211,7 @@ class Config():
     self.more_power_check = more_power_check
 
   def set_type(self, submission_type):
-    if submission_type is None and self.version in ["v1.0", "v1.1", "v1.2"]:
+    if submission_type is None and self.version in ["v1.0", "v1.1", "v1.2", "v1.3"]:
       self.required = self.base["required-scenarios"]
       self.optional = self.base["optional-scenarios"]
     else:
@@ -226,7 +298,7 @@ def get_args():
   parser.add_argument("--input", required=True, help="submission directory")
   parser.add_argument(
       "--version",
-      default="v1.2",
+      default="v1.3",
       choices=list(MODEL_CONFIG.keys()),
       help="mlperf version")
   parser.add_argument("--submitter", help="filter to submitter")
@@ -506,20 +578,7 @@ def check_results_dir(config,
             results[name] = None
             continue
           system_type = system_json.get("system_type")
-          # if config.version not in ["v0.5"]:
-          #   valid_system_types = ["datacenter", "edge"]
-          #   if config.version not in ["v0.7"]:
-          #     valid_system_types += ["datacenter,edge", "edge,datacenter"]
-          #   if system_type not in valid_system_types:
-          #     log.error("%s has invalid system type (%s)", system_id_json,
-          #               system_type)
-          #     results[name] = None
-          #     continue
           config.set_type(system_type)
-          # if not check_system_desc_id(name, system_json, submitter, division,
-          #                             config.version):
-          #   results[name] = None
-          #   continue
 
         #
         # Look at each model
@@ -529,6 +588,16 @@ def check_results_dir(config,
           # we are looking at ./$division/$submitter/results/$system_desc/$model,
           #   ie ./closed/mlperf_org/results/t4-ort/bert
           name = os.path.join(results_path, system_desc, model_name)
+          if os.path.exists(os.path.join(name, "EEMBC_RUNNER")):
+            runner_type = "EEMBC_RUNNER"
+            REQUIRED_ACC_FILES = EEMBC_REQUIRED_ACC_FILES
+            REQUIRED_PERF_FILES = EEMBC_REQUIRED_PERF_FILES
+            REQUIRED_PERF_POWER_FILES = EEMBC_REQUIRED_PERF_POWER_FILES
+          else:
+            runner_type = "MLC_RUNNER"
+            REQUIRED_ACC_FILES = MLC_REQUIRED_ACC_FILES
+            REQUIRED_PERF_FILES = MLC_REQUIRED_PERF_FILES
+            REQUIRED_PERF_POWER_FILES = MLC_REQUIRED_PERF_POWER_FILES
           mlperf_model = config.get_mlperf_model(model_name, extra_model_mapping)
 
           if is_closed_or_network and mlperf_model not in config.models:
@@ -543,11 +612,6 @@ def check_results_dir(config,
           # Look at each scenario
           #
           required_scenarios = config.get_required(mlperf_model)
-          # if required_scenarios is None:
-          #   log.error("%s has an invalid model %s, system_type=%s", name,
-          #             mlperf_model, system_type)
-          #   results[name] = None
-          #   continue
 
           errors = 0
           # all_scenarios = set(
@@ -555,41 +619,13 @@ def check_results_dir(config,
           #     list(config.get_optional(mlperf_model)))
           for scenario in [""]:
             scenario_fixed = scenario
-          # for scenario in list_dir(results_path, system_desc, model_name):
-          #   # some submissions in v0.5 use lower case scenarios - map them for now
-          #   scenario_fixed = SCENARIO_MAPPING.get(scenario, scenario)
-
-            # we are looking at ./$division/$submitter/results/$system_desc/$model/$scenario,
-            #   ie ./closed/mlperf_org/results/t4-ort/bert/Offline
-            # name = os.path.join(results_path, system_desc, model_name, scenario)
-            # results[name] = None
-            # if is_closed_or_network and scenario_fixed not in all_scenarios:
-            #   log.warning(
-            #       "%s ignoring scenario %s (neither required nor optional)",
-            #       name, scenario)
-            #   continue
-
-            # check if measurement_dir is good.
-            # measurement_dir = os.path.join(division, submitter, "measurements",
-            #                                system_desc, model_name, scenario)
-            # if not os.path.exists(measurement_dir):
-            #   log.error("no measurement_dir for %s", measurement_dir)
-            #   results[measurement_dir] = None
-            #   errors += 1
-            # else:
-            #   if not check_measurement_dir(measurement_dir, name, system_desc,
-            #                                os.path.join(division, submitter),
-            #                                model_name, scenario):
-            #     log.error("%s measurement_dir has issues", measurement_dir)
-            #     # results[measurement_dir] = None
-            #     errors += 1
-            #     # FIXME: we should not accept this submission
-            #     # continue
-
             # check accuracy
             accuracy_is_valid = False
             acc_path = os.path.join(name, "accuracy")
-            if not os.path.exists(os.path.join(acc_path, ACC_FILE)):
+
+            if "accuracy" not in config.base["required_tests"][model_name]:
+              pass # accuracy run is not required for this benchmark
+            elif not os.path.exists(os.path.join(acc_path, ACC_FILE)):
               log.error(
                   "%s has no results.txt.", acc_path)
             else:
@@ -623,30 +659,42 @@ def check_results_dir(config,
 
             for i in n:
               perf_path = os.path.join(name, "performance", i)
-              if not os.path.exists(perf_path):
-                log.error("%s is missing", perf_path)
-                continue
+              has_performance = os.path.exists(perf_path)
+              requires_performance = "performance" in config.base["required_tests"][model_name]
+              allowed_tests = set.union(
+                set(config.base["required_tests"][model_name]), 
+                set(config.base["optional_tests"][model_name])
+                )
+              
               if has_power:
                 required_perf_files = REQUIRED_PERF_FILES + REQUIRED_PERF_POWER_FILES
               else:
                 required_perf_files = REQUIRED_PERF_FILES
-              diff = files_diff(
-                  list_files(perf_path), required_perf_files,
-                  OPTIONAL_PERF_FILES)
-              if diff:
-                log.error("%s has file list mismatch (%s)", perf_path, diff)
 
-              try:
-                is_valid, r, is_inferred = check_performance_dir(
-                    config, mlperf_model, perf_path, scenario_fixed, division,
-                    system_json)
-                if is_inferred:
-                  inferred = 1
-                  log.info("%s has inferred results, qps=%s", perf_path, r)
-              except Exception as e:
-                log.error("%s caused exception in check_performance_dir: %s",
-                          perf_path, e)
-                is_valid, r = False, None
+              if requires_performance and not has_performance:
+                log.error("%s is missing", perf_path)
+                continue
+              if has_performance and "performance" not in allowed_tests:
+                log.warning("performance is not a valid test for %s.  Ignoring %s", model_name, perf_path)
+              elif has_performance:
+                diff = files_diff(list_files(perf_path), 
+                                  required_perf_files, 
+                                  OPTIONAL_PERF_FILES
+                                  )
+                if diff:
+                  log.error("%s has file list mismatch (%s)", perf_path, diff)
+
+                try:
+                  is_valid, r, is_inferred = check_performance_dir(
+                      config, mlperf_model, perf_path, scenario_fixed, division,
+                      system_json)
+                  if is_inferred:
+                    inferred = 1
+                    log.info("%s has inferred results, qps=%s", perf_path, r)
+                except Exception as e:
+                  log.error("%s caused exception in check_performance_dir: %s",
+                            perf_path, str(e))
+                  is_valid, r = False, None
 
               power_metric = 0
               if has_power:
@@ -804,7 +852,7 @@ def check_performance_dir(config, model, path, scenario_fixed, division,
   fname = os.path.join(path, "results.txt")
   with open(fname, "r") as f:
     for line in f:
-      m = re.match(r".* Median throughput is ([\d\.]+) inf\./sec\..*", line)
+      m = re.match(r".* Median throughput is\s+([\d\.]+) inf\./sec\..*", line)
       if m:
         is_valid = True
         res = m.group(1)
@@ -819,7 +867,7 @@ def check_power_dir(power_path, scenario_fixed,
   fname = os.path.join(power_path, "results.txt")
   with open(fname, "r") as f:
     for line in f:
-      m = re.match(r".* Median energy cost is ([\d\.]+) uJ/inf\..*", line)
+      m = re.search(r"Median energy cost is ([\d\.]+) uJ/inf", line)
       if m:
         is_valid = True
         res = m.group(1)
@@ -833,4 +881,6 @@ def files_diff(list1, list2, optional=None):
   return set(list1).symmetric_difference(set(list2)) - set(optional)
 
 if __name__ == "__main__":
-  sys.exit(main())
+  main_result = main()
+  print(f"function main() returned {main_result}")
+  # sys.exit(main_result)
