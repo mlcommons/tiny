@@ -58,7 +58,7 @@ datagen = tf.keras.preprocessing.image.ImageDataGenerator(
     horizontal_flip=True,
     #brightness_range=(0.9, 1.2),
     #contrast_range=(0.9, 1.2),
-    validation_split=0.2
+    #validation_split=0.2
 )
 
 def unpickle(file):
@@ -141,6 +141,8 @@ if __name__ == "__main__":
     # Don't forget that the label_names and filesnames are in binary and need conversion if used.
 
     # display some random training images in a 25x25 grid
+    plt.figure()
+
     num_plot = 5
     f, ax = plt.subplots(num_plot, num_plot)
     for m in range(num_plot):
@@ -151,7 +153,9 @@ if __name__ == "__main__":
             ax[m, n].get_yaxis().set_visible(False)
     f.subplots_adjust(hspace=0.1)
     f.subplots_adjust(wspace=0)
-    plt.show()
+    plt.savefig('Logs/training_images.png')
+
+    plt.close()
 
     new_model = keras_model.resnet_v1_eembc()
     new_model.summary()
@@ -161,15 +165,19 @@ if __name__ == "__main__":
     datagen.fit(train_data)
 
     new_model.compile(
-        optimizer=optimizer, loss='categorical_crossentropy', metrics='accuracy', loss_weights=None,
+        optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'], loss_weights=None,
         weighted_metrics=None, run_eagerly=None )
 
     # fits the model on batches with real-time data augmentation:
     History = new_model.fit(datagen.flow(train_data, train_labels, batch_size=BS),
-              steps_per_epoch=len(train_data) / BS, epochs=EPOCHS, callbacks=[lr_scheduler])
+            epochs=EPOCHS, callbacks=[lr_scheduler], verbose=2)
+    
+    plt.figure()
 
     plt.plot(np.array(range(EPOCHS)), History.history['loss'])
     plt.plot(np.array(range(EPOCHS)), History.history['accuracy'])
-    plt.savefig('train_loss_acc.png')
+    plt.savefig('Logs/train_loss_acc.png', dpi = 600)
     model_name = "trainedResnet.h5"
     new_model.save("trained_models/" + model_name)
+
+    plt.close()
