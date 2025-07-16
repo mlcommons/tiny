@@ -116,7 +116,7 @@ arg_claimed_t ee_profile_parse(char *command) {
     /* These are the three common functions for all IoTConnect f/w. */
     th_printf("help         : Print this information\r\n");
     th_printf("name         : Print the name of the device\r\n");
-    th_printf("timestsamp   : Generate a timetsamp\r\n");
+    th_printf("timestamp    : Generate a timestamp\r\n");
     /* These are profile-specific commands. */
     th_printf("db SUBCMD    : Manipulate a generic byte buffer\r\n");
     th_printf("  load N     : Allocate N bytes and set load counter\r\n");
