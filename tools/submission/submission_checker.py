@@ -4,6 +4,9 @@ import logging
 import os
 import re
 import sys
+import pandas as pd
+# can't import csv because we have a variable named csv, so ...
+from csv import QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONNUMERIC, QUOTE_NONE
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
@@ -65,37 +68,6 @@ MODEL_CONFIG = {
             "vww": ("top-1", 80),
         },
         "model_mapping": {
-        },
-    },
-    "v1.3_eembc": {
-        "models": ["ad", "ic", "kws", "vww"],  
-        "required-scenarios": {
-            # anything goes
-        },
-        "optional-scenarios": {
-            # anything goes
-        },
-        "accuracy-target": {
-            "ad": ("auc", 0.85),
-            "ic": ("top-1", 85),
-            "kws": ("top-1", 90),
-            "vww": ("top-1", 80),
-        },
-        "model_mapping": {
-        },
-        "required_tests": {
-          "ad": ["accuracy", "performance"],
-          "ic": ["accuracy", "performance"],
-          "kws": ["accuracy", "performance"],
-          "vww": ["accuracy", "performance"],
-          "sww": ["energy"]
-        },
-        "optional_tests": {
-          "ad": ["energy"],
-          "ic": ["energy"],
-          "kws": ["energy"],
-          "vww": ["energy"],
-          "sww": []
         },
     },
     "v1.3": {
@@ -186,6 +158,64 @@ def list_files_recursively(*path):
 
 def split_path(m):
   return m.replace("\\", "/").split("/")
+
+def compare_versions(ver_a, ver_b):
+    """
+    compare versions ver_a and ver_b
+    if ver_a < ver_b => return -1
+    if ver_a == ver_b => return 0
+    if ver_a > ver_b => return +1
+    Versions should be strings that look like
+    "vA.B.C..." or "A.B.C"
+    The leading "v" is optional and meaningless: "A.B.C" == "vA.B.C"
+    Numbers earlier in the string take precedence. "v1.2" > "v0.9"
+    Any subversion at a given level (even 0) is greater than nothing: "v1.2.0" > "v1.2"
+"""
+    ## These should all pass
+    # assert compare_versions("v1.2.5", "v1.2") == +1
+    # assert compare_versions("v1.2.5", "v1.2.6") == -1
+    # assert compare_versions("v1.2.5", "v1.2.10") == -1
+    # assert compare_versions("1.2.5.55", "v1.2.10") == -1
+    # assert compare_versions("1.3", "1.2.10") == +1
+    # assert compare_versions("72.23.99", "v72.23.99") == 0
+    
+    parts_a = ver_a.lstrip("v").split('.')
+    parts_b = ver_b.lstrip("v").split('.')
+    num_sub_vers = max(len(parts_a), len(parts_b)) 
+    for i in range(num_sub_vers):
+        
+        if len(parts_a) > i:
+            try:
+                sub_ver_a = int(parts_a[i])
+            except:
+                raise ValueError(f"Could not convert subfield {parts_a[i]} of version {ver_a}")
+        else:
+            sub_ver_a = None
+        if len(parts_b) > i:
+            try:
+                sub_ver_b = int(parts_b[i])
+            except:
+                raise ValueError(f"Could not convert subfield {parts_b[i]} of version {ver_b}")
+        else:
+            sub_ver_b = None
+
+        # print(f"Step {i}: Comparing A: {sub_ver_a} to B: {sub_ver_b}")
+        if sub_ver_a and sub_ver_b is None:
+            return +1
+        elif sub_ver_b and sub_ver_a is None:
+            return -1
+        elif sub_ver_a is None and sub_ver_b is None:
+            return 0 # should not reach this line
+        
+        if sub_ver_a > sub_ver_b:
+            return +1
+        elif sub_ver_a < sub_ver_b:
+            return -1
+    # we made it all the way through the version string without breaking the comparison,
+    # so they should be equivalent
+    return 0
+
+    
 
 class Config():
   """Select config value by mlperf version and submission type."""
@@ -329,7 +359,7 @@ def get_args():
 def check_results_dir(config,
                       filter_submitter,
                       skip_compliance,
-                      csv,
+                      df_results,
                       debug=False):
   """
     Walk the results directory and do the checking.
@@ -352,6 +382,7 @@ def check_results_dir(config,
         if there are errors write a None as result so we can report later what
         failed
     """
+  
   head = [
       "Organization", "Availability", "Division", "BoardName", "SystemDesc",
       "Model", "MlperfModel",
@@ -362,8 +393,17 @@ def check_results_dir(config,
       "HardwareNotes",
       "InferenceFramework", "SoftwareLibraries", "SoftwareNotes",
   ]
-  fmt = ",".join(["\"{}\""] * len(head)) + "\n"
-  csv.write(",".join(head) + "\n")
+  # Add each column in 'head', appending to the right side
+  for col in head:
+    df_results.insert(len(df_results.columns), col, None)
+    
+  if compare_versions(config.version, "v1.3") >= 0: # version <+ 1.3
+    pass
+    # df_results.insert(len(df_results.columns), "False Positives", None) 
+    # df_results.insert(len(df_results.columns), "False Negatives", None) 
+
+  # fmt = ",".join(["\"{}\""] * len(head)) + "\n"
+  # csv.write(",".join(head) + "\n")
   results = {}
 
   def log_result(submitter,
@@ -383,7 +423,7 @@ def check_results_dir(config,
                  config,
                  inferred=0,
                  power_metric=0):
-
+    
     notes = system_json.get("hw_notes", "")
     if system_json.get("sw_notes"):
       notes = notes + ". " if notes else ""
@@ -405,31 +445,57 @@ def check_results_dir(config,
     unit = unit_dict[scenario_fixed]
     power_unit = power_unit_dict[scenario_fixed]
 
-    csv.write(
-        fmt.format(submitter,
-                   available,
-                   division,
-                   system_json.get("Board Name"),
-                   system_desc,
-                   model_name,
-                   mlperf_model,
-                   r,
-                   unit,
-                   acc,
-                   power_metric > 0,
-                   power_metric,
-                   power_unit,
-                   system_json.get("Processor(s) Name"), # HostProcessorModelName
-                   system_json.get("Processor(s) Frequencies"),
-                   system_json.get("Processor memory type and capacity"),
-                   system_json.get("Accelerator"),
-                   system_json.get("Accelerator(s) Frequencies"),
-                   system_json.get("Accelerator memory type and capacity"),
-                   system_json.get("Hardware Notes"),
-                   system_json.get("Inference Framework"),
-                   system_json.get("Software Libraries"),
-                   system_json.get("Software Notes"),
-                ))
+    df_results.loc[len(df_results)] = {
+      "Organization":              submitter, 
+      "Availability":              available, 
+      "Division":                  division,
+      "BoardName":                 system_json.get("Board Name"),
+      "SystemDesc":                system_desc,
+      "Model":                     model_name,
+      "MlperfModel":               mlperf_model,
+      "Result":                    r,
+      "ResultUnit":                unit,
+      "Accuracy":                  acc,
+      "HasPower":                  power_metric > 0,
+      "Power":                     power_metric,
+      "PowerUnit":                 power_unit,
+      "HostProcessorModelName":    system_json.get("Processor(s) Name"), # HostProcessorModelName
+      "HostProcessorFrequency":    system_json.get("Processor(s) Frequencies"),
+      "HostProcessorMemory":       system_json.get("Processor memory type and capacity"),
+      "AcceleratorModelName":      system_json.get("Accelerator"),
+      "AcceleratorFrequency":      system_json.get("Accelerator(s) Frequencies"),
+      "AcceleratorMemory":         system_json.get("Accelerator memory type and capacity"),
+      "HardwareNotes":             system_json.get("Hardware Notes"),
+      "InferenceFramework":        system_json.get("Inference Framework"),
+      "SoftwareLibraries":         system_json.get("Software Libraries"),
+      "SoftwareNotes":             system_json.get("Software Notes"),
+    }
+
+    # csv.write(
+    #     fmt.format(submitter,
+    #                available,
+    #                division,
+    #                system_json.get("Board Name"),
+    #                system_desc,
+    #                model_name,
+    #                mlperf_model,
+    #                r,
+    #                unit,
+    #                acc,
+    #                power_metric > 0,
+    #                power_metric,
+    #                power_unit,
+    #                system_json.get("Processor(s) Name"), # HostProcessorModelName
+    #                system_json.get("Processor(s) Frequencies"),
+    #                system_json.get("Processor memory type and capacity"),
+    #                system_json.get("Accelerator"),
+    #                system_json.get("Accelerator(s) Frequencies"),
+    #                system_json.get("Accelerator memory type and capacity"),
+    #                system_json.get("Hardware Notes"),
+    #                system_json.get("Inference Framework"),
+    #                system_json.get("Software Libraries"),
+    #                system_json.get("Software Notes"),
+    #             ))
 
     # if power_metric > 0:
     #   csv.write(
@@ -789,12 +855,14 @@ def main():
   # compliance not yet supported
   args.skip_compliance = True
 
+  df_results = pd.DataFrame()
   with open(args.csv, "w") as csv:
     os.chdir(args.input)
     # check results directory
     results = check_results_dir(config, args.submitter, args.skip_compliance,
-                                csv, args.debug)
-
+                                df_results, args.debug)
+    df_results[:0].to_csv(csv, index=False, quoting=QUOTE_NONE) # just headers w/o ""
+    df_results.to_csv(csv, index=False,  header=False, quoting=QUOTE_ALL, quotechar='"')
   # log results
   log.info("---")
   with_results = 0
