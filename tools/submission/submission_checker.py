@@ -398,12 +398,10 @@ def check_results_dir(config,
     df_results.insert(len(df_results.columns), col, None)
     
   if compare_versions(config.version, "v1.3") >= 0: # version <+ 1.3
-    pass
-    # df_results.insert(len(df_results.columns), "False Positives", None) 
-    # df_results.insert(len(df_results.columns), "False Negatives", None) 
+    df_results.insert(len(df_results.columns), "FalsePositives", None)
+    df_results.insert(len(df_results.columns), "FalseNegatives", None)
 
-  # fmt = ",".join(["\"{}\""] * len(head)) + "\n"
-  # csv.write(",".join(head) + "\n")
+
   results = {}
 
   def log_result(submitter,
@@ -422,7 +420,8 @@ def check_results_dir(config,
                  errors,
                  config,
                  inferred=0,
-                 power_metric=0):
+                 power_metric=0,
+                 results_dict={}):
     
     notes = system_json.get("hw_notes", "")
     if system_json.get("sw_notes"):
@@ -430,6 +429,7 @@ def check_results_dir(config,
       notes = notes + system_json.get("sw_notes")
     unit_dict = {
         "": "inf./sec.",
+        "streaming": "inf./sec.",
         "SingleStream": "Latency (ms)",
         "MultiStream": "Latency (ms)",
         "Offline": "Samples/s",
@@ -437,6 +437,7 @@ def check_results_dir(config,
     }
     power_unit_dict = {
         "": "uJ/inf.",
+        "streaming": "mW",
         "SingleStream": "millijoules",
         "MultiStream": "millijoules",
         "Offline": "Watts",
@@ -469,50 +470,11 @@ def check_results_dir(config,
       "InferenceFramework":        system_json.get("Inference Framework"),
       "SoftwareLibraries":         system_json.get("Software Libraries"),
       "SoftwareNotes":             system_json.get("Software Notes"),
+      "FalsePositives":            results_dict.get("fp"),
+      "FalseNegatives":            results_dict.get("fn"),
+      "DutyCycle":                 results_dict.get("duty_cycle")
     }
-
-    # csv.write(
-    #     fmt.format(submitter,
-    #                available,
-    #                division,
-    #                system_json.get("Board Name"),
-    #                system_desc,
-    #                model_name,
-    #                mlperf_model,
-    #                r,
-    #                unit,
-    #                acc,
-    #                power_metric > 0,
-    #                power_metric,
-    #                power_unit,
-    #                system_json.get("Processor(s) Name"), # HostProcessorModelName
-    #                system_json.get("Processor(s) Frequencies"),
-    #                system_json.get("Processor memory type and capacity"),
-    #                system_json.get("Accelerator"),
-    #                system_json.get("Accelerator(s) Frequencies"),
-    #                system_json.get("Accelerator memory type and capacity"),
-    #                system_json.get("Hardware Notes"),
-    #                system_json.get("Inference Framework"),
-    #                system_json.get("Software Libraries"),
-    #                system_json.get("Software Notes"),
-    #             ))
-
-    # if power_metric > 0:
-    #   csv.write(
-    #       fmt.format(submitter, available, division, '\"' + system_type + '\"',
-    #                  '\"' + system_name + '\"', system_desc, model_name,
-    #                  mlperf_model, scenario_fixed, power_metric, acc,
-    #                  system_json.get("number_of_nodes"),
-    #                  '"' + system_json.get("host_processor_model_name") + '"',
-    #                  system_json.get("host_processors_per_node"),
-    #                  system_json.get("host_processor_core_count"),
-    #                  '"' + system_json.get("accelerator_model_name") + '"',
-    #                  '"' + str(system_json.get("accelerators_per_node")) + '"',
-    #                  name.replace("\\", "/"),
-    #                  '"' + system_json.get("framework", "") + '"',
-    #                  '"' + system_json.get("operating_system", "") + '"',
-    #                  '"' + notes + '"', compliance, errors, config.version,
-    #                  inferred, power_metric > 0, power_unit))
+  ## end of log_result()
 
   # we are at the top of the submission directory
   for division in list_dir("."):
@@ -683,7 +645,8 @@ def check_results_dir(config,
           # all_scenarios = set(
           #     # list(required_scenarios) +
           #     list(config.get_optional(mlperf_model)))
-          for scenario in [""]:
+          scenario_list = ["streaming"] if mlperf_model == "sww" else [""]
+          for scenario in scenario_list:
             scenario_fixed = scenario
             # check accuracy
             accuracy_is_valid = False
@@ -724,6 +687,7 @@ def check_results_dir(config,
               log.info("Detected power logs for %s", name)
 
             for i in n:
+              results_dict = {}
               perf_path = os.path.join(name, "performance", i)
               has_performance = os.path.exists(perf_path)
               requires_performance = "performance" in config.base["required_tests"][model_name]
@@ -761,14 +725,43 @@ def check_results_dir(config,
                   log.error("%s caused exception in check_performance_dir: %s",
                             perf_path, str(e))
                   is_valid, r = False, None
+              elif model_name == "sww" and has_power: 
+                diff = files_diff(list_files(power_path), 
+                                  required_perf_files + ["energy_inf_000.png"], 
+                                  OPTIONAL_PERF_FILES
+                                  )
+                if diff:
+                  log.error("%s has file list mismatch (%s)", perf_path, diff)
 
+                try:
+                  is_valid, results_dict = sww_perf_acc_from_power_dir(
+                      config, mlperf_model, power_path)
+                  r = results_dict['throughput']
+                  acc = results_dict['accuracy'] # this is the F1 score for sww
+                  if results_dict['fp'] > 8 or results_dict['fn'] > 8:
+                    if is_closed_or_network:
+                      log.error(f"FP={results_dict['fp']} and FN={results_dict['fn']} should both be <8 in closed division SWW.")
+                      accuracy_is_valid = False
+                    else:
+                      log.info(f"FP={results_dict['fp']} and FN={results_dict['fn']} exceed closed-division limits, but acceptable since this is an open division submission.")
+                      accuracy_is_valid = True
+                  else:
+                    accuracy_is_valid = True
+                    
+                except Exception as e:
+                  log.error("%s caused exception in sww_perf_acc_from_power_dir: %s",
+                            perf_path, str(e))
+                  is_valid, r = False, None
+
+              else:
+                is_valid = False
+                log.warning("The script should never reach this point. This is an unaccounted for condition.")
               power_metric = 0
               if has_power:
                 try:
                   ranging_path = os.path.join(name, "performance", "ranging")
                   power_is_valid, power_metric = check_power_dir(
-                      power_path, scenario_fixed,
-                      config)
+                      power_path, model_name)
                   if not power_is_valid:
                     is_valid = False
                     power_metric = 0
@@ -825,7 +818,8 @@ def check_results_dir(config,
                     errors,
                     config,
                     inferred=inferred,
-                    power_metric=power_metric)
+                    power_metric=power_metric,
+                    results_dict=results_dict)
               else:
                 results[name] = None
                 log.error("%s is OK but accuracy has issues", name)
@@ -911,6 +905,8 @@ def check_accuracy_dir(config, model, path, verbose):
 
   return is_valid, acc
 
+
+
 def check_performance_dir(config, model, path, scenario_fixed, division,
                           system_json):
   is_valid = False
@@ -926,16 +922,57 @@ def check_performance_dir(config, model, path, scenario_fixed, division,
         res = m.group(1)
   return is_valid, float(res), inferred
 
-def check_power_dir(power_path, scenario_fixed,
-                    config):
+def sww_perf_acc_from_power_dir(config, model, path):
+  """
+  Extract performance and accuracy data from the energy dir.  Currently (July 2025) this
+  is really only for the streaming wakeword benchmark.
+  """
+  is_valid = False
+  has_throughput = has_accuracy = has_duty_cyle = False
+  throughput=tp=fp=f1_acc=None
+
+  fname = os.path.join(path, "results.txt")
+  with open(fname, "r") as f:
+    for line in f:
+      m = re.search(r"Estimated throughput:\s*([\d\.]+) inf\./sec\..*", line)
+      if m:
+        throughput = float(m.group(1))
+        has_throughput=True
+        continue
+      m = re.search(r"Accuracy: ([\d]+) True positives, ([\d]+) False negatives, ([\d]+) False positives", line)
+      if m:
+        groups = m.groups()
+        if len(groups) == 3:
+          tp,fn,fp = (int(mm) for mm in groups)
+          f1_acc = 2*tp/(2*tp+fp+fn)
+          if tp+fn == 50:
+            has_accuracy = True
+          else:
+            log.error(f"True Positives ({tp}) + False Negatives ({fn}) != 50")
+        else:
+          log.warning(f"Accuracy line should have three integers: TP, FN, FP.\n{line}")
+      m = re.search(r"Average duty cycle:\s*([\d\.]+)", line)
+      if m:
+        duty_cycle = float(m.group(1))
+        has_duty_cyle = True
+  is_valid = has_throughput and has_accuracy and has_duty_cyle
+  return is_valid, dict(throughput=throughput,tp=tp,fn=fn,fp=fp,accuracy=f1_acc)
+
+
+def check_power_dir(power_path, model_name):
 
   is_valid = False
   res = None
 
   fname = os.path.join(power_path, "results.txt")
+
+  if model_name == "sww":
+    pattern = r"Power\s+: ([\d\.]+) mW.*"
+  else:
+    pattern = r"Median energy cost is ([\d\.]+) uJ/inf"
   with open(fname, "r") as f:
     for line in f:
-      m = re.search(r"Median energy cost is ([\d\.]+) uJ/inf", line)
+      m = re.search(pattern, line)
       if m:
         is_valid = True
         res = m.group(1)
