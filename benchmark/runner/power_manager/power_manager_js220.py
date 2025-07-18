@@ -2,6 +2,7 @@ import time
 from joulescope import scan
 import numpy as np
 
+
 class JS220PortWrapper:
     def __init__(self, device):
         self._device = device
@@ -29,6 +30,8 @@ class JoulescopeCommands:
         self._triggered = False
         self._last_sample_id = None
         self._last_gpi = None
+        self._shutdown_in_progress = False
+
         js_config = config or {}
         self.raw_rate = int(js_config.get("raw_sampling_rate", 1000000))
         self.virtual_rate = int(js_config.get("virtual_sampling_rate", 1000))
@@ -54,93 +57,95 @@ class JoulescopeCommands:
 
     def tear_down(self):
         print("[JS220] Shutting down stream...")
+        self._shutdown_in_progress = True
         self.m._running = False
+
+        # Let read loop catch the stop signal
+        time.sleep(0.05)
+
         try:
             self._device.stop()
         except Exception:
             pass
+
         try:
             self._device.close()
         except Exception:
             pass
+
         print("[JS220] Shutdown complete.")
 
     def read_loop(self):
-        sb = self._device.stream_buffer
-        print("[JS220] Stream reading started (trigger mimic)...")
-
-        current_buffer = []
-        voltage_buffer = []
-        timestamp_buffer = []
-
-        ts_counter = 0
-        last_emit_time = time.time()
+        print("[JS220] Stream reading started...")
+        self._last_sample_id = None
+        self._last_gpi = None
         event_counter = 0
 
-        while self.m._running:
+        energy_acc = 0.0
+        sample_counter = 0
+        pending_event_in_stride = False
 
-            sample_id_range = sb.sample_id_range
-            if sample_id_range is None:
-                time.sleep(0.001)
-                continue
+        try:
+            while self.m._running and not self._shutdown_in_progress:
+                sb = self._device.stream_buffer
+                if sb is None:
+                    break
 
-            start_id, end_id = sample_id_range
-            if self._last_sample_id is None or end_id < self._last_sample_id:
-                self._last_sample_id = start_id
-
-            if end_id <= self._last_sample_id:
-                time.sleep(0.001)
-                continue
-
-            try:
-                data = sb.samples_get(self._last_sample_id, end_id, fields=["current", "voltage", "current_lsb"])
-            except ValueError:
-                self._last_sample_id = None
-                continue
-
-            current = data["signals"]["current"]["value"]
-            voltage = data["signals"]["voltage"]["value"]
-            gpi0_vals = data["signals"]["current_lsb"]["value"]
-            t0 = time.time()
-            count = min(len(current), len(voltage), len(gpi0_vals))
-            self._last_sample_id = end_id
-
-            for i in range(count):
-                current_buffer.append(current[i])
-                voltage_buffer.append(voltage[i])
-                timestamp_buffer.append(t0)
-
-                gpi = int(gpi0_vals[i] > 0)
-                if self._last_gpi is None:
-                    self._last_gpi = gpi
+                sample_id_range = sb.sample_id_range
+                if sample_id_range is None:
+                    time.sleep(0.001)
                     continue
 
-                # ✅ Emit event string (on rising edge only)
-                if self._triggered:
-                    if self._last_gpi == 0 and gpi == 1:
-                        event_line = f"event {event_counter:02} ris"
-                        self.m._data_queue.put(event_line)
-                        event_counter += 1
-                        self._triggered = False
-                else:
-                    if self._last_gpi == 1 and gpi == 0:
-                        self._triggered = True
+                start_id, end_id = sample_id_range
 
-                self._last_gpi = gpi
+                if self._last_sample_id is None or self._last_sample_id < start_id:
+                    self._last_sample_id = start_id
 
-                if len(current_buffer) >= self.emit_stride:
-                    avg_time = float(np.mean(timestamp_buffer))
-                    # ✅ Compute energy over 1ms: E = I * V * dt
-                    energy = float(np.mean([i * v * 0.001 for i, v in zip(current_buffer, voltage_buffer)]))
-                    self.m._data_queue.put(energy)
-                    current_buffer.clear()
-                    voltage_buffer.clear()
-                    timestamp_buffer.clear()
+                if self._last_sample_id >= end_id:
+                    time.sleep(0.0005)
+                    continue
 
-        print("[JS220] Stream reading loop exited.")
+                try:
+                    data = sb.samples_get(
+                        self._last_sample_id,
+                        end_id,
+                        fields=["current", "voltage", "current_lsb"]
+                    )
+                except ValueError as e:
+                    print(f"[JS220] Sample fetch failed: {e}")
+                    self._last_sample_id = end_id
+                    continue
 
+                self._last_sample_id = end_id
+                current = data["signals"]["current"]["value"]
+                voltage = data["signals"]["voltage"]["value"]
+                gpi0_vals = data["signals"]["current_lsb"]["value"]
 
+                count = min(len(current), len(voltage), len(gpi0_vals))
 
+                for i in range(count):
+                    cur = current[i]
+                    volt = voltage[i]
+                    gpi = int(gpi0_vals[i] > 0)
+
+                    energy_acc += cur * volt / self.raw_rate
+                    sample_counter += 1
+
+                    if self._last_gpi is not None and self._last_gpi == 0 and gpi == 1:
+                        pending_event_in_stride = True
+
+                    self._last_gpi = gpi
+
+                    if sample_counter >= self.emit_stride or (pending_event_in_stride and sample_counter > 0):
+                        self.m._data_queue.put(float(energy_acc))
+                        if pending_event_in_stride:
+                            self.m._data_queue.put(f"event {event_counter:02} ris")
+                            event_counter += 1
+                        energy_acc = 0.0
+                        sample_counter = 0
+                        pending_event_in_stride = False
+        finally:
+            print("[JS220] Stream reading loop exited.")
 
     def power_on(self):
         return True
