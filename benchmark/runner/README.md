@@ -164,6 +164,24 @@ The device file defines available devices that are automatically detected by the
 - **`usb`**: `dict` where the key is `vid` and the value is a `pid` or a list of `pid`s.
 - **`usb_description`**: A string used to match the USB description.
 
+#### Adding a New Device
+You can use the PySerial module's list_ports function to get the VID and PID of a device as long as it presents as a serial interface
+```
+jeremy@macbook-pro-16%>python -m serial.tools.list_ports -v
+/dev/cu.Bluetooth-Incoming-Port
+    desc: n/a
+    hwid: n/a
+/dev/cu.usbmodem1403 <<==== This is the reference DUT 
+    desc: STLINK-V3
+    hwid: USB VID:PID=0483:374E SER=005300313532511531333430 LOCATION=0-1.4
+/dev/cu.usbmodem2061398A4D431  <<==== This is the LPM05a power monitor
+    desc: PowerShield (Virtual ComPort in FS Mode)
+    hwid: USB VID:PID=0483:5740 SER=2061398A4D43 LOCATION=1-1
+/dev/cu.wlan-debug  
+    desc: n/a
+    hwid: n/a
+4 ports found
+```
 ---
 
 ### Device Under Test Configuration `dut.yml`
@@ -272,3 +290,6 @@ If the I2S transfer appears not to be working, here are a few things to try.
 ### Baud Rate for Interface board:
 Located in file /application/user/core/usart.c
    
+### A device with vid:pid XX:YY failed to provide a serial number.
+In some cases, multiple devices may have the same VID and PID.  For example, on an MCU development board, the VID/PID may be linked to the vendors debugger/programmer (e.g. ST-Link) rather than to the development board specifically.  To avoid 
+Workaround:  Use a USB-serial converter so that the offending device presents with a different VID:PID.
