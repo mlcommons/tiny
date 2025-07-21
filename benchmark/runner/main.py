@@ -225,6 +225,7 @@ def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, res
 
 # Summarize results
 def summarize_result(result, power, mode, results_file=None):
+    print(20*'-')
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -251,7 +252,7 @@ def summarize_result(result, power, mode, results_file=None):
         print_energy_results(result, energy_sampling_freq=1000, results_file=results_file)
         return
 
-    for r in result:
+    for res_num,r in enumerate(result):
         if 'infer' not in r or 'class' not in r or 'file' not in r:
             continue  # Skip malformed or error-only entries
         infer_data = r['infer']
@@ -265,6 +266,13 @@ def summarize_result(result, power, mode, results_file=None):
         
         if 'throughput' in infer_data:
             throughput_values.append(infer_data['throughput'])
+            print_tee(f"Performance results for window {res_num+1}", outfile=results_file)
+            print_tee(f"    # Inferences : {infer_data['iterations']}", outfile=results_file)
+            print_tee(f"    Runtime: {infer_data['elapsed_time']/1e6} sec.", outfile=results_file)
+            print_tee(f"    Throughput: {infer_data['throughput']} inf./sec.", outfile=results_file)
+            if infer_data['elapsed_time']/1e6 > 10.0:
+                print_tee(f"    Runtime requirements have been met.", outfile=results_file)
+             
 
         if file_name not in file_infer_results:
             file_infer_results[file_name] = {'true_class': true_class, 'results': []}
