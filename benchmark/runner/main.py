@@ -203,7 +203,6 @@ def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, res
         total_inference_energy = np.sum(inference_energy_samples)
         num_inferences = res['infer']['iterations']
         energy_per_inf = total_inference_energy / num_inferences
-        latency_per_inf = elapsed_time / num_inferences
         inf_energies[inf_num] = energy_per_inf
         inf_times[inf_num] = elapsed_time
         
