@@ -34,10 +34,13 @@ if not os.path.exists(Flags.plot_dir):
   os.makedirs(Flags.plot_dir)
 
 
-print("Using speech commands data from {Flags.speech_commands_path} \nand background noise from {Flags.musan_path}")
+print(f"Using speech commands data from {Flags.speech_commands_path} \nand background noise from {Flags.musan_path}")
 print(20*'-')
 
-ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)
+if Flags.saved_datasets_path is None:
+  ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)
+else:
+  ds_train, ds_test, ds_val = str_ww_data.get_all_datasets(Flags)
 print("Done getting data")
 
 if Flags.model_init_path is None:
@@ -78,10 +81,23 @@ if float_epochs > 0:
 post_train_lr = model.optimizer.lr.numpy()
 print(f"After initial float training, LR = {post_train_lr}")
 
+# find rate such that over qat_epochs-10, LR decreases by 10x
+if qat_epochs >10:
+  qat_lr_dec_rate = 0.1**(1/(qat_epochs-10))
+else:
+  qat_lr_dec_rate = 1.0
+    
+def qat_lr_scheduler(epoch, lr):
+  if epoch < 10:
+    return lr
+  else:
+    return lr * qat_lr_dec_rate
+  
 if qat_epochs > 0:
-  model_qat = models.apply_qat(model, Flags, init_lr=Flags.learning_rate) #   init_lr=post_train_lr)
+  cb_lr_sched = keras.callbacks.LearningRateScheduler(qat_lr_scheduler)
+  model_qat = models.apply_qat(model, Flags, init_lr=0.1*Flags.learning_rate) #   init_lr=post_train_lr)
   train_hist_qat = model_qat.fit(ds_train, validation_data=ds_val, 
-                                 epochs=qat_epochs, callbacks=callbacks)
+                                 epochs=qat_epochs, callbacks=[cb_lr_sched])
   util.plot_training(Flags.plot_dir,train_hist_qat, suffix='_qat')
   print(f"After QAT training/fine-tuning. On training set:")
   model.evaluate(ds_train)

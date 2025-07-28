@@ -1,0 +1,12 @@
+{"configs_background": [["{musan_path}/music/hd-classical/music-hd-0002.wav",
+                         5.0, 10.0, 0.05]
+                        ],
+ "configs_wakeword": [["{speech_commands_path}/marvin/aef8dcf5_nohash_0.wav",
+                       1.0, 0.7],
+                      ["{speech_commands_path}/marvin/24ad3ebe_nohash_1.wav",
+                       4.0, 0.8],
+                      ["{speech_commands_path}/marvin/5c8af87a_nohash_0.wav",
+                       7.0, 0.9]
+                    ],
+ "length_sec": 10.0,
+ "sample_rate": 16000}

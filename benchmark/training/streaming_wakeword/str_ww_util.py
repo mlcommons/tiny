@@ -7,6 +7,18 @@ from tensorflow import keras
 
 def add_dataset_args(parser):
     parser.add_argument(
+        '--saved_datasets_path',
+        type=str,
+        default=None,
+        help="""\
+            Loads training, validation, test, datasets from the specified directory.  If set, the 
+            given directory should contain sub-directories named 'sww_test', 'sww_train', and 'sww_val', 
+            created by e.g. `ds_train.save("saved_datasets/sww_train")`.  The get_datasets.py script 
+            does this.  Combined with the get_datasets.py script, this flag allows you to re-use the dataset, 
+            without repeating the (time-consuming) pre-preprocssing. If not set, the datasets will be built 
+            prior to training. 
+    """)
+    parser.add_argument(
         '--num_background_clips',
         type=int,
         default=50,
@@ -16,7 +28,7 @@ def add_dataset_args(parser):
     parser.add_argument(
         '--l2_reg',
         type=float,
-        default=0.001,
+        default=0.0,
         help='L2 regularization coefficient for conv layers',)
     parser.add_argument(
         '--min_snr_training',
@@ -233,7 +245,6 @@ def add_dataset_args(parser):
         default=0.001,
         help='Initial LR',) 
 
-
 def add_training_args(parser):
     parser.add_argument(
         '--use_qat',
@@ -253,7 +264,7 @@ def add_training_args(parser):
     parser.add_argument(
         '--epochs',
         type=int,
-        default=65,
+        default=100,
         help="""\
         How many (total) epochs to train. If use_qat is enabled, and pretrain_epochs>0
         then the model will pretrain (without QAT) for pretrain_epochs, then train 
@@ -308,10 +319,18 @@ def add_training_args(parser):
         """)
 
 def add_eval_args(parser):
+    # ../../runner/sww_data_dir/sww_long_test.json
     parser.add_argument(
-        '--test_wav_path',
+        '--stream_config',
         type=str,
-        default="long_wav.wav",
+        default="../../runner/sww_data_dir/sww_long_test.json",
+        help="""\
+        JSON file defining the streaming test.  If None, skips the streaming and 
+        """)
+    parser.add_argument(    
+        '--wav_dir',
+        type=str,
+        default="../../runner/sd_card/",
         help="""\
         Wav file to run the model on for the long-wav test.
         """)
@@ -322,15 +341,16 @@ def add_eval_args(parser):
         default=None,
         help='Trained model to evaluate')
     parser.add_argument(
-        '--use_tflite_model',
-        action="store_true",
-        help="""\
-            Run the TFLite model. Otherwise, run the standard keras model
-            """)
-    parser.add_argument(
-        '--tfl_file_name',
+        '--specgram',
+        type=str,
+        required=False,
         default=None,
-        help='File name from which the TF Lite model is loaded.')
+        help="""
+        Pre-computed spectrogram to use for long-wav test instead of computing features from wav file.
+        Should specify an npz file with an element named 'specgram'.  E.g. `np.savez('test.npz', specgram=specgram)`
+        Spectrogram should squeeze to shape (N, 40) and correspond to the detection windows specified in stream_config
+        """)
+
 
 
 def add_quantize_args(parser):
@@ -345,6 +365,24 @@ def add_quantize_args(parser):
         default='trained_models/strm_ww_int8.tflite',
         help='File name to which the TF Lite model will be saved (quantize.py) or loaded (eval_quantized_model)')
 
+def add_long_wav_args(parser):
+    parser.add_argument(
+        '--long_wav_name',
+        type=str,
+        default="long_wav.wav",
+        help="File name for the wav file being built")
+    parser.add_argument(
+        '--wav_spec',
+        type=str,
+        default="long_wav_spec.json",
+        help="JSON file specifying recipe for the long wav")
+    parser.add_argument(
+        '--rel_thresh',
+        type=float,
+        default=0.05,
+        help="Threshold (relative to peak) used to clip wakewords inserted into long wav")
+
+
 def parse_command(main_program):
     parser = argparse.ArgumentParser()
     
@@ -355,6 +393,8 @@ def parse_command(main_program):
         add_eval_args(parser)
     if main_program == "quantize":
         add_quantize_args(parser)
+    if main_program == "build_long_wav":
+        add_long_wav_args(parser)
 
     Flags = parser.parse_args()
 

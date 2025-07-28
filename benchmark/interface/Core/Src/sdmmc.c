@@ -23,9 +23,9 @@
 /* USER CODE BEGIN 0 */
 #include "tx_api.h"
 
-#define SD_DETECT_Pin                       GPIO_PIN_14
-#define SD_DETECT_GPIO_Port                 GPIOH
-#define SD_DETECT_EXTI_IRQn                 EXTI14_IRQn
+//#define SD_DETECT_Pin                       GPIO_PIN_14
+//#define SD_DETECT_GPIO_Port                 GPIOH
+//#define SD_DETECT_EXTI_IRQn                 EXTI14_IRQn
 
 TX_SEMAPHORE    card_in_semaphore;
 TX_SEMAPHORE    card_out_semaphore;
@@ -169,32 +169,12 @@ void HAL_SD_MspDeInit(SD_HandleTypeDef* sdHandle)
 
 /* USER CODE BEGIN 1 */
 
-/**
-  * @brief  EXTI line detection callback.
-  * @param  GPIO_Pin: Specifies the port pin connected to corresponding EXTI line.
-  * @retval None
-  */
-void HAL_GPIO_EXTI_Falling_Callback(uint16_t GPIO_Pin)
-{
-  if(GPIO_Pin == SD_DETECT_Pin)
-  {
-    tx_semaphore_ceiling_put(&card_in_semaphore, 1);
-  }
-}
-
-void HAL_GPIO_EXTI_Rising_Callback(uint16_t GPIO_Pin)
-{
-  if(GPIO_Pin == SD_DETECT_Pin)
-  {
-    tx_semaphore_ceiling_put(&card_out_semaphore, 1);
-  }
-}
 
 int32_t SD_IsDetected()
 {
   int32_t ret;
   /* Check SD card detect pin */
-  if (HAL_GPIO_ReadPin(SD_DETECT_GPIO_Port, SD_DETECT_Pin) == GPIO_PIN_SET)
+  if (HAL_GPIO_ReadPin(uSD_DETECT_GPIO_Port, uSD_DETECT_Pin) == GPIO_PIN_SET)
   {
     ret = SD_NOT_PRESENT;
   }

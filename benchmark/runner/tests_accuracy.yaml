@@ -1,0 +1,40 @@
+ad01:
+  name: anomoly_detection
+  model: ad01
+  truth_file: y_labels.csv
+  script:
+    - loop:
+      - download
+      - infer 1 0 # Infrences, Warmups
+      - reset 20
+ic01:
+  name: image_classification
+  model: ic01
+  truth_file: y_labels.csv
+  script:
+    - loop: 
+      - download
+      - infer 1 0
+kws01:
+  name: keyword_spotting
+  model: kws01
+  truth_file: y_labels.csv
+  script:
+    - loop:
+      - download
+      - infer 1 0
+vww01:
+  name: person_detection
+  model: vww01
+  truth_file: y_labels.csv
+  script:
+    - loop:
+      - download
+      - infer 1 0
+sww01:
+  name: streaming_wakeword
+  model: sww01
+  truth_file: sww_long_test.json
+  script:
+    - loop:
+      - stream

@@ -1,5 +1,6 @@
 #include "Menu.hpp"
 #include "usart.h"
+#include "tim.h" // jhdbg only needed for debug
 
 #define RESPONSE_QUEUE_SIZE     20 * sizeof(ULONG)
 
@@ -20,6 +21,17 @@ namespace CLI
       const std::string *buffer = uart.ReadUntil("%");
       HandleCommand(*buffer);
       delete buffer;
+
+	  // HAL_GPIO_WritePin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin, GPIO_PIN_SET);
+      // int delay_start = __HAL_TIM_GET_COUNTER(&htim2);
+      // while(__HAL_TIM_GET_COUNTER(&htim2) < delay_start + 100 ){
+      // 	;
+      // }
+      // HAL_GPIO_WritePin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin, GPIO_PIN_RESET);
+
+      // int pin_val = HAL_GPIO_ReadPin(WW_DET_IN_GPIO_Port, WW_DET_IN_Pin);
+      // std::string message = "pin is " + std::to_string(pin_val);
+      // uart.SendString(message);
     }
   }
 
@@ -28,15 +40,17 @@ namespace CLI
     UINT buf_len = buffer.length();
     for(int i = 0; buf_len > 0 && commands[i].command.length() != 0; i++)
     {
-      if(buffer.rfind(commands[i].command.c_str(), 0) == 0)
+      if(buffer.rfind(commands[i].command.c_str(), 0) == 0) // buffer matches the i'th command
       {
         if(buf_len == commands[i].command.length())
         {
+          // command in the buffer has no arguments
           commands[i].action("");
         }
         else if(buf_len > commands[i].command.length() + 1
                 && buffer[commands[i].command.length()] == ' ')
         {
+          // command in the buffer has additional text beyond just the command
           commands[i].action(&buffer[commands[i].command.length() + 1]);
         }
         return;

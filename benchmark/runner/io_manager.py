@@ -3,14 +3,21 @@ from serial_device import SerialDevice
 
 
 class IOManager(InterfaceDevice):
-  def __init__(self, port_device, baud_rate=115200):
-    self.port = SerialDevice(port_device, baud_rate, "m-ready", '%')
+  def __init__(self, port_device, baud_rate, dut_baud_rate, echo=None):
+    port_kwargs = {"end_of_response":"m-ready",
+                   "delimiter":"%"
+                   }
+    if echo: 
+      port_kwargs["echo"] = echo
+      
+    self.port = SerialDevice(port_device, baud_rate, **port_kwargs)
     self.entry_count = 0
+    self.dut_baud_rate = dut_baud_rate
 
   def __enter__(self):
     if not self.entry_count:
       self.port.__enter__()
-      self.get_name()
+      # self.get_name()
     self.entry_count += 1
     return self
 
@@ -21,7 +28,7 @@ class IOManager(InterfaceDevice):
 
   def get_name(self):
     return self.port.send_command("name")
-
+  
   def timestamp(self):
     return self.port.send_command("timestamp")
 
@@ -34,11 +41,17 @@ class IOManager(InterfaceDevice):
 
   def read_line(self):
     resp = self.port.read_line()
-    resp = resp.replace("[dut]: ", "")
+    if resp is not None:
+      resp = resp.replace("[dut]: ", "")
     return resp
 
-  def send_command(self, command, end=None, echo=False):
-    resp = self.port.send_command(f"dut {command}")
+  def send_command(self, command, end=None, echo=False, timeout=None):
+    if timeout is not None:
+      port_kw_args = {'timeout':timeout}
+    else:
+      port_kw_args = {}
+
+    resp = self.port.send_command(f"dut {command}", **port_kw_args)
     if len(resp) != 2 or resp[1] != "m-ready":
       return None
     resp = None

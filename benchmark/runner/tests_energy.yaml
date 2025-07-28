@@ -1,0 +1,38 @@
+ad01:
+  name: anomoly_detection
+  model: ad01
+  truth_file: y_labels.csv
+  script:
+    - loop 5: 
+      - download
+      - infer 1500 0 
+ic01:
+  name: image_classification
+  model: ic01
+  truth_file: y_labels.csv
+  script:
+    - loop 5: 
+      - download
+      - infer 20 0
+kws01:
+  name: keyword_spotting
+  model: kws01
+  truth_file: y_labels.csv
+  script:
+    - loop 5: 
+      - download
+      - infer 70 10
+vww01:
+  name: person_detection
+  model: vww01
+  truth_file: y_labels.csv
+  script:
+    - loop 5: 
+      - download
+      - infer 20 5
+sww01:
+  name: streaming_wakeword
+  model: sww01
+  truth_file: sww_long_test.json
+  script:
+    - stream
