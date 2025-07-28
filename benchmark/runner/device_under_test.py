@@ -40,6 +40,7 @@ class DUT:
 
   def _get_name(self):
     name_retrieved = False
+    print("Retrieving name from DUT ...")
     for l in self._port.send_command("name"):
       match = re.match(r'^m-(name)-dut-\[([^]]+)]$', l)
       if match:

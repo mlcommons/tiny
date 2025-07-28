@@ -17,7 +17,7 @@ def precheck_device_name(dev_cfg, serial_device, mode):
     return True.  If the device on <serial_device> does not respond to the
     "name%" command, or responds but the name does not match check_name return
     False. If the response matches check_name, return True.
-    Note that this function uses teh 'check_name' property, not 'name', which
+    Note that this function uses the 'check_name' property, not 'name', which
     is mostly arbitrary
     ** Arguments:
     - dev_cfg: device configuration dict from devices.yaml
@@ -129,10 +129,8 @@ class DeviceManager:
         """Scan for both serial and USB-only devices and initialize them."""
         pending_serial = [p for p in list_ports.comports(True) if p.vid]
         matched = []
-        comport_serial_numbers = []
 
         for p in pending_serial:
-            comport_serial_numbers.append(p.serial_number)
             for d in self._device_defs:
                 found = False
                 for vid, pids in d.get("usb", {}).items():
@@ -154,12 +152,16 @@ class DeviceManager:
         # Additional scan for USB-only devices (non-serial)
         all_usb = usb.core.find(find_all=True)
         for dev in all_usb:
-            if dev.serial_number in comport_serial_numbers:
-                # we already handled this device in the loop on list_ports.comports()
-                continue
             vid = dev.idVendor
             pid = dev.idProduct
+
             for d in self._device_defs:
+                if d.get("interface", "") != "direct_usb":
+                    # this association logic is only for direct (non-serial) devices, like the JS-220.
+                    # so skip it if interface is unspecified or not "direct_usb"
+                    # Without this block, a VID/PID match that has been previously rejected based on
+                    # "name" mismatch can be incorrectly associated here.
+                    continue
                 for k, v in d.get("usb", {}).items():
                     if isinstance(v, list):
                         if pid in v and vid == k:
