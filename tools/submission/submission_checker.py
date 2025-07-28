@@ -834,7 +834,7 @@ def check_results_dir(config,
               log.warning("%s ignoring missing scenarios in open division (%s)",
                           name, required_scenarios)
 
-  return results
+  return results, is_valid
 
 
 def main():
@@ -853,7 +853,7 @@ def main():
   with open(args.csv, "w") as csv:
     os.chdir(args.input)
     # check results directory
-    results = check_results_dir(config, args.submitter, args.skip_compliance,
+    results, is_valid = check_results_dir(config, args.submitter, args.skip_compliance,
                                 df_results, args.debug)
     df_results[:0].to_csv(csv, index=False, quoting=QUOTE_NONE) # just headers w/o ""
     df_results.to_csv(csv, index=False,  header=False, quoting=QUOTE_ALL, quotechar='"')
@@ -873,7 +873,7 @@ def main():
   log.info("---")
   log.info("Results=%d, NoResults=%d", with_results,
            len(results) - with_results)
-  if len(results) != with_results:
+  if len(results) != with_results or not is_valid:
     log.error("SUMMARY: submission has errors")
     return 1
   else:
