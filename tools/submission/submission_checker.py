@@ -92,14 +92,14 @@ MODEL_CONFIG = {
           "ic": ["accuracy", "performance"],
           "kws": ["accuracy", "performance"],
           "vww": ["accuracy", "performance"],
-          "sww": ["energy"]
+          "sww": []
         },
         "optional_tests": {
           "ad": ["energy"],
           "ic": ["energy"],
           "kws": ["energy"],
           "vww": ["energy"],
-          "sww": []
+          "sww": ["energy", "performance"]
         },
         "required_files": ["log.txt", "results.json", "results.txt"]
     }
@@ -400,6 +400,7 @@ def check_results_dir(config,
   if compare_versions(config.version, "v1.3") >= 0: # version <+ 1.3
     df_results.insert(len(df_results.columns), "FalsePositives", None)
     df_results.insert(len(df_results.columns), "FalseNegatives", None)
+    df_results.insert(len(df_results.columns), "DutyCycle", None)
 
 
   results = {}
@@ -474,6 +475,7 @@ def check_results_dir(config,
       "FalseNegatives":            results_dict.get("fn"),
       "DutyCycle":                 results_dict.get("duty_cycle")
     }
+    print()
   ## end of log_result()
 
   # we are at the top of the submission directory
@@ -704,8 +706,40 @@ def check_results_dir(config,
               if requires_performance and not has_performance:
                 log.error("%s is missing", perf_path)
                 continue
-              if has_performance and "performance" not in allowed_tests:
-                log.warning("performance is not a valid test for %s.  Ignoring %s", model_name, perf_path)
+              elif model_name == "sww":
+                if has_power:
+                  sww_results_path = power_path
+                  extra_required_files = ["energy_inf_000.png"]
+                else:
+                  sww_results_path = perf_path
+                  extra_required_files = []
+                diff = files_diff(list_files(sww_results_path),
+                                  required_perf_files + extra_required_files,
+                                  OPTIONAL_PERF_FILES
+                                  )
+                if diff:
+                  log.error("%s has file list mismatch (%s)", sww_results_path, diff)
+
+                try:
+                  is_valid, results_dict = sww_perf_acc(
+                      config, mlperf_model, sww_results_path)
+                  r = results_dict['throughput']
+                  acc = results_dict['accuracy'] # this is the F1 score for sww
+                  if results_dict['fp'] > 8 or results_dict['fn'] > 8:
+                    if is_closed_or_network:
+                      log.error(f"FP={results_dict['fp']} and FN={results_dict['fn']} should both be <8 in closed division SWW.")
+                      accuracy_is_valid = False
+                    else:
+                      log.info(f"FP={results_dict['fp']} and FN={results_dict['fn']} exceed closed-division limits, but acceptable since this is an open division submission.")
+                      accuracy_is_valid = True
+                  else:
+                    accuracy_is_valid = True
+                    
+                except Exception as e:
+                  log.error("%s caused exception in sww_perf_acc(): %s",
+                            perf_path, str(e))
+                  is_valid, r = False, None
+
               elif has_performance:
                 diff = files_diff(list_files(perf_path), 
                                   required_perf_files, 
@@ -725,34 +759,6 @@ def check_results_dir(config,
                   log.error("%s caused exception in check_performance_dir: %s",
                             perf_path, str(e))
                   is_valid, r = False, None
-              elif model_name == "sww" and has_power: 
-                diff = files_diff(list_files(power_path), 
-                                  required_perf_files + ["energy_inf_000.png"], 
-                                  OPTIONAL_PERF_FILES
-                                  )
-                if diff:
-                  log.error("%s has file list mismatch (%s)", perf_path, diff)
-
-                try:
-                  is_valid, results_dict = sww_perf_acc_from_power_dir(
-                      config, mlperf_model, power_path)
-                  r = results_dict['throughput']
-                  acc = results_dict['accuracy'] # this is the F1 score for sww
-                  if results_dict['fp'] > 8 or results_dict['fn'] > 8:
-                    if is_closed_or_network:
-                      log.error(f"FP={results_dict['fp']} and FN={results_dict['fn']} should both be <8 in closed division SWW.")
-                      accuracy_is_valid = False
-                    else:
-                      log.info(f"FP={results_dict['fp']} and FN={results_dict['fn']} exceed closed-division limits, but acceptable since this is an open division submission.")
-                      accuracy_is_valid = True
-                  else:
-                    accuracy_is_valid = True
-                    
-                except Exception as e:
-                  log.error("%s caused exception in sww_perf_acc_from_power_dir: %s",
-                            perf_path, str(e))
-                  is_valid, r = False, None
-
               else:
                 is_valid = False
                 log.warning("The script should never reach this point. This is an unaccounted for condition.")
@@ -922,7 +928,7 @@ def check_performance_dir(config, model, path, scenario_fixed, division,
         res = m.group(1)
   return is_valid, float(res), inferred
 
-def sww_perf_acc_from_power_dir(config, model, path):
+def sww_perf_acc(config, model, path):
   """
   Extract performance and accuracy data from the energy dir.  Currently (July 2025) this
   is really only for the streaming wakeword benchmark.
@@ -956,7 +962,7 @@ def sww_perf_acc_from_power_dir(config, model, path):
         duty_cycle = float(m.group(1))
         has_duty_cyle = True
   is_valid = has_throughput and has_accuracy and has_duty_cyle
-  return is_valid, dict(throughput=throughput,tp=tp,fn=fn,fp=fp,accuracy=f1_acc)
+  return is_valid, dict(throughput=throughput,tp=tp,fn=fn,fp=fp,accuracy=f1_acc, duty_cycle=duty_cycle)
 
 
 def check_power_dir(power_path, model_name):
