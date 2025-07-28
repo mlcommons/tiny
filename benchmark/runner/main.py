@@ -203,10 +203,6 @@ def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, res
         total_inference_energy = np.sum(inference_energy_samples)
         num_inferences = res['infer']['iterations']
         energy_per_inf = total_inference_energy / num_inferences
-<<<<<<< HEAD
-        latency_per_inf = elapsed_time / num_inferences
-=======
->>>>>>> streaming_ww_dev
         inf_energies[inf_num] = energy_per_inf
         inf_times[inf_num] = elapsed_time
         
@@ -229,10 +225,7 @@ def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, res
 
 # Summarize results
 def summarize_result(result, power, mode, results_file=None):
-<<<<<<< HEAD
-=======
     print(20*'-')
->>>>>>> streaming_ww_dev
     num_correct_files = 0
     total_files = 0
     y_pred = []
