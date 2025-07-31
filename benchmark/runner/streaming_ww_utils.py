@@ -46,7 +46,8 @@ def array_from_strings(raw_info, header_str, end_str='m-ready', data_type=None):
             except ValueError:
                 # Just replace an invalid value with the previous value to avoid corrupting the timing
                 print(f"WARNING: Invalid element '{val}' for conversion to {converter} at element {len(number_lists)}.  Replacing with previous value.")
-                number_lists.append(number_lists[-1])
+                if len(number_lists) > 0:
+                   number_lists.append(number_lists[-1])
 
     if len(number_lists) == 1:
         number_lists = number_lists[0] # only 1 array, don't make it 2D
@@ -87,7 +88,8 @@ def process_dutycycle(raw_result):
             # end of start-times, beginning of stop-times.
             target_list = proc_stop_times
             continue
-        if line.find('m-ready') > 0:
+
+        if line.find('m-ready') >= 0:
             line = line.replace('m-ready', '')
             endstr_found = True
             
@@ -95,11 +97,17 @@ def process_dutycycle(raw_result):
         
     proc_start_times = np.array(proc_start_times)*10e-6
     proc_stop_times = np.array(proc_stop_times)*10e-6
-
+    
     if len(proc_stop_times) != len(proc_start_times):
         err_str  = f"Number of start times ({len(proc_start_times)}) and number of "
         err_str += f"stop times ({len(proc_stop_times)}) should be equal"
-        raise RuntimeError(err_str)
+        # raise RuntimeError(err_str)
+        print(f"Warning: {err_str}")
+        num_pulses = min(len(proc_stop_times), len(proc_start_times))
+        proc_start_times = proc_start_times[:num_pulses]
+        proc_stop_times = proc_stop_times[:num_pulses]
+
+
     on_times = proc_stop_times - proc_start_times
     periods = np.diff(proc_start_times)
     periods_fractional_var = (np.max(periods) - np.min(periods))/np.mean(periods)
@@ -186,13 +194,14 @@ def summarize_sww_result(results_list, power, results_file=None):
             inf_res["detections"], inf_res["detection_windows"])
         print(f"== File {inf_res['wav_file']} ({inf_res['length_sec']:2.1f} s) == ")
         with np.printoptions(precision=3):
-            print_tee(f"    True positives: {true_pos_sec}", outfile=results_file)
-            print_tee(f"    False negatives: {false_neg_sec}", outfile=results_file)
-            print_tee(f"    False positives: {false_pos_sec}", outfile=results_file)
-            print_tee(f"{len(true_pos_sec)} True positives, {len(false_neg_sec)} False negatives, {len(false_pos_sec)} False positives", outfile=results_file)
-
+            print_tee(f"Accuracy: {len(true_pos_sec)} True positives, {len(false_neg_sec)} False negatives, {len(false_pos_sec)} False positives", outfile=results_file)
+            print(f"    False negatives: {false_neg_sec}") # these are useful for debugging but are not needed in results.txt
+            print(f"    False positives: {false_pos_sec}") 
+            
         if 'dutycycle' in res:
-            print_tee(f"    Average duty cycle: {res['dutycycle'].get('duty_cycle'):1.5}")
-            print_tee(f"    Average period: {res['dutycycle'].get('period'):1.5} s")
+            throughput = 1.0/res['dutycycle']['processing_time']
+            print_tee(f"Average duty cycle: {res['dutycycle'].get('duty_cycle'):1.5}", outfile=results_file)
+            print_tee(f"Average period: {res['dutycycle'].get('period'):1.5} s", outfile=results_file)
+            print_tee(f"Estimated throughput: {throughput:1.5} inf./sec.", outfile=results_file)
         else:
             print_tee(f"No duty cycle data recorded")

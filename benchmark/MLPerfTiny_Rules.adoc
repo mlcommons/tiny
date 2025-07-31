@@ -177,8 +177,15 @@ The suite includes the following benchmarks:
 |   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset |     MobileNet    |   80% (Top 1)
 | Image Classification |            Small image classification           |          Cifar10          |      ResNet      |   85% (Top 1)
 |   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS         | Deep AutoEncoder |   0.85 (AUC)
-|   Streaming Wakeword | Detecting wakewords in a continuous stream of audio| Custom         | 1D DS-CNN |  TBD
+|   Streaming Wakeword | Detecting wakewords in a continuous stream of audio| Custom                 | 1D DS-CNN        | <= 8 FP, <= 8 FN
 |===
+
+
+For the quality target, keyword spotting, visual wakewords, and image classification all use top-1 accuracy as the key metric.  Anomaly detection
+uses the area under the ROC curve (true positive rate vs false positive rate), as computed by
+https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html[sklearn.metrics.roc_auc_score].
+
+The streaming wakeword benchmark uses a combination of false positives and false negatives, requiring no more than 8 of either.
 
 ==== Relaxed constraints for the Open division
 
@@ -193,7 +200,8 @@ The suite includes the following benchmarks:
 
 
 === EnergyRunner™ benchmark framework
-The benchmark suite is run using the EnergyRunner™ benchmark framework from EEMBC, which detects the DUT, sends inputs, and reads outputs over UART.  The EEMBC runner is being phased out.  It will be permitted for teh KWS, VWW, IC, and AD benchmarks in the summer 2015 submission.  After that, only the MLCommons Runner will be permitted.  The EEMBC runner does not support the streaming wakeword benchmark.
+
+The benchmark suite is run using the EnergyRunner™ benchmark framework from EEMBC, which detects the DUT, sends inputs, and reads outputs over UART.  The EEMBC runner is being phased out.  It will be permitted for the KWS, VWW, IC, and AD benchmarks in the summer 2025 submission.  After that, only the MLCommons Runner will be permitted.  The EEMBC runner does not support the streaming wakeword benchmark.
 
 The EEMBC runner is available here: https://github.com/eembc/energyrunner
 The MLCommons runner is available in this repository: https://github.com/mlcommons/tiny/tree/master/benchmark/runner

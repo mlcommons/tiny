@@ -203,7 +203,6 @@ def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, res
         total_inference_energy = np.sum(inference_energy_samples)
         num_inferences = res['infer']['iterations']
         energy_per_inf = total_inference_energy / num_inferences
-        latency_per_inf = elapsed_time / num_inferences
         inf_energies[inf_num] = energy_per_inf
         inf_times[inf_num] = elapsed_time
         
@@ -226,6 +225,7 @@ def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, res
 
 # Summarize results
 def summarize_result(result, power, mode, results_file=None):
+    print(20*'-')
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -252,7 +252,7 @@ def summarize_result(result, power, mode, results_file=None):
         print_energy_results(result, energy_sampling_freq=1000, results_file=results_file)
         return
 
-    for r in result:
+    for res_num,r in enumerate(result):
         if 'infer' not in r or 'class' not in r or 'file' not in r:
             continue  # Skip malformed or error-only entries
         infer_data = r['infer']
@@ -266,7 +266,13 @@ def summarize_result(result, power, mode, results_file=None):
         
         if 'throughput' in infer_data:
             throughput_values.append(infer_data['throughput'])
-
+            print_tee(f"Performance results for window {res_num+1}", outfile=results_file)
+            print_tee(f"    # Inferences : {infer_data['iterations']}", outfile=results_file)
+            print_tee(f"    Runtime: {infer_data['elapsed_time']/1e6} sec.", outfile=results_file)
+            print_tee(f"    Throughput: {infer_data['throughput']} inf./sec.", outfile=results_file)
+            if infer_data['elapsed_time']/1e6 > 10.0:
+                print_tee(f"    Runtime requirements have been met.", outfile=results_file)
+             
         if file_name not in file_infer_results:
             file_infer_results[file_name] = {'true_class': true_class, 'results': []}
 
@@ -307,8 +313,11 @@ def summarize_result(result, power, mode, results_file=None):
             total_files += 1
 
         accuracy = calculate_accuracy(np.array(y_pred), np.array(y_true))
-        auc = roc_auc_score(np.array(y_true), np.array(y_pred), multi_class='ovr')
-        
+
+        if np.array(y_pred).shape[1] == 2:
+            auc =roc_auc_score(np.array(y_true), np.array(y_pred)[:,1])
+        else:
+            auc =roc_auc_score(np.array(y_true), np.array(y_pred), multi_class='ovr')
         
         current_time = datetime.now()
         formatted_time = current_time.strftime("%m%d.%H%M%S ") 
