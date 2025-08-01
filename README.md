@@ -40,3 +40,11 @@ Please see the [MLPerf Tiny Benchmark](https://arxiv.org/pdf/2106.07597.pdf) pap
 ```
 
 Join the working group here: [https://groups.google.com/a/mlcommons.org/g/tiny](https://groups.google.com/u/1/a/mlcommons.org/g/tiny)
+
+## tiny MLPerf™ Presentation Recordings
+
+[![tinyML Summit 2020 - Vijay Janapa Reddi: tinyMLPerf: Benchmarking Ultra-low Power Machine Learning Systems](http://img.youtube.com/vi/_qdKx4gLQUs/0.jpg)](http://www.youtube.com/watch?v=_qdKx4gLQUs "tinyML Summit 2020 - Vijay Janapa Reddi: tinyMLPerf: Benchmarking Ultra-low Power Machine Learning Systems")
+
+[![tinyML Talks Vijay Janapa Reddi: tinyMLPerf: Deep Learning Benchmarks for embedded devices](http://img.youtube.com/vi/uX6UW4qmmPc/0.jpg)](http://www.youtube.com/watch?v=uX6UW4qmmPc "tinyML Talks Vijay Janapa Reddi: tinyMLPerf: Deep Learning Benchmarks for embedded devices")
+
+[![The Vision Behind MLPerf: Benchmarking ML Systems, Software Frameworks and Hardware Accelerators](http://img.youtube.com/vi/nj0QfmNhh8w/0.jpg)](http://www.youtube.com/watch?v=nj0QfmNhh8w "The Vision Behind MLPerf: Benchmarking ML Systems, Software Frameworks and Hardware Accelerators")
