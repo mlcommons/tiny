@@ -404,6 +404,7 @@ def check_results_dir(config,
 
 
   results = {}
+  is_valid = True
 
   def log_result(submitter,
                  available,
