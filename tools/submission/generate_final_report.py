@@ -14,7 +14,7 @@ def get_args():
   """Parse commandline."""
   parser = argparse.ArgumentParser()
   parser.add_argument('--input', required=True, help='results csv from checker')
-  parser.add_argument('--version', default='1.2', help='mlperf version')
+  parser.add_argument('--version', default='1.3', help='mlperf version')
   parser.add_argument('--repository', default='submissions_tiny_v1.2', help='mlperf repository')
   args = parser.parse_args()
   return args
@@ -99,7 +99,7 @@ def main():
       # 'Units',
   ]
   columns_order = [['Result','Power'],
-                   ['vww', 'ic', 'kws', 'ad'],
+                   ['vww', 'ic', 'kws', 'ad', 'sww'],
                   #  ['SingleStream', 'MultiStream', 'Server', 'Offline'],
                   #  [
                   #      'inf./sec.',
