@@ -94,7 +94,7 @@ void test_extraction(const float32_t input_signal[])
 //  printf("Mag: %3.4f, %3.4f, %3.4f, %3.4f\r\n",
 //		  testOutput[0], testOutput[1], testOutput[2], testOutput[3]);
   printf("Magnitude output\r\n");
-  print_vals_float(testOutput, TEST_LENGTH_SAMPLES/2);
+  ee_print_vals_float(testOutput, TEST_LENGTH_SAMPLES/2);
 
   /* Calculates maxValue and returns corresponding BIN value */
   arm_max_f32(testOutput, fftSize, &maxValue, &testIndex);

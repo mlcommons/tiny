@@ -8,13 +8,24 @@
 #ifndef INC_SWW_UTIL_H_
 #define INC_SWW_UTIL_H_
 
+// includes
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include "sww_model.h"
+#include <ctype.h>
+#include <math.h>
 
+#include "stm32l4xx_hal.h"
+#include "arm_math.h"
+#include "feature_extraction.h"
+#include "sww_ref_util_submitter.h"
+
+// needed for running the model and/or initializing inference setup
+#include "sww_model.h"
+#include "sww_model_data.h"
+#include "fixed_data.h"
 
 #define EE_FW_VERSION "MLPerf Tiny Firmware V0.1.0"
 
@@ -25,13 +36,6 @@
 #define EE_MODEL_VERSION_IC01 "ic01"
 #define EE_MODEL_VERSION_SWW01 "sww01"
 
-
-
-
-
-#define TH_MODEL_VERSION EE_MODEL_VERSION_SWW01
-
-
 typedef enum { EE_ARG_CLAIMED, EE_ARG_UNCLAIMED } arg_claimed_t;
 typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
 
@@ -40,7 +44,6 @@ typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
 #define EE_CMD_SIZE 1028u
 #define EE_CMD_DELIMITER " "
 #define EE_CMD_TERMINATOR '%'
-
 #define EE_CMD_NAME "name"
 #define EE_CMD_TIMESTAMP "timestamp"
 
@@ -48,11 +51,7 @@ typedef enum { EE_STATUS_OK = 0, EE_STATUS_ERROR } ee_status_t;
 #define EE_MSG_INIT_DONE "m-init-done\r\n"
 #define EE_MSG_NAME "m-name-%s-[%s]\r\n"
 #define EE_MSG_TIMESTAMP "m-lap-us-%lu\r\n"
-
 #define EE_ERR_CMD "e-[Unknown command: %s]\r\n"
-
-#define TH_VENDOR_NAME_STRING "ML Commons"
-
 
 #define SWW_WINLEN_SAMPLES 1024
 #define SWW_WINSTRIDE_SAMPLES 512
@@ -79,21 +78,23 @@ typedef enum {
 } i2s_state_t;
 
 
-void print_vals_int16(const int16_t *buffer, uint32_t num_vals);
-void print_bytes(const uint8_t *buffer, uint32_t num_bytes);
-void print_vals_float(const float *buffer, uint32_t num_vals);
-void log_printf(LogBuffer *log, const char *format, ...);
+void ee_print_vals_int16(const int16_t *buffer, uint32_t num_vals);
+void ee_print_bytes(const uint8_t *buffer, uint32_t num_bytes);
+void ee_print_vals_float(const float *buffer, uint32_t num_vals);
+void ee_log_printf(LogBuffer *log, const char *format, ...);
 
-void process_command(char *full_command);
+void ee_process_command(char *full_command);
 void ee_serial_callback(char c);
-void th_timestamp(void);
-void set_processing_pin_high(void);
-void set_processing_pin_low(void);
-void infer_static_wav(char *cmd_args[]);
+void ee_timestamp(void);
+void ee_set_processing_pin_high(void);
+void ee_set_processing_pin_low(void);
+void ee_infer_static_wav(char *cmd_args[]);
 
 ai_error aiInit(void);
-void setup_i2s_buffers();
+void ee_setup_i2s_buffers();
 void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp);
+void process_chunk_and_cont_capture(void *hsai);
+void process_chunk_and_cont_streaming(void *hsai);
 void extract_features_on_chunk(char *cmd_args[]);
 
 #endif /* INC_SWW_UTIL_H_ */
