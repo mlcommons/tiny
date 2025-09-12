@@ -82,13 +82,13 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  aiInit();
+  th_ai_init();
   char ch_from_uart= (char) 0;
 
 
   while (1)
   {
-	  uart_status = th_uart_receive(&hlpuart1, (uint8_t *)&ch_from_uart, 1, uart_timeout_ms);
+	  uart_status = th_uart_receive((uint8_t *)&ch_from_uart, 1, uart_timeout_ms);
 	  if(uart_status == HAL_OK) {// otherwise timeout => no key input
 		  ee_serial_callback(ch_from_uart);
 	  }

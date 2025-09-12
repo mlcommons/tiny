@@ -79,6 +79,7 @@ typedef enum {
 
 
 void ee_print_vals_int16(const int16_t *buffer, uint32_t num_vals);
+void ee_print_vals_int8(const int8_t *buffer, uint32_t num_vals);
 void ee_print_bytes(const uint8_t *buffer, uint32_t num_bytes);
 void ee_print_vals_float(const float *buffer, uint32_t num_vals);
 void ee_log_printf(LogBuffer *log, const char *format, ...);
@@ -88,13 +89,8 @@ void ee_serial_callback(char c);
 void ee_timestamp(void);
 void ee_set_processing_pin_high(void);
 void ee_set_processing_pin_low(void);
-void ee_infer_static_wav(char *cmd_args[]);
 
-ai_error aiInit(void);
 void ee_setup_i2s_buffers();
-void compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp);
 void process_chunk_and_cont_capture(void *hsai);
-void process_chunk_and_cont_streaming(void *hsai);
-void extract_features_on_chunk(char *cmd_args[]);
 
 #endif /* INC_SWW_UTIL_H_ */

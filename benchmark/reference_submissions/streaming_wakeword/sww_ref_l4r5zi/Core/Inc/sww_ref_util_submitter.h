@@ -76,14 +76,19 @@
 #define TH_VENDOR_NAME_STRING "ML Commons"
 #define TH_MODEL_VERSION EE_MODEL_VERSION_SWW01
 #define TH_I2S_OK HAL_OK
-#define TH_GPIO_WRITE(port, pin, value) HAL_GPIO_WritePin(port, pin, value)
-#define TH_TIMER16_GET() __HAL_TIM_GET_COUNTER(&htim16)
-#if !defined(TH_GPIO_WRITE) || !defined(TH_TIMER16_GET) \
-    || !defined(TH_VENDOR_NAME_STRING) || !defined(TH_I2S_OK)
+#define TH_GPIO_WRITE(__port__, __pin__, __value__) HAL_GPIO_WritePin(__port__, __pin__, __value__)
+//#define TH_TIMER16_GET() __HAL_TIM_GET_COUNTER(&htim16)
+#if !defined(TH_GPIO_WRITE) || !defined(TH_VENDOR_NAME_STRING) \
+    || !defined(TH_I2S_OK)
 #error Unmapped macros detected. Make sure all macros in submitter_implemented are defined.
 #endif
 
 // core API functions
+/**
+  * @brief block for a given number of microseconds
+  */
+void th_delay_us(int delay_len_us);
+
 /**
   * @brief initialize GPIO and necessary peripherals on DUT
   */
@@ -106,7 +111,7 @@ void th_timer16_start(void);
   * @brief get 16-bit counter value of the timer peripheral
   * @retval timer value (16-bit uint8_t)
   */
-// uint16_t th_timer16_get(void);
+//uint16_t th_timer16_get(void);
 
 
 /**
@@ -116,14 +121,19 @@ void th_timer16_start(void);
   * @param size Number of data bytes to receive
   * @retval DMA receive success code
   */
-uint32_t th_dma_receive(void *dma_addr, uint8_t *i2s_buffer, uint16_t size);
+uint32_t th_dma_receive(uint8_t *i2s_buffer, uint16_t size);
 
 /**
   * @brief stop DMA capture
   * @param dma_addr Pointer to the DMA memory address
   * @retval DMA status value
   */
-uint32_t th_dma_stop(void *dma_addr);
+uint32_t th_dma_stop(void);
+
+/**
+  * @brief get the state value for the I2S DMA object
+  */
+uint8_t th_dma_state(void);
 
 /**
   * @brief receive from the device's UART
@@ -133,18 +143,41 @@ uint32_t th_dma_stop(void *dma_addr);
   * @param timeout Timeout window in milliseconds
   * @retval UART receive success code
   */
-uint32_t th_uart_receive(void *uart, uint8_t *data, uint16_t size,
-    uint32_t timeout);
+uint32_t th_uart_receive(uint8_t *data, uint16_t size, uint32_t timeout);
+
+/**
+  * @brief create and initialize the c-model and generate and map pointers to
+  *        the input and output tensors of the model
+  * @attention Reference implementation uses the ai_error datatype from STM's
+  *            AI middlewares, return type must be changed to the equivalent
+  *            for the submitter's platform before build
+  * @retval error encoding from platform ML engine
+  */
+ai_error th_ai_init(void);
+
+/**
+  * @brief run inference engine using the previously setup ML model
+  * @attention Reference implementation uses the ai_error datatype from STM's
+  *            AI middlewares, return type must be changed to the equivalent
+  *            for the submitter's platform before build
+  * @retval error encoding from platform ML engine
+  */
+ai_error th_ai_run(const void *in_data, void *out_data);
+
+void th_run_model_on_test_data(char *cmd_args[]);
+
+void th_infer_static_wav(char *cmd_args[]);
+
+void th_extract_features_on_chunk(char *cmd_args[]);
+
+void th_run_extraction(char *cmd_args[]);
+
+void th_process_chunk_and_cont_streaming(void *hsai);
+
+void th_compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp);
 
 // private functions, originally from main.c
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_LPUART1_UART_Init(void);
-static void MX_USART3_UART_Init(void);
-static void MX_USB_OTG_FS_PCD_Init(void);
-static void MX_SAI1_Init(void);
-static void MX_TIM16_Init(void);
 void Error_Handler(void);
 
 // These defines and this function are to get printf() working
