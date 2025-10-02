@@ -184,7 +184,7 @@ ai_error th_ai_run(const void *in_data, void *out_data)
 	return err;
 }
 
-// implementation of ee_run_model_on_test_data
+// implementation of th_run_model_on_test_data
 void th_run_model_on_test_data(char *cmd_args[])
 {
 //	acquire_and_process_data(in_data);
@@ -240,10 +240,12 @@ void th_infer_static_wav(char *cmd_args[])
 	wav_len = test_wav_long_len-offset;
 	printf("Infering on static wav with offset = %d\r\n", offset);
 
-	num_steps = (wav_len - (SWW_WINLEN_SAMPLES - SWW_WINSTRIDE_SAMPLES))/SWW_WINSTRIDE_SAMPLES;
+	num_steps = (wav_len - (SWW_WINLEN_SAMPLES - SWW_WINSTRIDE_SAMPLES))
+                / SWW_WINSTRIDE_SAMPLES;
 
 	// extract the input scale factor from the (file-global) ai_input
-	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
+	float32_t input_scale_factor
+        = *(ai_input[0].meta_info->intq_info->info->scale);
 
 	// initialize model input buffer to 0s.
 	for (int i = 0 ; i < SWW_MODEL_INPUT_SIZE ; i++)
@@ -252,21 +254,24 @@ void th_infer_static_wav(char *cmd_args[])
 	for (int idx_step = 0 ; idx_step < num_steps ; idx_step++)
 	{
 
-		th_compute_lfbe_f32(wav_ptr+(idx_step*SWW_WINSTRIDE_SAMPLES), feature_buff, dsp_buff);
+		th_compute_lfbe_f32(wav_ptr+(idx_step*SWW_WINSTRIDE_SAMPLES),
+            feature_buff, dsp_buff);
 
 		// shift current features in g_model_input[] and add new ones.
 		for (int i = 0 ; i < SWW_MODEL_INPUT_SIZE - NUM_MEL_FILTERS ; i++)
 			g_model_input[i] = g_model_input[i+NUM_MEL_FILTERS];
 
 		for (int i = 0 ; i < NUM_MEL_FILTERS ; i++)
-			g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(feature_buff[i]/input_scale_factor-128);
+			g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS]
+                = (int8_t)(feature_buff[i]/input_scale_factor-128);
 
 		for (int i = 0 ; i < AI_SWW_MODEL_IN_1_SIZE ; i++)
 			in_data[i] = (ai_i8)g_model_input[i];
 
 		// print out the newest vector of features as int8
 		printf("(");
-		ee_print_vals_int8(g_model_input+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS, NUM_MEL_FILTERS);
+		ee_print_vals_int8(g_model_input+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS,
+            NUM_MEL_FILTERS);
 		printf(", ");
 
 		/*  Call inference engine */
@@ -274,8 +279,10 @@ void th_infer_static_wav(char *cmd_args[])
 
 		if (out_data[0] > DETECT_THRESHOLD || g_first_frame)
 		{
-			printf("[%d]: Detection (%d).  g_first_frame=%lu\r\n", idx_step, out_data[0], g_first_frame);
-			ee_log_printf(&g_log, "[%d]: Detection (%d).  g_first_frame=%lu\r\n", idx_step, out_data[0], g_first_frame);
+			printf("[%d]: Detection (%d).  g_first_frame=%lu\r\n", idx_step,
+                out_data[0], g_first_frame);
+			ee_log_printf(&g_log, "[%d]: Detection (%d).  g_first_frame=%lu\r\n",
+                idx_step, out_data[0], g_first_frame);
 			g_first_frame = 0;
 		}
 		else if( out_data[0] > 100)
@@ -297,7 +304,8 @@ void th_extract_features_on_chunk(char *cmd_args[])
 	static int num_calls=0;
 
 	// extract the input scale factor from the (file-global) ai_input
-	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
+	float32_t input_scale_factor
+        = *(ai_input[0].meta_info->intq_info->info->scale);
 
 
 	if (num_calls == 0)
@@ -313,9 +321,11 @@ void th_extract_features_on_chunk(char *cmd_args[])
     	g_wav_block_buff[i-SWW_WINSTRIDE_SAMPLES] = g_wav_block_buff[i];
 
     // Now fill in g_wav_block_buff[(winlen-winstride):] with winstride new samples
-	// no 2* here because UART transmits mono, unlike I2S buffer, which is in stereo
-	for (int i = SWW_WINLEN_SAMPLES - SWW_WINSTRIDE_SAMPLES ; i < SWW_WINLEN_SAMPLES ; i++)
-		g_wav_block_buff[i] = g_i2s_buffer0[i-(SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES)];
+	// no 2* here because UART transmits mono, unlike I2S buffer, which is stereo
+	for (int i = SWW_WINLEN_SAMPLES - SWW_WINSTRIDE_SAMPLES ;
+            i < SWW_WINLEN_SAMPLES ; i++)
+		g_wav_block_buff[i]
+            = g_i2s_buffer0[i-(SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES)];
 
 	th_compute_lfbe_f32(g_wav_block_buff, feature_buff, dsp_buff);
 
@@ -324,7 +334,8 @@ void th_extract_features_on_chunk(char *cmd_args[])
 		g_model_input[i] = g_model_input[i + NUM_MEL_FILTERS];
 
 	for (int i = 0 ; i < NUM_MEL_FILTERS ; i++)
-		g_model_input[i + SWW_MODEL_INPUT_SIZE - NUM_MEL_FILTERS] = (int8_t)(feature_buff[i] / input_scale_factor - 128);
+		g_model_input[i + SWW_MODEL_INPUT_SIZE - NUM_MEL_FILTERS]
+            = (int8_t)(feature_buff[i] / input_scale_factor - 128);
 
 	for (int i = 0 ; i < AI_SWW_MODEL_IN_1_SIZE ; i++)
 		in_data[i] = (ai_i8)g_model_input[i];
@@ -343,7 +354,8 @@ void th_extract_features_on_chunk(char *cmd_args[])
 	}
 	printf("]\r\n");
 
-	printf("m-activations-[%+3d, %+3d, %+3d]\r\n", out_data[0], out_data[1], out_data[2]);
+	printf("m-activations-[%+3d, %+3d, %+3d]\r\n", out_data[0], out_data[1],
+        out_data[2]);
 }
 
 // implementation of th_run_extraction
@@ -353,13 +365,15 @@ void th_run_extraction(char *cmd_args[])
 	// Feature extraction work
 	float32_t test_out[1024] = {0.0};
 	float32_t dsp_buff[1024] = {0.0};
-	// this will only operate on the first block_size (1024) elements of the input wav
+	// this will only operate on the first block_size (1024) elements of the
+    // input wav
 
 	uint32_t timer_start, timer_stop;
 	char *endptr;
 	uint32_t offset;
 
-    // Optional offset arg.  "extract 1024", if cmd_arg[1] is present, convert to long
+    // Optional offset arg.  "extract 1024"
+    // if cmd_arg[1] is present, convert to long
     if (cmd_args[1] != NULL && *cmd_args[1] != '\0')
 		offset = strtol(cmd_args[1], &endptr, 10);
 	else
@@ -368,7 +382,8 @@ void th_run_extraction(char *cmd_args[])
 	th_compute_lfbe_f32(test_wav_marvin+offset, test_out, dsp_buff);
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
 
-	printf("TIM16: th_compute_lfbe_f32 took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
+	printf("TIM16: th_compute_lfbe_f32 took (%lu : %lu) = %lu TIM16 cycles\r\n",
+        timer_start, timer_stop, timer_stop-timer_start);
 	printf("\r\n{\r\n");
 	printf("\"Input\": ");
 	ee_print_vals_int16(test_wav_marvin+offset, 1024);
@@ -389,17 +404,20 @@ void th_process_chunk_and_cont_streaming(void *hsai)
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
 	static int num_calls = 0;  // jhdbg
 
-	ee_set_processing_pin_high(); // start of processing, used for duty cycle measurement
+    // start of processing, used for duty cycle measurement
+	ee_set_processing_pin_high();
 
 	// extract the input scale factor from the (file-global) ai_input
-	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
+	float32_t input_scale_factor
+        = *(ai_input[0].meta_info->intq_info->info->scale);
 
 	// idle_buffer is the one that will be idle after we switch
 	int16_t *idle_buffer = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
-	g_i2s_buff_sel = g_i2s_buff_sel ^ 1; // toggle between 0/1 => g_i2s_buffer0/1
+	g_i2s_buff_sel = g_i2s_buff_sel ^ 1; // toggle between 0/1=>g_i2s_buffer0/1
     g_i2s_current_buff = g_i2s_buff_sel ? g_i2s_buffer1 : g_i2s_buffer0;
 
-	g_i2s_status = th_dma_receive((uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
+	g_i2s_status = th_dma_receive((uint8_t *)g_i2s_current_buff,
+                    g_i2s_chunk_size_bytes/2);
 
     // g_wav_block_buff[SWW_WINSTRIDE_SAMPLES:<end>]  are old samples to be
     // shifted to the beginning of the clip. After this block,
@@ -409,8 +427,10 @@ void th_process_chunk_and_cont_streaming(void *hsai)
 
     // Now fill in g_wav_block_buff[(winlen-winstride):] with winstride new samples
 	// 2* is because the I2S buffer is in stereo
-	for (int i = SWW_WINLEN_SAMPLES - SWW_WINSTRIDE_SAMPLES ; i < SWW_WINLEN_SAMPLES ; i++)
-		g_wav_block_buff[i] = idle_buffer[2*(i-(SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES))];
+	for (int i = SWW_WINLEN_SAMPLES - SWW_WINSTRIDE_SAMPLES
+            ; i < SWW_WINLEN_SAMPLES ; i++)
+		g_wav_block_buff[i]
+            = idle_buffer[2*(i-(SWW_WINLEN_SAMPLES-SWW_WINSTRIDE_SAMPLES))];
 
 	th_compute_lfbe_f32(g_wav_block_buff, feature_buff, dsp_buff);
 
@@ -419,7 +439,8 @@ void th_process_chunk_and_cont_streaming(void *hsai)
 		g_model_input[i] = g_model_input[i+NUM_MEL_FILTERS];
 
 	for (int i=0 ; i < NUM_MEL_FILTERS ; i++)
-		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(feature_buff[i]/input_scale_factor-128);
+		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS]
+            = (int8_t)(feature_buff[i]/input_scale_factor-128);
 
 	for (int i=0 ; i < AI_SWW_MODEL_IN_1_SIZE ; i++)
 		in_data[i] = (ai_i8)g_model_input[i];
@@ -439,7 +460,8 @@ void th_process_chunk_and_cont_streaming(void *hsai)
     	g_act_buff[g_act_idx++] = out_data[0];
 
     num_calls++;
-    ee_set_processing_pin_low();  // end of processing, used for duty cycle measurement
+    ee_set_processing_pin_low();  // end of processing
+                                  // used for duty cycle measurement
 }
 
 // implementation of th_compute_lfbe_f32
@@ -457,19 +479,22 @@ void th_compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	arm_status op_result = ARM_MATH_SUCCESS;
 
 	// convert int16_t pSrc to float32_t.  range [-32768:32767] => [-1.0,1.0)
-	// WINLEN - WINSTRIDE of these have already been converted once, so a little speedup
-	// could probably be gained by factoring this out into process_chunk_and_continue_streaming
+	// WINLEN - WINSTRIDE of these have already been converted once, so a
+    // little speedup
+	// could probably be gained by factoring this out
+    // into process_chunk_and_continue_streaming
 	for (i = 0 ; i < block_length ; i++)
 		pDst[i] = ((float32_t)pSrc[i]) / 32768.0;
 
-	// Apply pre-emphasis:  zero-pad input by 1, then x' = x[1:]-pe_coeff*x[:-1], so len(x')==len(x)
+	// Apply pre-emphasis:  zero-pad input by 1
+    // then x' = x[1:]-pe_coeff*x[:-1], so len(x')==len(x)
 	// Start by scaling w/ coeff; pTmp = preemphasis_coef * input
 	arm_scale_f32(pDst, preemphasis_coef, pTmp, block_length);
 	// calculate pDst[0] separately since it uses a value from the last segment
 	pDst[0] = pDst[0] - last_value * preemphasis_coef;
 
-	// in the next frame pDst[SWW_WINSTRIDE_SAMPLES-1] will be 1 sample older than the 1st sample,
-	// so it will be used in the pre-emphasis for pDst[0]
+	// in the next frame pDst[SWW_WINSTRIDE_SAMPLES-1] will be 1 sample older
+    // than the 1st sample, so it will be used in the pre-emphasis for pDst[0]
 	last_value = pDst[SWW_WINSTRIDE_SAMPLES - 1];
 
 	// use pDst as a 2nd temp buffer pDst[1:] - pTmp => pDst[1:]
@@ -484,29 +509,36 @@ void th_compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 	op_result = arm_rfft_fast_init_f32(&rfft_s, block_length);
 	if (op_result != ARM_MATH_SUCCESS)
 		printf("Error %d in arm_rfft_fast_init_f32", op_result);
-	arm_rfft_fast_f32(&rfft_s,pTmp,pDst,0); // use config rfft_s; FFT(pTmp) => pDst, ifft=0
+	arm_rfft_fast_f32(&rfft_s,pTmp,pDst,0); // use config rfft_s
+                                            // FFT(pTmp) => pDst, ifft=0
 
-	// Now we need to take the magnitude of the spectrum.  For block_length=1024, it will be 513 elements
+	// Now we need to take the magnitude of the spectrum.
+    // For block_length=1024, it will be 513 elements
 	// we'll use pTmp as an array of block_length/2+1 real values.
-	// the N/2th element is real and stuck in pDst[1] (where fft[0].imag=0 should be)
-	// move that to pTmp[block_length/2]
+	// the N/2th element is real and stuck in pDst[1] (where fft[0].imag=0
+    // should be), move that to pTmp[block_length/2]
 	pTmp[block_length/2] = pDst[1]; // real value corresponding to fsamp/2
-	pDst[1] = 0; // so now pDst[0,1] = real,imag elements at f=0 (always real, so imag=0)
-	arm_cmplx_mag_f32(pDst,pTmp,block_length/2); // mag(pDst) => pTmp.  pTmp[512] already set.
+	pDst[1] = 0; // so now pDst[0,1] = real,imag elements at f=0
+                 // (always real, so imag=0)
+	arm_cmplx_mag_f32(pDst,pTmp,block_length/2); // mag(pDst) => pTmp
+                                                 // pTmp[512] already set.
 
-	//    powspec = (1 / data_config['window_size_samples']) * tf.square(magspec)
+	//  powspec = (1 / data_config['window_size_samples']) * tf.square(magspec)
 	arm_mult_f32(pTmp, pTmp,pDst, spec_len); // pDst[0:513] = pTmp[0:513]^2
 	arm_scale_f32(pDst, inv_block_length, pTmp, spec_len);
 
 
-	// The original lin2mel matrix is spec_len x num_filters, where each column holds one mel filter,
-	// lin2mel_packed_<X>x<Y> has all the non-zero elements packed together in one 1D array
-	// _filter_starts are the locations in each *original* column where the non-zero elements start
+	// The original lin2mel matrix is spec_len x num_filters, where each column
+    // holds one mel filter, lin2mel_packed_<X>x<Y> has all the non-zero
+    // elements packed together in one 1D array _filter_starts are the locations
+    // in each *original* column where the non-zero elements start
 	// _filter_lens is how many non-zero elements are in each original column
 	// So the i_th filter start in lin2mel_packed at sum(_filter_lens[:i])
-	// And the corresponding spectrum segment starts at linear_spectrum[_filter_starts[i]]
+	// And the corresponding spectrum segment starts at
+    // linear_spectrum[_filter_starts[i]]
 	int lin2mel_coeff_idx = 0;
-	/* Apply MEL filters; linear spectrum is now in pTmp[0:spec_len], put mel spectrum in pDst[0:num_filters] */
+	/* Apply MEL filters; linear spectrum is now in pTmp[0:spec_len], put mel
+       spectrum in pDst[0:num_filters] */
 	for (i = 0 ; i < num_filters ; i++)
 	{
 		arm_dot_prod_f32 (pTmp+lin2mel_513x40_filter_starts[i],
@@ -517,8 +549,9 @@ void th_compute_lfbe_f32(const int16_t *pSrc, float32_t *pDst, float32_t *pTmp)
 		lin2mel_coeff_idx += lin2mel_513x40_filter_lens[i];
 	}
 
-	//    powspec_max = tf.reduce_max(input_tensor=powspec)
-	//    powspec = tf.clip_by_value(powspec, 1e-30, powspec_max) # prevent -infinity on log
+	// powspec_max = tf.reduce_max(input_tensor=powspec)
+	// powspec = tf.clip_by_value(powspec, 1e-30, powspec_max)
+    // # prevent -infinity on log
 	for (i = 0 ; i < num_filters ; i++)
 		pDst[i] = (pDst[i] > 1e-30) ? pDst[i] : 1e-30;
 
@@ -884,13 +917,12 @@ static void MX_GPIO_Init(void)
 // interrupt request handler for the I2S DMA
 void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
 {
-	if (g_i2s_state == FileCapture) {
-		process_chunk_and_cont_capture(hsai);
-	}
-	else if( g_i2s_state == Streaming) {
+	if (g_i2s_state == FileCapture)
+		ee_process_chunk_and_cont_capture(hsai);
+	else if( g_i2s_state == Streaming)
 		th_process_chunk_and_cont_streaming(hsai);
-	}
-	else if( g_i2s_state == Stopping) {
+	else if( g_i2s_state == Stopping)
+    {
 		printf("Streaming stopped\r\n");
 		g_i2s_state = Idle;
 	}
@@ -903,7 +935,8 @@ void HAL_SAI_RxCpltCallback(SAI_HandleTypeDef *hsai)
 void Error_Handler(void)
 {
     /* USER CODE BEGIN Error_Handler_Debug */
-    /* User can add his own implementation to report the HAL error return state */
+    /* User can add his own implementation to report the HAL error
+       return state */
     __disable_irq();
     while (1)
     {
@@ -922,8 +955,9 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
     /* USER CODE BEGIN 6 */
-    /* User can add his own implementation to report the file name and line number,
-        ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    /* User can add his own implementation to report the file name and
+       line number, ex: printf("Wrong parameters value: file %s on line %d\r\n",
+                            file, line) */
     /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

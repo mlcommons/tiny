@@ -17,14 +17,14 @@
 #include <ctype.h>
 #include <math.h>
 
-#include "stm32l4xx_hal.h"
-#include "arm_math.h"
+//#include "stm32l4xx_hal.h"
+//#include "arm_math.h"
 #include "feature_extraction.h"
 #include "sww_ref_util_submitter.h"
 
 // needed for running the model and/or initializing inference setup
-#include "sww_model.h"
-#include "sww_model_data.h"
+//#include "sww_model.h"
+//#include "sww_model_data.h"
 #include "fixed_data.h"
 
 #define EE_FW_VERSION "MLPerf Tiny Firmware V0.1.0"
@@ -91,6 +91,6 @@ void ee_set_processing_pin_high(void);
 void ee_set_processing_pin_low(void);
 
 void ee_setup_i2s_buffers();
-void process_chunk_and_cont_capture(void *hsai);
+void ee_process_chunk_and_cont_capture(void *hsai);
 
 #endif /* INC_SWW_UTIL_H_ */
