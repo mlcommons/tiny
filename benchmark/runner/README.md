@@ -83,7 +83,7 @@ The dataset path is the location of the dataset files.  If you have used the EEM
    * Performance: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_performance.yaml --device_list=devices_ad.yaml --mode=p`
    * Accuracy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_accuracy.yaml --device_list=devices_ad.yaml --mode=a`
 * Streaming Wakeword
-   * SWW measures performance, accuracy, and accuracy in one run.  It should be run in energy mode.
+   * SWW measures performance, accuracy, and energy in one run.  It should be run in energy mode.
    * Energy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_energy.yaml --device_list=devices_sww.yaml --mode=e`
 
 
