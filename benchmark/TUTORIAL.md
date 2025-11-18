@@ -66,7 +66,7 @@ Next, connect the power board to the reference board as shown above, connect the
 
 The interface board runs at 3.3V, so if the DUT is running at any other supply voltage, the logic levels must be shifted.  The TXB0108, available in a [breakout board](https://www.adafruit.com/product/395) from Adafruit, support low-side voltages from 1.2V to 3.6V.
 
-The STM32H573I-DK board has a slot for a micro-SD card. The SD card must be loaded with the WAV files containing the wakewords to be streamed from the *[runner/sww_data_dir](runner/sww_data_dir/)* folder. Ensure that it is formatted as an MS-DOS (FAT32) disk.  A 1GB card is plenty for the current benchmarks.
+The STM32H573I-DK board has a slot for a micro-SD card. The SD card must be loaded with the WAV files containing the wakewords to be streamed from the *[runner/sww_data_dir](runner/sww_data_dir/)* folder. Ensure that it is formatted as an MS-DOS (FAT32) disk.  A 1GB card is plenty for the current benchmarks. **This data must also be stored in a folder named sww01 under the dataset path specified in the next steps otherwise the runner will fail to detect (e.g., in a the folder [evaluation/datasets/sww01](evaluation/datasets/sww01/) if the specified dataset path is [evaluation/datasets](evaluation/datasets)).**
 
 ### Interface board (STM32H573I-DK)
 ![STM32H573I-DK Top Wiring](runner/img/STM32H573I-DK-Top.png)
