@@ -107,18 +107,23 @@ def calculate_auc(y_pred, labels, classes, name):
     roc_auc_avg = np.mean(roc_auc)
     print(f"Simplified average roc_auc = {roc_auc_avg:.3f}")
 
-    plt.figure()
+    plt.figure(figsize=(8, 6), dpi = 600)
     for class_item in range(n_classes):
         plt.plot(fpr[class_item, :], tpr[class_item, :],
                  label=f"auc: {roc_auc[class_item]:0.3f} ({classes[class_item]})")
-    plt.xlim([0.0, 0.1])
-    plt.ylim([0.5, 1.0])
-    plt.legend(loc="lower right")
+    #plt.xlim([0.0, 0.1])
+    #plt.ylim([0.5, 1.0])
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.1])
+    plt.legend(loc="center left", bbox_to_anchor=(1, 0.5), fontsize=10)
     plt.xlabel('False Positive Rate')
     plt.ylabel('True Positive Rate')
     plt.title('ROC: ' + name)
     plt.grid(which='major')
-    plt.show(block=False)
+    plt.tight_layout()
+    plt.savefig('Logs/auc_result.png', dpi=600, bbox_inches='tight')
+    
+    plt.close()
 
     return roc_auc
 
@@ -182,7 +187,9 @@ def calculate_ae_pr_accuracy(y_pred, y_true):
     plt.ylabel('Precision')
     plt.title('Precision vs Recall')
     plt.grid(which='major')
-    plt.show(block=False)
+    plt.savefig('Logs/PR_result', dpi = 600)
+
+    plt.close()
 
     return accuracy
 

@@ -1,0 +1,10 @@
+Label classes:  (200,)
+EEMBC calculate_accuracy method
+Overall accuracy = 88.5
+---------------------
+sklearn.metrics.roc_auc_score method
+AUC sklearn:  0.9885555555555555
+---------------------
+EEMBC calculate_auc method
+Simplified average roc_auc = 0.925
+---------------------

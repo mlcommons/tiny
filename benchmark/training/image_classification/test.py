@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     model = tf.keras.models.load_model('trained_models/' + model_name + '.h5')
 
-    test_metrics = model.evaluate(x=test_data, y=test_labels, batch_size=32, verbose=1, return_dict=True)
+    test_metrics = model.evaluate(x=test_data, y=test_labels, batch_size=32, verbose=2, return_dict=True)
 
     print("Performances on cifar10 test set")
     print("Keras evaluate method")

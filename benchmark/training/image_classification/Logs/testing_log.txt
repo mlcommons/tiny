@@ -1,0 +1,20 @@
+Test data:  (200, 32, 32, 3)
+Test filenames:  (200,)
+Test labels:  (200, 10)
+Label names:  (10,)
+Label classes:  (200,)
+7/7 - 3s - 405ms/step - accuracy: 0.9000 - loss: 0.3835
+Performances on cifar10 test set
+Keras evaluate method
+Accuracy keras:  0.8999999761581421
+---------------------
+[1m1/7[0m [32m━━[0m[37m━━━━━━━━━━━━━━━━━━[0m [1m2s[0m 441ms/step[1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m0s[0m 66ms/step [1m7/7[0m [32m━━━━━━━━━━━━━━━━━━━━[0m[37m[0m [1m1s[0m 67ms/step
+EEMBC calculate_accuracy method
+Overall accuracy = 90.0
+---------------------
+sklearn.metrics.roc_auc_score method
+AUC sklearn:  0.992388888888889
+---------------------
+EEMBC calculate_auc method
+Simplified average roc_auc = 0.990
+---------------------

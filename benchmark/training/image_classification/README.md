@@ -12,12 +12,20 @@ Dataset: Cifar10
 
 Run the following commands to go through the whole training and validation process
 
+Recommend creating one virtual environment before the experiment
+
 ``` Bash
-# Prepare Python venv (Python 3.7+ and pip>20 required)
+# Prepare Python venv (Python 3.9+ and pip>20 required)
 ./prepare_training_env.sh
 
-# Download training, train model, test the model
-./download_cifar10_train_resnet.sh
+# Download dataset
+./download_cifar10.sh
+
+# Load the performance subset
+./load_performance_subset.sh
+
+# Train and test the model
+./train_test_model.sh
 
 # Convert the model to TFlite, and test conversion quality
 ./convert_to_tflite.sh

@@ -1,0 +1,1599 @@
+Train data:  (50000, 32, 32, 3)
+Train filenames:  (50000,)
+Train labels:  (50000, 10)
+Test data:  (10000, 32, 32, 3)
+Test filenames:  (10000,)
+Test labels:  (10000, 10)
+Label names:  (10,)
+Model: "functional"
+┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━┓
+┃ Layer (type)        ┃ Output Shape      ┃    Param # ┃ Connected to      ┃
+┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━┩
+│ input_layer         │ (None, 32, 32, 3) │          0 │ -                 │
+│ (InputLayer)        │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d (Conv2D)     │ (None, 32, 32,    │        448 │ input_layer[0][0] │
+│                     │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ batch_normalization │ (None, 32, 32,    │         64 │ conv2d[0][0]      │
+│ (BatchNormalizatio… │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ activation          │ (None, 32, 32,    │          0 │ batch_normalizat… │
+│ (Activation)        │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_1 (Conv2D)   │ (None, 32, 32,    │      2,320 │ activation[0][0]  │
+│                     │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ batch_normalizatio… │ (None, 32, 32,    │         64 │ conv2d_1[0][0]    │
+│ (BatchNormalizatio… │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ activation_1        │ (None, 32, 32,    │          0 │ batch_normalizat… │
+│ (Activation)        │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_2 (Conv2D)   │ (None, 32, 32,    │      2,320 │ activation_1[0][… │
+│                     │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ batch_normalizatio… │ (None, 32, 32,    │         64 │ conv2d_2[0][0]    │
+│ (BatchNormalizatio… │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ add (Add)           │ (None, 32, 32,    │          0 │ activation[0][0], │
+│                     │ 16)               │            │ batch_normalizat… │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ activation_2        │ (None, 32, 32,    │          0 │ add[0][0]         │
+│ (Activation)        │ 16)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_3 (Conv2D)   │ (None, 16, 16,    │      4,640 │ activation_2[0][… │
+│                     │ 32)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ batch_normalizatio… │ (None, 16, 16,    │        128 │ conv2d_3[0][0]    │
+│ (BatchNormalizatio… │ 32)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ activation_3        │ (None, 16, 16,    │          0 │ batch_normalizat… │
+│ (Activation)        │ 32)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_4 (Conv2D)   │ (None, 16, 16,    │      9,248 │ activation_3[0][… │
+│                     │ 32)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_5 (Conv2D)   │ (None, 16, 16,    │        544 │ activation_2[0][… │
+│                     │ 32)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ batch_normalizatio… │ (None, 16, 16,    │        128 │ conv2d_4[0][0]    │
+│ (BatchNormalizatio… │ 32)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ add_1 (Add)         │ (None, 16, 16,    │          0 │ conv2d_5[0][0],   │
+│                     │ 32)               │            │ batch_normalizat… │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ activation_4        │ (None, 16, 16,    │          0 │ add_1[0][0]       │
+│ (Activation)        │ 32)               │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_6 (Conv2D)   │ (None, 8, 8, 64)  │     18,496 │ activation_4[0][… │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ batch_normalizatio… │ (None, 8, 8, 64)  │        256 │ conv2d_6[0][0]    │
+│ (BatchNormalizatio… │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ activation_5        │ (None, 8, 8, 64)  │          0 │ batch_normalizat… │
+│ (Activation)        │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_7 (Conv2D)   │ (None, 8, 8, 64)  │     36,928 │ activation_5[0][… │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ conv2d_8 (Conv2D)   │ (None, 8, 8, 64)  │      2,112 │ activation_4[0][… │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ batch_normalizatio… │ (None, 8, 8, 64)  │        256 │ conv2d_7[0][0]    │
+│ (BatchNormalizatio… │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ add_2 (Add)         │ (None, 8, 8, 64)  │          0 │ conv2d_8[0][0],   │
+│                     │                   │            │ batch_normalizat… │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ activation_6        │ (None, 8, 8, 64)  │          0 │ add_2[0][0]       │
+│ (Activation)        │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ average_pooling2d   │ (None, 1, 1, 64)  │          0 │ activation_6[0][… │
+│ (AveragePooling2D)  │                   │            │                   │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ flatten (Flatten)   │ (None, 64)        │          0 │ average_pooling2… │
+├─────────────────────┼───────────────────┼────────────┼───────────────────┤
+│ dense (Dense)       │ (None, 10)        │        650 │ flatten[0][0]     │
+└─────────────────────┴───────────────────┴────────────┴───────────────────┘
+ Total params: 78,666 (307.29 KB)
+ Trainable params: 78,186 (305.41 KB)
+ Non-trainable params: 480 (1.88 KB)
+Learning rate = 0.001000
+Epoch 1/500
+1563/1563 - 26s - 16ms/step - accuracy: 0.4592 - loss: 1.5603 - learning_rate: 1.0000e-03
+Learning rate = 0.000990
+Epoch 2/500
+1563/1563 - 16s - 10ms/step - accuracy: 0.5828 - loss: 1.2419 - learning_rate: 9.9000e-04
+Learning rate = 0.000980
+Epoch 3/500
+1563/1563 - 16s - 10ms/step - accuracy: 0.6307 - loss: 1.1162 - learning_rate: 9.8010e-04
+Learning rate = 0.000970
+Epoch 4/500
+1563/1563 - 16s - 10ms/step - accuracy: 0.6605 - loss: 1.0364 - learning_rate: 9.7030e-04
+Learning rate = 0.000961
+Epoch 5/500
+1563/1563 - 16s - 10ms/step - accuracy: 0.6806 - loss: 0.9924 - learning_rate: 9.6060e-04
+Learning rate = 0.000951
+Epoch 6/500
+1563/1563 - 16s - 10ms/step - accuracy: 0.6966 - loss: 0.9483 - learning_rate: 9.5099e-04
+Learning rate = 0.000941
+Epoch 7/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7093 - loss: 0.9124 - learning_rate: 9.4148e-04
+Learning rate = 0.000932
+Epoch 8/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7224 - loss: 0.8827 - learning_rate: 9.3207e-04
+Learning rate = 0.000923
+Epoch 9/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7318 - loss: 0.8558 - learning_rate: 9.2274e-04
+Learning rate = 0.000914
+Epoch 10/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7396 - loss: 0.8348 - learning_rate: 9.1352e-04
+Learning rate = 0.000904
+Epoch 11/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7476 - loss: 0.8136 - learning_rate: 9.0438e-04
+Learning rate = 0.000895
+Epoch 12/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7534 - loss: 0.7996 - learning_rate: 8.9534e-04
+Learning rate = 0.000886
+Epoch 13/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7606 - loss: 0.7766 - learning_rate: 8.8638e-04
+Learning rate = 0.000878
+Epoch 14/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.7638 - loss: 0.7688 - learning_rate: 8.7752e-04
+Learning rate = 0.000869
+Epoch 15/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7705 - loss: 0.7515 - learning_rate: 8.6875e-04
+Learning rate = 0.000860
+Epoch 16/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7757 - loss: 0.7414 - learning_rate: 8.6006e-04
+Learning rate = 0.000851
+Epoch 17/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7798 - loss: 0.7265 - learning_rate: 8.5146e-04
+Learning rate = 0.000843
+Epoch 18/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.7811 - loss: 0.7277 - learning_rate: 8.4294e-04
+Learning rate = 0.000835
+Epoch 19/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7864 - loss: 0.7120 - learning_rate: 8.3451e-04
+Learning rate = 0.000826
+Epoch 20/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7870 - loss: 0.7041 - learning_rate: 8.2617e-04
+Learning rate = 0.000818
+Epoch 21/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.7915 - loss: 0.6937 - learning_rate: 8.1791e-04
+Learning rate = 0.000810
+Epoch 22/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.7949 - loss: 0.6877 - learning_rate: 8.0973e-04
+Learning rate = 0.000802
+Epoch 23/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7999 - loss: 0.6785 - learning_rate: 8.0163e-04
+Learning rate = 0.000794
+Epoch 24/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.7985 - loss: 0.6753 - learning_rate: 7.9361e-04
+Learning rate = 0.000786
+Epoch 25/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8032 - loss: 0.6673 - learning_rate: 7.8568e-04
+Learning rate = 0.000778
+Epoch 26/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8041 - loss: 0.6612 - learning_rate: 7.7782e-04
+Learning rate = 0.000770
+Epoch 27/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8051 - loss: 0.6579 - learning_rate: 7.7004e-04
+Learning rate = 0.000762
+Epoch 28/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8053 - loss: 0.6521 - learning_rate: 7.6234e-04
+Learning rate = 0.000755
+Epoch 29/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8121 - loss: 0.6425 - learning_rate: 7.5472e-04
+Learning rate = 0.000747
+Epoch 30/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8120 - loss: 0.6387 - learning_rate: 7.4717e-04
+Learning rate = 0.000740
+Epoch 31/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8132 - loss: 0.6351 - learning_rate: 7.3970e-04
+Learning rate = 0.000732
+Epoch 32/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8150 - loss: 0.6305 - learning_rate: 7.3230e-04
+Learning rate = 0.000725
+Epoch 33/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8146 - loss: 0.6275 - learning_rate: 7.2498e-04
+Learning rate = 0.000718
+Epoch 34/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8208 - loss: 0.6174 - learning_rate: 7.1773e-04
+Learning rate = 0.000711
+Epoch 35/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8201 - loss: 0.6163 - learning_rate: 7.1055e-04
+Learning rate = 0.000703
+Epoch 36/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8235 - loss: 0.6088 - learning_rate: 7.0345e-04
+Learning rate = 0.000696
+Epoch 37/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8234 - loss: 0.6061 - learning_rate: 6.9641e-04
+Learning rate = 0.000689
+Epoch 38/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8275 - loss: 0.5994 - learning_rate: 6.8945e-04
+Learning rate = 0.000683
+Epoch 39/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8268 - loss: 0.5983 - learning_rate: 6.8255e-04
+Learning rate = 0.000676
+Epoch 40/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8285 - loss: 0.5898 - learning_rate: 6.7573e-04
+Learning rate = 0.000669
+Epoch 41/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8294 - loss: 0.5874 - learning_rate: 6.6897e-04
+Learning rate = 0.000662
+Epoch 42/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8314 - loss: 0.5844 - learning_rate: 6.6228e-04
+Learning rate = 0.000656
+Epoch 43/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8323 - loss: 0.5821 - learning_rate: 6.5566e-04
+Learning rate = 0.000649
+Epoch 44/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8344 - loss: 0.5776 - learning_rate: 6.4910e-04
+Learning rate = 0.000643
+Epoch 45/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8374 - loss: 0.5712 - learning_rate: 6.4261e-04
+Learning rate = 0.000636
+Epoch 46/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8360 - loss: 0.5697 - learning_rate: 6.3619e-04
+Learning rate = 0.000630
+Epoch 47/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8360 - loss: 0.5677 - learning_rate: 6.2982e-04
+Learning rate = 0.000624
+Epoch 48/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8380 - loss: 0.5645 - learning_rate: 6.2353e-04
+Learning rate = 0.000617
+Epoch 49/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8375 - loss: 0.5619 - learning_rate: 6.1729e-04
+Learning rate = 0.000611
+Epoch 50/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8386 - loss: 0.5593 - learning_rate: 6.1112e-04
+Learning rate = 0.000605
+Epoch 51/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8404 - loss: 0.5535 - learning_rate: 6.0501e-04
+Learning rate = 0.000599
+Epoch 52/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8408 - loss: 0.5552 - learning_rate: 5.9896e-04
+Learning rate = 0.000593
+Epoch 53/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8405 - loss: 0.5529 - learning_rate: 5.9297e-04
+Learning rate = 0.000587
+Epoch 54/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8417 - loss: 0.5487 - learning_rate: 5.8704e-04
+Learning rate = 0.000581
+Epoch 55/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8441 - loss: 0.5428 - learning_rate: 5.8117e-04
+Learning rate = 0.000575
+Epoch 56/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8456 - loss: 0.5409 - learning_rate: 5.7535e-04
+Learning rate = 0.000570
+Epoch 57/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8458 - loss: 0.5383 - learning_rate: 5.6960e-04
+Learning rate = 0.000564
+Epoch 58/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8457 - loss: 0.5378 - learning_rate: 5.6391e-04
+Learning rate = 0.000558
+Epoch 59/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8460 - loss: 0.5350 - learning_rate: 5.5827e-04
+Learning rate = 0.000553
+Epoch 60/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8486 - loss: 0.5284 - learning_rate: 5.5268e-04
+Learning rate = 0.000547
+Epoch 61/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8502 - loss: 0.5274 - learning_rate: 5.4716e-04
+Learning rate = 0.000542
+Epoch 62/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8491 - loss: 0.5270 - learning_rate: 5.4169e-04
+Learning rate = 0.000536
+Epoch 63/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8504 - loss: 0.5273 - learning_rate: 5.3627e-04
+Learning rate = 0.000531
+Epoch 64/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8511 - loss: 0.5221 - learning_rate: 5.3091e-04
+Learning rate = 0.000526
+Epoch 65/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8545 - loss: 0.5192 - learning_rate: 5.2560e-04
+Learning rate = 0.000520
+Epoch 66/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8525 - loss: 0.5150 - learning_rate: 5.2034e-04
+Learning rate = 0.000515
+Epoch 67/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8558 - loss: 0.5129 - learning_rate: 5.1514e-04
+Learning rate = 0.000510
+Epoch 68/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8533 - loss: 0.5137 - learning_rate: 5.0999e-04
+Learning rate = 0.000505
+Epoch 69/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8555 - loss: 0.5105 - learning_rate: 5.0489e-04
+Learning rate = 0.000500
+Epoch 70/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8551 - loss: 0.5081 - learning_rate: 4.9984e-04
+Learning rate = 0.000495
+Epoch 71/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8558 - loss: 0.5046 - learning_rate: 4.9484e-04
+Learning rate = 0.000490
+Epoch 72/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8561 - loss: 0.5052 - learning_rate: 4.8989e-04
+Learning rate = 0.000485
+Epoch 73/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8586 - loss: 0.4993 - learning_rate: 4.8499e-04
+Learning rate = 0.000480
+Epoch 74/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8569 - loss: 0.5010 - learning_rate: 4.8014e-04
+Learning rate = 0.000475
+Epoch 75/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8581 - loss: 0.4983 - learning_rate: 4.7534e-04
+Learning rate = 0.000471
+Epoch 76/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8599 - loss: 0.4961 - learning_rate: 4.7059e-04
+Learning rate = 0.000466
+Epoch 77/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8612 - loss: 0.4927 - learning_rate: 4.6588e-04
+Learning rate = 0.000461
+Epoch 78/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8608 - loss: 0.4918 - learning_rate: 4.6122e-04
+Learning rate = 0.000457
+Epoch 79/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8585 - loss: 0.4951 - learning_rate: 4.5661e-04
+Learning rate = 0.000452
+Epoch 80/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8626 - loss: 0.4855 - learning_rate: 4.5204e-04
+Learning rate = 0.000448
+Epoch 81/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8614 - loss: 0.4880 - learning_rate: 4.4752e-04
+Learning rate = 0.000443
+Epoch 82/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8634 - loss: 0.4795 - learning_rate: 4.4305e-04
+Learning rate = 0.000439
+Epoch 83/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8628 - loss: 0.4830 - learning_rate: 4.3862e-04
+Learning rate = 0.000434
+Epoch 84/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8656 - loss: 0.4779 - learning_rate: 4.3423e-04
+Learning rate = 0.000430
+Epoch 85/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8638 - loss: 0.4806 - learning_rate: 4.2989e-04
+Learning rate = 0.000426
+Epoch 86/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8634 - loss: 0.4778 - learning_rate: 4.2559e-04
+Learning rate = 0.000421
+Epoch 87/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8643 - loss: 0.4741 - learning_rate: 4.2133e-04
+Learning rate = 0.000417
+Epoch 88/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8652 - loss: 0.4719 - learning_rate: 4.1712e-04
+Learning rate = 0.000413
+Epoch 89/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8686 - loss: 0.4681 - learning_rate: 4.1295e-04
+Learning rate = 0.000409
+Epoch 90/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8648 - loss: 0.4715 - learning_rate: 4.0882e-04
+Learning rate = 0.000405
+Epoch 91/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8674 - loss: 0.4675 - learning_rate: 4.0473e-04
+Learning rate = 0.000401
+Epoch 92/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8703 - loss: 0.4603 - learning_rate: 4.0068e-04
+Learning rate = 0.000397
+Epoch 93/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8704 - loss: 0.4624 - learning_rate: 3.9668e-04
+Learning rate = 0.000393
+Epoch 94/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.8668 - loss: 0.4640 - learning_rate: 3.9271e-04
+Learning rate = 0.000389
+Epoch 95/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8692 - loss: 0.4605 - learning_rate: 3.8878e-04
+Learning rate = 0.000385
+Epoch 96/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8685 - loss: 0.4623 - learning_rate: 3.8490e-04
+Learning rate = 0.000381
+Epoch 97/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8714 - loss: 0.4582 - learning_rate: 3.8105e-04
+Learning rate = 0.000377
+Epoch 98/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8700 - loss: 0.4601 - learning_rate: 3.7724e-04
+Learning rate = 0.000373
+Epoch 99/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8696 - loss: 0.4585 - learning_rate: 3.7346e-04
+Learning rate = 0.000370
+Epoch 100/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8699 - loss: 0.4529 - learning_rate: 3.6973e-04
+Learning rate = 0.000366
+Epoch 101/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8716 - loss: 0.4509 - learning_rate: 3.6603e-04
+Learning rate = 0.000362
+Epoch 102/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8734 - loss: 0.4472 - learning_rate: 3.6237e-04
+Learning rate = 0.000359
+Epoch 103/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8741 - loss: 0.4470 - learning_rate: 3.5875e-04
+Learning rate = 0.000355
+Epoch 104/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8731 - loss: 0.4497 - learning_rate: 3.5516e-04
+Learning rate = 0.000352
+Epoch 105/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8720 - loss: 0.4463 - learning_rate: 3.5161e-04
+Learning rate = 0.000348
+Epoch 106/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8733 - loss: 0.4443 - learning_rate: 3.4809e-04
+Learning rate = 0.000345
+Epoch 107/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8764 - loss: 0.4433 - learning_rate: 3.4461e-04
+Learning rate = 0.000341
+Epoch 108/500
+1563/1563 - 19s - 12ms/step - accuracy: 0.8762 - loss: 0.4410 - learning_rate: 3.4117e-04
+Learning rate = 0.000338
+Epoch 109/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8754 - loss: 0.4380 - learning_rate: 3.3775e-04
+Learning rate = 0.000334
+Epoch 110/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8757 - loss: 0.4389 - learning_rate: 3.3438e-04
+Learning rate = 0.000331
+Epoch 111/500
+1563/1563 - 20s - 13ms/step - accuracy: 0.8762 - loss: 0.4377 - learning_rate: 3.3103e-04
+Learning rate = 0.000328
+Epoch 112/500
+1563/1563 - 19s - 12ms/step - accuracy: 0.8759 - loss: 0.4332 - learning_rate: 3.2772e-04
+Learning rate = 0.000324
+Epoch 113/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8769 - loss: 0.4344 - learning_rate: 3.2445e-04
+Learning rate = 0.000321
+Epoch 114/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8775 - loss: 0.4346 - learning_rate: 3.2120e-04
+Learning rate = 0.000318
+Epoch 115/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8771 - loss: 0.4303 - learning_rate: 3.1799e-04
+Learning rate = 0.000315
+Epoch 116/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8777 - loss: 0.4336 - learning_rate: 3.1481e-04
+Learning rate = 0.000312
+Epoch 117/500
+1563/1563 - 20s - 13ms/step - accuracy: 0.8777 - loss: 0.4285 - learning_rate: 3.1166e-04
+Learning rate = 0.000309
+Epoch 118/500
+1563/1563 - 20s - 13ms/step - accuracy: 0.8762 - loss: 0.4319 - learning_rate: 3.0854e-04
+Learning rate = 0.000305
+Epoch 119/500
+1563/1563 - 19s - 12ms/step - accuracy: 0.8783 - loss: 0.4277 - learning_rate: 3.0546e-04
+Learning rate = 0.000302
+Epoch 120/500
+1563/1563 - 21s - 13ms/step - accuracy: 0.8803 - loss: 0.4264 - learning_rate: 3.0240e-04
+Learning rate = 0.000299
+Epoch 121/500
+1563/1563 - 19s - 12ms/step - accuracy: 0.8803 - loss: 0.4268 - learning_rate: 2.9938e-04
+Learning rate = 0.000296
+Epoch 122/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8797 - loss: 0.4228 - learning_rate: 2.9639e-04
+Learning rate = 0.000293
+Epoch 123/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8820 - loss: 0.4194 - learning_rate: 2.9342e-04
+Learning rate = 0.000290
+Epoch 124/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8792 - loss: 0.4236 - learning_rate: 2.9049e-04
+Learning rate = 0.000288
+Epoch 125/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8820 - loss: 0.4174 - learning_rate: 2.8758e-04
+Learning rate = 0.000285
+Epoch 126/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8812 - loss: 0.4184 - learning_rate: 2.8471e-04
+Learning rate = 0.000282
+Epoch 127/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8810 - loss: 0.4180 - learning_rate: 2.8186e-04
+Learning rate = 0.000279
+Epoch 128/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8814 - loss: 0.4156 - learning_rate: 2.7904e-04
+Learning rate = 0.000276
+Epoch 129/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8841 - loss: 0.4112 - learning_rate: 2.7625e-04
+Learning rate = 0.000273
+Epoch 130/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8817 - loss: 0.4148 - learning_rate: 2.7349e-04
+Learning rate = 0.000271
+Epoch 131/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8827 - loss: 0.4146 - learning_rate: 2.7075e-04
+Learning rate = 0.000268
+Epoch 132/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.8813 - loss: 0.4143 - learning_rate: 2.6805e-04
+Learning rate = 0.000265
+Epoch 133/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8831 - loss: 0.4106 - learning_rate: 2.6537e-04
+Learning rate = 0.000263
+Epoch 134/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8823 - loss: 0.4112 - learning_rate: 2.6271e-04
+Learning rate = 0.000260
+Epoch 135/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8834 - loss: 0.4083 - learning_rate: 2.6009e-04
+Learning rate = 0.000257
+Epoch 136/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8864 - loss: 0.4043 - learning_rate: 2.5748e-04
+Learning rate = 0.000255
+Epoch 137/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8843 - loss: 0.4056 - learning_rate: 2.5491e-04
+Learning rate = 0.000252
+Epoch 138/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8854 - loss: 0.4041 - learning_rate: 2.5236e-04
+Learning rate = 0.000250
+Epoch 139/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8856 - loss: 0.4006 - learning_rate: 2.4984e-04
+Learning rate = 0.000247
+Epoch 140/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8862 - loss: 0.4027 - learning_rate: 2.4734e-04
+Learning rate = 0.000245
+Epoch 141/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8848 - loss: 0.4016 - learning_rate: 2.4487e-04
+Learning rate = 0.000242
+Epoch 142/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8846 - loss: 0.4018 - learning_rate: 2.4242e-04
+Learning rate = 0.000240
+Epoch 143/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8863 - loss: 0.3999 - learning_rate: 2.3999e-04
+Learning rate = 0.000238
+Epoch 144/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8891 - loss: 0.3922 - learning_rate: 2.3759e-04
+Learning rate = 0.000235
+Epoch 145/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8882 - loss: 0.3967 - learning_rate: 2.3522e-04
+Learning rate = 0.000233
+Epoch 146/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8880 - loss: 0.3933 - learning_rate: 2.3286e-04
+Learning rate = 0.000231
+Epoch 147/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8887 - loss: 0.3901 - learning_rate: 2.3054e-04
+Learning rate = 0.000228
+Epoch 148/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8881 - loss: 0.3926 - learning_rate: 2.2823e-04
+Learning rate = 0.000226
+Epoch 149/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8874 - loss: 0.3951 - learning_rate: 2.2595e-04
+Learning rate = 0.000224
+Epoch 150/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8900 - loss: 0.3871 - learning_rate: 2.2369e-04
+Learning rate = 0.000221
+Epoch 151/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8901 - loss: 0.3885 - learning_rate: 2.2145e-04
+Learning rate = 0.000219
+Epoch 152/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8866 - loss: 0.3911 - learning_rate: 2.1924e-04
+Learning rate = 0.000217
+Epoch 153/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8890 - loss: 0.3890 - learning_rate: 2.1704e-04
+Learning rate = 0.000215
+Epoch 154/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8911 - loss: 0.3854 - learning_rate: 2.1487e-04
+Learning rate = 0.000213
+Epoch 155/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.8891 - loss: 0.3876 - learning_rate: 2.1273e-04
+Learning rate = 0.000211
+Epoch 156/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8891 - loss: 0.3848 - learning_rate: 2.1060e-04
+Learning rate = 0.000208
+Epoch 157/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8900 - loss: 0.3822 - learning_rate: 2.0849e-04
+Learning rate = 0.000206
+Epoch 158/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8898 - loss: 0.3829 - learning_rate: 2.0641e-04
+Learning rate = 0.000204
+Epoch 159/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8911 - loss: 0.3854 - learning_rate: 2.0434e-04
+Learning rate = 0.000202
+Epoch 160/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8922 - loss: 0.3807 - learning_rate: 2.0230e-04
+Learning rate = 0.000200
+Epoch 161/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8924 - loss: 0.3774 - learning_rate: 2.0028e-04
+Learning rate = 0.000198
+Epoch 162/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8928 - loss: 0.3808 - learning_rate: 1.9827e-04
+Learning rate = 0.000196
+Epoch 163/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8924 - loss: 0.3801 - learning_rate: 1.9629e-04
+Learning rate = 0.000194
+Epoch 164/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8932 - loss: 0.3770 - learning_rate: 1.9433e-04
+Learning rate = 0.000192
+Epoch 165/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8938 - loss: 0.3743 - learning_rate: 1.9239e-04
+Learning rate = 0.000190
+Epoch 166/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8940 - loss: 0.3761 - learning_rate: 1.9046e-04
+Learning rate = 0.000189
+Epoch 167/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8940 - loss: 0.3722 - learning_rate: 1.8856e-04
+Learning rate = 0.000187
+Epoch 168/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8958 - loss: 0.3707 - learning_rate: 1.8667e-04
+Learning rate = 0.000185
+Epoch 169/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8929 - loss: 0.3742 - learning_rate: 1.8480e-04
+Learning rate = 0.000183
+Epoch 170/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8942 - loss: 0.3719 - learning_rate: 1.8296e-04
+Learning rate = 0.000181
+Epoch 171/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8941 - loss: 0.3716 - learning_rate: 1.8113e-04
+Learning rate = 0.000179
+Epoch 172/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8939 - loss: 0.3702 - learning_rate: 1.7932e-04
+Learning rate = 0.000178
+Epoch 173/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8943 - loss: 0.3713 - learning_rate: 1.7752e-04
+Learning rate = 0.000176
+Epoch 174/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8926 - loss: 0.3742 - learning_rate: 1.7575e-04
+Learning rate = 0.000174
+Epoch 175/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8951 - loss: 0.3667 - learning_rate: 1.7399e-04
+Learning rate = 0.000172
+Epoch 176/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8957 - loss: 0.3641 - learning_rate: 1.7225e-04
+Learning rate = 0.000171
+Epoch 177/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8946 - loss: 0.3667 - learning_rate: 1.7053e-04
+Learning rate = 0.000169
+Epoch 178/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8966 - loss: 0.3639 - learning_rate: 1.6882e-04
+Learning rate = 0.000167
+Epoch 179/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8981 - loss: 0.3621 - learning_rate: 1.6713e-04
+Learning rate = 0.000165
+Epoch 180/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8973 - loss: 0.3613 - learning_rate: 1.6546e-04
+Learning rate = 0.000164
+Epoch 181/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8950 - loss: 0.3646 - learning_rate: 1.6381e-04
+Learning rate = 0.000162
+Epoch 182/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8975 - loss: 0.3590 - learning_rate: 1.6217e-04
+Learning rate = 0.000161
+Epoch 183/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8952 - loss: 0.3628 - learning_rate: 1.6055e-04
+Learning rate = 0.000159
+Epoch 184/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8971 - loss: 0.3612 - learning_rate: 1.5894e-04
+Learning rate = 0.000157
+Epoch 185/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8976 - loss: 0.3599 - learning_rate: 1.5735e-04
+Learning rate = 0.000156
+Epoch 186/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8976 - loss: 0.3594 - learning_rate: 1.5578e-04
+Learning rate = 0.000154
+Epoch 187/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8978 - loss: 0.3588 - learning_rate: 1.5422e-04
+Learning rate = 0.000153
+Epoch 188/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8999 - loss: 0.3530 - learning_rate: 1.5268e-04
+Learning rate = 0.000151
+Epoch 189/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8954 - loss: 0.3638 - learning_rate: 1.5115e-04
+Learning rate = 0.000150
+Epoch 190/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8973 - loss: 0.3581 - learning_rate: 1.4964e-04
+Learning rate = 0.000148
+Epoch 191/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8988 - loss: 0.3544 - learning_rate: 1.4814e-04
+Learning rate = 0.000147
+Epoch 192/500
+1563/1563 - 20s - 13ms/step - accuracy: 0.8986 - loss: 0.3563 - learning_rate: 1.4666e-04
+Learning rate = 0.000145
+Epoch 193/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8994 - loss: 0.3524 - learning_rate: 1.4520e-04
+Learning rate = 0.000144
+Epoch 194/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9008 - loss: 0.3504 - learning_rate: 1.4374e-04
+Learning rate = 0.000142
+Epoch 195/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8983 - loss: 0.3522 - learning_rate: 1.4231e-04
+Learning rate = 0.000141
+Epoch 196/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9007 - loss: 0.3491 - learning_rate: 1.4088e-04
+Learning rate = 0.000139
+Epoch 197/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8993 - loss: 0.3550 - learning_rate: 1.3948e-04
+Learning rate = 0.000138
+Epoch 198/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8999 - loss: 0.3508 - learning_rate: 1.3808e-04
+Learning rate = 0.000137
+Epoch 199/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9011 - loss: 0.3476 - learning_rate: 1.3670e-04
+Learning rate = 0.000135
+Epoch 200/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9001 - loss: 0.3502 - learning_rate: 1.3533e-04
+Learning rate = 0.000134
+Epoch 201/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8977 - loss: 0.3523 - learning_rate: 1.3398e-04
+Learning rate = 0.000133
+Epoch 202/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9006 - loss: 0.3464 - learning_rate: 1.3264e-04
+Learning rate = 0.000131
+Epoch 203/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.8986 - loss: 0.3491 - learning_rate: 1.3131e-04
+Learning rate = 0.000130
+Epoch 204/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9023 - loss: 0.3442 - learning_rate: 1.3000e-04
+Learning rate = 0.000129
+Epoch 205/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9020 - loss: 0.3447 - learning_rate: 1.2870e-04
+Learning rate = 0.000127
+Epoch 206/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9014 - loss: 0.3444 - learning_rate: 1.2741e-04
+Learning rate = 0.000126
+Epoch 207/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9013 - loss: 0.3460 - learning_rate: 1.2614e-04
+Learning rate = 0.000125
+Epoch 208/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9035 - loss: 0.3433 - learning_rate: 1.2488e-04
+Learning rate = 0.000124
+Epoch 209/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9015 - loss: 0.3451 - learning_rate: 1.2363e-04
+Learning rate = 0.000122
+Epoch 210/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9023 - loss: 0.3411 - learning_rate: 1.2239e-04
+Learning rate = 0.000121
+Epoch 211/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9018 - loss: 0.3413 - learning_rate: 1.2117e-04
+Learning rate = 0.000120
+Epoch 212/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9018 - loss: 0.3415 - learning_rate: 1.1996e-04
+Learning rate = 0.000119
+Epoch 213/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9032 - loss: 0.3410 - learning_rate: 1.1876e-04
+Learning rate = 0.000118
+Epoch 214/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9025 - loss: 0.3408 - learning_rate: 1.1757e-04
+Learning rate = 0.000116
+Epoch 215/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9043 - loss: 0.3350 - learning_rate: 1.1639e-04
+Learning rate = 0.000115
+Epoch 216/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9033 - loss: 0.3363 - learning_rate: 1.1523e-04
+Learning rate = 0.000114
+Epoch 217/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9002 - loss: 0.3426 - learning_rate: 1.1408e-04
+Learning rate = 0.000113
+Epoch 218/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9008 - loss: 0.3439 - learning_rate: 1.1294e-04
+Learning rate = 0.000112
+Epoch 219/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9030 - loss: 0.3380 - learning_rate: 1.1181e-04
+Learning rate = 0.000111
+Epoch 220/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9027 - loss: 0.3384 - learning_rate: 1.1069e-04
+Learning rate = 0.000110
+Epoch 221/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9026 - loss: 0.3370 - learning_rate: 1.0958e-04
+Learning rate = 0.000108
+Epoch 222/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9033 - loss: 0.3348 - learning_rate: 1.0849e-04
+Learning rate = 0.000107
+Epoch 223/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9046 - loss: 0.3351 - learning_rate: 1.0740e-04
+Learning rate = 0.000106
+Epoch 224/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9038 - loss: 0.3353 - learning_rate: 1.0633e-04
+Learning rate = 0.000105
+Epoch 225/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9056 - loss: 0.3332 - learning_rate: 1.0526e-04
+Learning rate = 0.000104
+Epoch 226/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9056 - loss: 0.3324 - learning_rate: 1.0421e-04
+Learning rate = 0.000103
+Epoch 227/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9033 - loss: 0.3318 - learning_rate: 1.0317e-04
+Learning rate = 0.000102
+Epoch 228/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9064 - loss: 0.3301 - learning_rate: 1.0214e-04
+Learning rate = 0.000101
+Epoch 229/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9040 - loss: 0.3314 - learning_rate: 1.0112e-04
+Learning rate = 0.000100
+Epoch 230/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9049 - loss: 0.3323 - learning_rate: 1.0011e-04
+Learning rate = 0.000099
+Epoch 231/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9055 - loss: 0.3294 - learning_rate: 9.9105e-05
+Learning rate = 0.000098
+Epoch 232/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9051 - loss: 0.3325 - learning_rate: 9.8114e-05
+Learning rate = 0.000097
+Epoch 233/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9059 - loss: 0.3300 - learning_rate: 9.7133e-05
+Learning rate = 0.000096
+Epoch 234/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9078 - loss: 0.3262 - learning_rate: 9.6161e-05
+Learning rate = 0.000095
+Epoch 235/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9043 - loss: 0.3303 - learning_rate: 9.5200e-05
+Learning rate = 0.000094
+Epoch 236/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9055 - loss: 0.3251 - learning_rate: 9.4248e-05
+Learning rate = 0.000093
+Epoch 237/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9058 - loss: 0.3269 - learning_rate: 9.3305e-05
+Learning rate = 0.000092
+Epoch 238/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9058 - loss: 0.3273 - learning_rate: 9.2372e-05
+Learning rate = 0.000091
+Epoch 239/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9046 - loss: 0.3294 - learning_rate: 9.1448e-05
+Learning rate = 0.000091
+Epoch 240/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9062 - loss: 0.3249 - learning_rate: 9.0534e-05
+Learning rate = 0.000090
+Epoch 241/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9077 - loss: 0.3207 - learning_rate: 8.9629e-05
+Learning rate = 0.000089
+Epoch 242/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9086 - loss: 0.3228 - learning_rate: 8.8732e-05
+Learning rate = 0.000088
+Epoch 243/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9080 - loss: 0.3220 - learning_rate: 8.7845e-05
+Learning rate = 0.000087
+Epoch 244/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9073 - loss: 0.3236 - learning_rate: 8.6967e-05
+Learning rate = 0.000086
+Epoch 245/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9063 - loss: 0.3263 - learning_rate: 8.6097e-05
+Learning rate = 0.000085
+Epoch 246/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9063 - loss: 0.3199 - learning_rate: 8.5236e-05
+Learning rate = 0.000084
+Epoch 247/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9093 - loss: 0.3193 - learning_rate: 8.4384e-05
+Learning rate = 0.000084
+Epoch 248/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9063 - loss: 0.3238 - learning_rate: 8.3540e-05
+Learning rate = 0.000083
+Epoch 249/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9062 - loss: 0.3234 - learning_rate: 8.2704e-05
+Learning rate = 0.000082
+Epoch 250/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9078 - loss: 0.3214 - learning_rate: 8.1877e-05
+Learning rate = 0.000081
+Epoch 251/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9075 - loss: 0.3194 - learning_rate: 8.1059e-05
+Learning rate = 0.000080
+Epoch 252/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9082 - loss: 0.3210 - learning_rate: 8.0248e-05
+Learning rate = 0.000079
+Epoch 253/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9070 - loss: 0.3198 - learning_rate: 7.9445e-05
+Learning rate = 0.000079
+Epoch 254/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9079 - loss: 0.3163 - learning_rate: 7.8651e-05
+Learning rate = 0.000078
+Epoch 255/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9101 - loss: 0.3167 - learning_rate: 7.7864e-05
+Learning rate = 0.000077
+Epoch 256/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9082 - loss: 0.3212 - learning_rate: 7.7086e-05
+Learning rate = 0.000076
+Epoch 257/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9072 - loss: 0.3183 - learning_rate: 7.6315e-05
+Learning rate = 0.000076
+Epoch 258/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9079 - loss: 0.3189 - learning_rate: 7.5552e-05
+Learning rate = 0.000075
+Epoch 259/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9074 - loss: 0.3194 - learning_rate: 7.4796e-05
+Learning rate = 0.000074
+Epoch 260/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9111 - loss: 0.3150 - learning_rate: 7.4048e-05
+Learning rate = 0.000073
+Epoch 261/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9101 - loss: 0.3173 - learning_rate: 7.3308e-05
+Learning rate = 0.000073
+Epoch 262/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9099 - loss: 0.3155 - learning_rate: 7.2575e-05
+Learning rate = 0.000072
+Epoch 263/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9104 - loss: 0.3147 - learning_rate: 7.1849e-05
+Learning rate = 0.000071
+Epoch 264/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9106 - loss: 0.3126 - learning_rate: 7.1131e-05
+Learning rate = 0.000070
+Epoch 265/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9084 - loss: 0.3183 - learning_rate: 7.0419e-05
+Learning rate = 0.000070
+Epoch 266/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9109 - loss: 0.3126 - learning_rate: 6.9715e-05
+Learning rate = 0.000069
+Epoch 267/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9094 - loss: 0.3140 - learning_rate: 6.9018e-05
+Learning rate = 0.000068
+Epoch 268/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9089 - loss: 0.3137 - learning_rate: 6.8328e-05
+Learning rate = 0.000068
+Epoch 269/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9109 - loss: 0.3133 - learning_rate: 6.7644e-05
+Learning rate = 0.000067
+Epoch 270/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9112 - loss: 0.3110 - learning_rate: 6.6968e-05
+Learning rate = 0.000066
+Epoch 271/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9106 - loss: 0.3101 - learning_rate: 6.6298e-05
+Learning rate = 0.000066
+Epoch 272/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9106 - loss: 0.3125 - learning_rate: 6.5635e-05
+Learning rate = 0.000065
+Epoch 273/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9104 - loss: 0.3122 - learning_rate: 6.4979e-05
+Learning rate = 0.000064
+Epoch 274/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9100 - loss: 0.3089 - learning_rate: 6.4329e-05
+Learning rate = 0.000064
+Epoch 275/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9117 - loss: 0.3104 - learning_rate: 6.3686e-05
+Learning rate = 0.000063
+Epoch 276/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9097 - loss: 0.3083 - learning_rate: 6.3049e-05
+Learning rate = 0.000062
+Epoch 277/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9123 - loss: 0.3106 - learning_rate: 6.2419e-05
+Learning rate = 0.000062
+Epoch 278/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9097 - loss: 0.3115 - learning_rate: 6.1794e-05
+Learning rate = 0.000061
+Epoch 279/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9113 - loss: 0.3080 - learning_rate: 6.1176e-05
+Learning rate = 0.000061
+Epoch 280/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9097 - loss: 0.3110 - learning_rate: 6.0565e-05
+Learning rate = 0.000060
+Epoch 281/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9114 - loss: 0.3093 - learning_rate: 5.9959e-05
+Learning rate = 0.000059
+Epoch 282/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9114 - loss: 0.3062 - learning_rate: 5.9359e-05
+Learning rate = 0.000059
+Epoch 283/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9119 - loss: 0.3064 - learning_rate: 5.8766e-05
+Learning rate = 0.000058
+Epoch 284/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9120 - loss: 0.3088 - learning_rate: 5.8178e-05
+Learning rate = 0.000058
+Epoch 285/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9113 - loss: 0.3087 - learning_rate: 5.7596e-05
+Learning rate = 0.000057
+Epoch 286/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9113 - loss: 0.3088 - learning_rate: 5.7020e-05
+Learning rate = 0.000056
+Epoch 287/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9134 - loss: 0.3047 - learning_rate: 5.6450e-05
+Learning rate = 0.000056
+Epoch 288/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9128 - loss: 0.3018 - learning_rate: 5.5886e-05
+Learning rate = 0.000055
+Epoch 289/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9129 - loss: 0.3046 - learning_rate: 5.5327e-05
+Learning rate = 0.000055
+Epoch 290/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9125 - loss: 0.3039 - learning_rate: 5.4774e-05
+Learning rate = 0.000054
+Epoch 291/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9130 - loss: 0.3045 - learning_rate: 5.4226e-05
+Learning rate = 0.000054
+Epoch 292/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9128 - loss: 0.3039 - learning_rate: 5.3684e-05
+Learning rate = 0.000053
+Epoch 293/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9123 - loss: 0.3030 - learning_rate: 5.3147e-05
+Learning rate = 0.000053
+Epoch 294/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9110 - loss: 0.3092 - learning_rate: 5.2615e-05
+Learning rate = 0.000052
+Epoch 295/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9124 - loss: 0.3065 - learning_rate: 5.2089e-05
+Learning rate = 0.000052
+Epoch 296/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9131 - loss: 0.3043 - learning_rate: 5.1568e-05
+Learning rate = 0.000051
+Epoch 297/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9157 - loss: 0.2974 - learning_rate: 5.1053e-05
+Learning rate = 0.000051
+Epoch 298/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9128 - loss: 0.3022 - learning_rate: 5.0542e-05
+Learning rate = 0.000050
+Epoch 299/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9143 - loss: 0.3037 - learning_rate: 5.0037e-05
+Learning rate = 0.000050
+Epoch 300/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9123 - loss: 0.3023 - learning_rate: 4.9536e-05
+Learning rate = 0.000049
+Epoch 301/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9132 - loss: 0.3020 - learning_rate: 4.9041e-05
+Learning rate = 0.000049
+Epoch 302/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9154 - loss: 0.2977 - learning_rate: 4.8550e-05
+Learning rate = 0.000048
+Epoch 303/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9110 - loss: 0.3070 - learning_rate: 4.8065e-05
+Learning rate = 0.000048
+Epoch 304/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9149 - loss: 0.2982 - learning_rate: 4.7584e-05
+Learning rate = 0.000047
+Epoch 305/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9143 - loss: 0.2990 - learning_rate: 4.7108e-05
+Learning rate = 0.000047
+Epoch 306/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9137 - loss: 0.3015 - learning_rate: 4.6637e-05
+Learning rate = 0.000046
+Epoch 307/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9126 - loss: 0.3020 - learning_rate: 4.6171e-05
+Learning rate = 0.000046
+Epoch 308/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9145 - loss: 0.2998 - learning_rate: 4.5709e-05
+Learning rate = 0.000045
+Epoch 309/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9128 - loss: 0.3014 - learning_rate: 4.5252e-05
+Learning rate = 0.000045
+Epoch 310/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9135 - loss: 0.2999 - learning_rate: 4.4800e-05
+Learning rate = 0.000044
+Epoch 311/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9135 - loss: 0.2980 - learning_rate: 4.4352e-05
+Learning rate = 0.000044
+Epoch 312/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9120 - loss: 0.3020 - learning_rate: 4.3908e-05
+Learning rate = 0.000043
+Epoch 313/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9147 - loss: 0.3004 - learning_rate: 4.3469e-05
+Learning rate = 0.000043
+Epoch 314/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9134 - loss: 0.3002 - learning_rate: 4.3034e-05
+Learning rate = 0.000043
+Epoch 315/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9150 - loss: 0.2951 - learning_rate: 4.2604e-05
+Learning rate = 0.000042
+Epoch 316/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9157 - loss: 0.2956 - learning_rate: 4.2178e-05
+Learning rate = 0.000042
+Epoch 317/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9142 - loss: 0.2954 - learning_rate: 4.1756e-05
+Learning rate = 0.000041
+Epoch 318/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9139 - loss: 0.2975 - learning_rate: 4.1339e-05
+Learning rate = 0.000041
+Epoch 319/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9145 - loss: 0.2949 - learning_rate: 4.0925e-05
+Learning rate = 0.000041
+Epoch 320/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9141 - loss: 0.3003 - learning_rate: 4.0516e-05
+Learning rate = 0.000040
+Epoch 321/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9150 - loss: 0.2955 - learning_rate: 4.0111e-05
+Learning rate = 0.000040
+Epoch 322/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9156 - loss: 0.2955 - learning_rate: 3.9710e-05
+Learning rate = 0.000039
+Epoch 323/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9136 - loss: 0.2971 - learning_rate: 3.9313e-05
+Learning rate = 0.000039
+Epoch 324/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9150 - loss: 0.2945 - learning_rate: 3.8920e-05
+Learning rate = 0.000039
+Epoch 325/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9149 - loss: 0.2965 - learning_rate: 3.8530e-05
+Learning rate = 0.000038
+Epoch 326/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9149 - loss: 0.2950 - learning_rate: 3.8145e-05
+Learning rate = 0.000038
+Epoch 327/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9144 - loss: 0.2949 - learning_rate: 3.7764e-05
+Learning rate = 0.000037
+Epoch 328/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9131 - loss: 0.2996 - learning_rate: 3.7386e-05
+Learning rate = 0.000037
+Epoch 329/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9163 - loss: 0.2932 - learning_rate: 3.7012e-05
+Learning rate = 0.000037
+Epoch 330/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9157 - loss: 0.2944 - learning_rate: 3.6642e-05
+Learning rate = 0.000036
+Epoch 331/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9158 - loss: 0.2920 - learning_rate: 3.6276e-05
+Learning rate = 0.000036
+Epoch 332/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9155 - loss: 0.2936 - learning_rate: 3.5913e-05
+Learning rate = 0.000036
+Epoch 333/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9166 - loss: 0.2910 - learning_rate: 3.5554e-05
+Learning rate = 0.000035
+Epoch 334/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9141 - loss: 0.2952 - learning_rate: 3.5198e-05
+Learning rate = 0.000035
+Epoch 335/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9145 - loss: 0.2963 - learning_rate: 3.4846e-05
+Learning rate = 0.000034
+Epoch 336/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9156 - loss: 0.2957 - learning_rate: 3.4498e-05
+Learning rate = 0.000034
+Epoch 337/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9170 - loss: 0.2898 - learning_rate: 3.4153e-05
+Learning rate = 0.000034
+Epoch 338/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9149 - loss: 0.2951 - learning_rate: 3.3811e-05
+Learning rate = 0.000033
+Epoch 339/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9168 - loss: 0.2920 - learning_rate: 3.3473e-05
+Learning rate = 0.000033
+Epoch 340/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9160 - loss: 0.2913 - learning_rate: 3.3138e-05
+Learning rate = 0.000033
+Epoch 341/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9158 - loss: 0.2932 - learning_rate: 3.2807e-05
+Learning rate = 0.000032
+Epoch 342/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9172 - loss: 0.2889 - learning_rate: 3.2479e-05
+Learning rate = 0.000032
+Epoch 343/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9175 - loss: 0.2883 - learning_rate: 3.2154e-05
+Learning rate = 0.000032
+Epoch 344/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9160 - loss: 0.2898 - learning_rate: 3.1833e-05
+Learning rate = 0.000032
+Epoch 345/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9168 - loss: 0.2904 - learning_rate: 3.1514e-05
+Learning rate = 0.000031
+Epoch 346/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9170 - loss: 0.2914 - learning_rate: 3.1199e-05
+Learning rate = 0.000031
+Epoch 347/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9170 - loss: 0.2907 - learning_rate: 3.0887e-05
+Learning rate = 0.000031
+Epoch 348/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9158 - loss: 0.2931 - learning_rate: 3.0578e-05
+Learning rate = 0.000030
+Epoch 349/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9170 - loss: 0.2900 - learning_rate: 3.0272e-05
+Learning rate = 0.000030
+Epoch 350/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9161 - loss: 0.2913 - learning_rate: 2.9970e-05
+Learning rate = 0.000030
+Epoch 351/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9191 - loss: 0.2833 - learning_rate: 2.9670e-05
+Learning rate = 0.000029
+Epoch 352/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9177 - loss: 0.2918 - learning_rate: 2.9373e-05
+Learning rate = 0.000029
+Epoch 353/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9150 - loss: 0.2911 - learning_rate: 2.9080e-05
+Learning rate = 0.000029
+Epoch 354/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9167 - loss: 0.2868 - learning_rate: 2.8789e-05
+Learning rate = 0.000029
+Epoch 355/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9152 - loss: 0.2920 - learning_rate: 2.8501e-05
+Learning rate = 0.000028
+Epoch 356/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9162 - loss: 0.2900 - learning_rate: 2.8216e-05
+Learning rate = 0.000028
+Epoch 357/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9180 - loss: 0.2837 - learning_rate: 2.7934e-05
+Learning rate = 0.000028
+Epoch 358/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9177 - loss: 0.2878 - learning_rate: 2.7654e-05
+Learning rate = 0.000027
+Epoch 359/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9184 - loss: 0.2861 - learning_rate: 2.7378e-05
+Learning rate = 0.000027
+Epoch 360/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9171 - loss: 0.2876 - learning_rate: 2.7104e-05
+Learning rate = 0.000027
+Epoch 361/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9176 - loss: 0.2869 - learning_rate: 2.6833e-05
+Learning rate = 0.000027
+Epoch 362/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9171 - loss: 0.2865 - learning_rate: 2.6565e-05
+Learning rate = 0.000026
+Epoch 363/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9169 - loss: 0.2886 - learning_rate: 2.6299e-05
+Learning rate = 0.000026
+Epoch 364/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9168 - loss: 0.2872 - learning_rate: 2.6036e-05
+Learning rate = 0.000026
+Epoch 365/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9192 - loss: 0.2839 - learning_rate: 2.5776e-05
+Learning rate = 0.000026
+Epoch 366/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9176 - loss: 0.2858 - learning_rate: 2.5518e-05
+Learning rate = 0.000025
+Epoch 367/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9171 - loss: 0.2861 - learning_rate: 2.5263e-05
+Learning rate = 0.000025
+Epoch 368/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9189 - loss: 0.2849 - learning_rate: 2.5010e-05
+Learning rate = 0.000025
+Epoch 369/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9175 - loss: 0.2885 - learning_rate: 2.4760e-05
+Learning rate = 0.000025
+Epoch 370/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9175 - loss: 0.2845 - learning_rate: 2.4512e-05
+Learning rate = 0.000024
+Epoch 371/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9157 - loss: 0.2870 - learning_rate: 2.4267e-05
+Learning rate = 0.000024
+Epoch 372/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9184 - loss: 0.2850 - learning_rate: 2.4025e-05
+Learning rate = 0.000024
+Epoch 373/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9191 - loss: 0.2835 - learning_rate: 2.3784e-05
+Learning rate = 0.000024
+Epoch 374/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9203 - loss: 0.2795 - learning_rate: 2.3547e-05
+Learning rate = 0.000023
+Epoch 375/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9199 - loss: 0.2826 - learning_rate: 2.3311e-05
+Learning rate = 0.000023
+Epoch 376/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9190 - loss: 0.2838 - learning_rate: 2.3078e-05
+Learning rate = 0.000023
+Epoch 377/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9178 - loss: 0.2868 - learning_rate: 2.2847e-05
+Learning rate = 0.000023
+Epoch 378/500
+1563/1563 - 16s - 11ms/step - accuracy: 0.9196 - loss: 0.2822 - learning_rate: 2.2619e-05
+Learning rate = 0.000022
+Epoch 379/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9177 - loss: 0.2846 - learning_rate: 2.2393e-05
+Learning rate = 0.000022
+Epoch 380/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9184 - loss: 0.2834 - learning_rate: 2.2169e-05
+Learning rate = 0.000022
+Epoch 381/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9171 - loss: 0.2878 - learning_rate: 2.1947e-05
+Learning rate = 0.000022
+Epoch 382/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9202 - loss: 0.2793 - learning_rate: 2.1727e-05
+Learning rate = 0.000022
+Epoch 383/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9190 - loss: 0.2832 - learning_rate: 2.1510e-05
+Learning rate = 0.000021
+Epoch 384/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9183 - loss: 0.2825 - learning_rate: 2.1295e-05
+Learning rate = 0.000021
+Epoch 385/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9196 - loss: 0.2790 - learning_rate: 2.1082e-05
+Learning rate = 0.000021
+Epoch 386/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9189 - loss: 0.2831 - learning_rate: 2.0871e-05
+Learning rate = 0.000021
+Epoch 387/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9187 - loss: 0.2819 - learning_rate: 2.0663e-05
+Learning rate = 0.000020
+Epoch 388/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9197 - loss: 0.2825 - learning_rate: 2.0456e-05
+Learning rate = 0.000020
+Epoch 389/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9172 - loss: 0.2873 - learning_rate: 2.0251e-05
+Learning rate = 0.000020
+Epoch 390/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9192 - loss: 0.2820 - learning_rate: 2.0049e-05
+Learning rate = 0.000020
+Epoch 391/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9186 - loss: 0.2847 - learning_rate: 1.9848e-05
+Learning rate = 0.000020
+Epoch 392/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9201 - loss: 0.2795 - learning_rate: 1.9650e-05
+Learning rate = 0.000019
+Epoch 393/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9190 - loss: 0.2815 - learning_rate: 1.9453e-05
+Learning rate = 0.000019
+Epoch 394/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9178 - loss: 0.2810 - learning_rate: 1.9259e-05
+Learning rate = 0.000019
+Epoch 395/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9188 - loss: 0.2827 - learning_rate: 1.9066e-05
+Learning rate = 0.000019
+Epoch 396/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9190 - loss: 0.2808 - learning_rate: 1.8876e-05
+Learning rate = 0.000019
+Epoch 397/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9190 - loss: 0.2822 - learning_rate: 1.8687e-05
+Learning rate = 0.000019
+Epoch 398/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9174 - loss: 0.2856 - learning_rate: 1.8500e-05
+Learning rate = 0.000018
+Epoch 399/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9193 - loss: 0.2806 - learning_rate: 1.8315e-05
+Learning rate = 0.000018
+Epoch 400/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9190 - loss: 0.2816 - learning_rate: 1.8132e-05
+Learning rate = 0.000018
+Epoch 401/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9185 - loss: 0.2796 - learning_rate: 1.7951e-05
+Learning rate = 0.000018
+Epoch 402/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9191 - loss: 0.2818 - learning_rate: 1.7771e-05
+Learning rate = 0.000018
+Epoch 403/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9186 - loss: 0.2818 - learning_rate: 1.7593e-05
+Learning rate = 0.000017
+Epoch 404/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9193 - loss: 0.2791 - learning_rate: 1.7417e-05
+Learning rate = 0.000017
+Epoch 405/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9192 - loss: 0.2803 - learning_rate: 1.7243e-05
+Learning rate = 0.000017
+Epoch 406/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9187 - loss: 0.2823 - learning_rate: 1.7071e-05
+Learning rate = 0.000017
+Epoch 407/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9189 - loss: 0.2801 - learning_rate: 1.6900e-05
+Learning rate = 0.000017
+Epoch 408/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9188 - loss: 0.2791 - learning_rate: 1.6731e-05
+Learning rate = 0.000017
+Epoch 409/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9199 - loss: 0.2788 - learning_rate: 1.6564e-05
+Learning rate = 0.000016
+Epoch 410/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9203 - loss: 0.2799 - learning_rate: 1.6398e-05
+Learning rate = 0.000016
+Epoch 411/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9197 - loss: 0.2811 - learning_rate: 1.6234e-05
+Learning rate = 0.000016
+Epoch 412/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9202 - loss: 0.2806 - learning_rate: 1.6072e-05
+Learning rate = 0.000016
+Epoch 413/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9209 - loss: 0.2778 - learning_rate: 1.5911e-05
+Learning rate = 0.000016
+Epoch 414/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9202 - loss: 0.2807 - learning_rate: 1.5752e-05
+Learning rate = 0.000016
+Epoch 415/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9204 - loss: 0.2795 - learning_rate: 1.5594e-05
+Learning rate = 0.000015
+Epoch 416/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9190 - loss: 0.2810 - learning_rate: 1.5439e-05
+Learning rate = 0.000015
+Epoch 417/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9199 - loss: 0.2790 - learning_rate: 1.5284e-05
+Learning rate = 0.000015
+Epoch 418/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9194 - loss: 0.2805 - learning_rate: 1.5131e-05
+Learning rate = 0.000015
+Epoch 419/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9203 - loss: 0.2791 - learning_rate: 1.4980e-05
+Learning rate = 0.000015
+Epoch 420/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9196 - loss: 0.2796 - learning_rate: 1.4830e-05
+Learning rate = 0.000015
+Epoch 421/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9182 - loss: 0.2823 - learning_rate: 1.4682e-05
+Learning rate = 0.000015
+Epoch 422/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9200 - loss: 0.2792 - learning_rate: 1.4535e-05
+Learning rate = 0.000014
+Epoch 423/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9205 - loss: 0.2796 - learning_rate: 1.4390e-05
+Learning rate = 0.000014
+Epoch 424/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9183 - loss: 0.2804 - learning_rate: 1.4246e-05
+Learning rate = 0.000014
+Epoch 425/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9201 - loss: 0.2777 - learning_rate: 1.4103e-05
+Learning rate = 0.000014
+Epoch 426/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9199 - loss: 0.2775 - learning_rate: 1.3962e-05
+Learning rate = 0.000014
+Epoch 427/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9204 - loss: 0.2781 - learning_rate: 1.3823e-05
+Learning rate = 0.000014
+Epoch 428/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9196 - loss: 0.2789 - learning_rate: 1.3684e-05
+Learning rate = 0.000014
+Epoch 429/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9185 - loss: 0.2797 - learning_rate: 1.3548e-05
+Learning rate = 0.000013
+Epoch 430/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9205 - loss: 0.2776 - learning_rate: 1.3412e-05
+Learning rate = 0.000013
+Epoch 431/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9207 - loss: 0.2790 - learning_rate: 1.3278e-05
+Learning rate = 0.000013
+Epoch 432/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9204 - loss: 0.2781 - learning_rate: 1.3145e-05
+Learning rate = 0.000013
+Epoch 433/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9202 - loss: 0.2778 - learning_rate: 1.3014e-05
+Learning rate = 0.000013
+Epoch 434/500
+1563/1563 - 19s - 12ms/step - accuracy: 0.9218 - loss: 0.2738 - learning_rate: 1.2884e-05
+Learning rate = 0.000013
+Epoch 435/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9214 - loss: 0.2765 - learning_rate: 1.2755e-05
+Learning rate = 0.000013
+Epoch 436/500
+1563/1563 - 19s - 12ms/step - accuracy: 0.9192 - loss: 0.2782 - learning_rate: 1.2627e-05
+Learning rate = 0.000013
+Epoch 437/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9208 - loss: 0.2762 - learning_rate: 1.2501e-05
+Learning rate = 0.000012
+Epoch 438/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9205 - loss: 0.2759 - learning_rate: 1.2376e-05
+Learning rate = 0.000012
+Epoch 439/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9197 - loss: 0.2769 - learning_rate: 1.2252e-05
+Learning rate = 0.000012
+Epoch 440/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9209 - loss: 0.2750 - learning_rate: 1.2130e-05
+Learning rate = 0.000012
+Epoch 441/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9188 - loss: 0.2788 - learning_rate: 1.2008e-05
+Learning rate = 0.000012
+Epoch 442/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9182 - loss: 0.2796 - learning_rate: 1.1888e-05
+Learning rate = 0.000012
+Epoch 443/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9200 - loss: 0.2788 - learning_rate: 1.1769e-05
+Learning rate = 0.000012
+Epoch 444/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9218 - loss: 0.2740 - learning_rate: 1.1652e-05
+Learning rate = 0.000012
+Epoch 445/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9210 - loss: 0.2744 - learning_rate: 1.1535e-05
+Learning rate = 0.000011
+Epoch 446/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9199 - loss: 0.2777 - learning_rate: 1.1420e-05
+Learning rate = 0.000011
+Epoch 447/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9202 - loss: 0.2786 - learning_rate: 1.1306e-05
+Learning rate = 0.000011
+Epoch 448/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9197 - loss: 0.2782 - learning_rate: 1.1193e-05
+Learning rate = 0.000011
+Epoch 449/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9193 - loss: 0.2779 - learning_rate: 1.1081e-05
+Learning rate = 0.000011
+Epoch 450/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9225 - loss: 0.2751 - learning_rate: 1.0970e-05
+Learning rate = 0.000011
+Epoch 451/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9185 - loss: 0.2792 - learning_rate: 1.0860e-05
+Learning rate = 0.000011
+Epoch 452/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9202 - loss: 0.2761 - learning_rate: 1.0752e-05
+Learning rate = 0.000011
+Epoch 453/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9221 - loss: 0.2735 - learning_rate: 1.0644e-05
+Learning rate = 0.000011
+Epoch 454/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9211 - loss: 0.2760 - learning_rate: 1.0538e-05
+Learning rate = 0.000010
+Epoch 455/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9201 - loss: 0.2778 - learning_rate: 1.0432e-05
+Learning rate = 0.000010
+Epoch 456/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9217 - loss: 0.2751 - learning_rate: 1.0328e-05
+Learning rate = 0.000010
+Epoch 457/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9198 - loss: 0.2756 - learning_rate: 1.0225e-05
+Learning rate = 0.000010
+Epoch 458/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9216 - loss: 0.2722 - learning_rate: 1.0122e-05
+Learning rate = 0.000010
+Epoch 459/500
+1563/1563 - 18s - 12ms/step - accuracy: 0.9217 - loss: 0.2736 - learning_rate: 1.0021e-05
+Learning rate = 0.000010
+Epoch 460/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9197 - loss: 0.2774 - learning_rate: 9.9210e-06
+Learning rate = 0.000010
+Epoch 461/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9199 - loss: 0.2754 - learning_rate: 9.8218e-06
+Learning rate = 0.000010
+Epoch 462/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9222 - loss: 0.2747 - learning_rate: 9.7235e-06
+Learning rate = 0.000010
+Epoch 463/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9202 - loss: 0.2775 - learning_rate: 9.6263e-06
+Learning rate = 0.000010
+Epoch 464/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9212 - loss: 0.2767 - learning_rate: 9.5300e-06
+Learning rate = 0.000009
+Epoch 465/500
+1563/1563 - 18s - 11ms/step - accuracy: 0.9205 - loss: 0.2748 - learning_rate: 9.4347e-06
+Learning rate = 0.000009
+Epoch 466/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9225 - loss: 0.2726 - learning_rate: 9.3404e-06
+Learning rate = 0.000009
+Epoch 467/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9217 - loss: 0.2743 - learning_rate: 9.2470e-06
+Learning rate = 0.000009
+Epoch 468/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9204 - loss: 0.2769 - learning_rate: 9.1545e-06
+Learning rate = 0.000009
+Epoch 469/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9213 - loss: 0.2756 - learning_rate: 9.0630e-06
+Learning rate = 0.000009
+Epoch 470/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9218 - loss: 0.2732 - learning_rate: 8.9724e-06
+Learning rate = 0.000009
+Epoch 471/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9212 - loss: 0.2748 - learning_rate: 8.8826e-06
+Learning rate = 0.000009
+Epoch 472/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9207 - loss: 0.2758 - learning_rate: 8.7938e-06
+Learning rate = 0.000009
+Epoch 473/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9186 - loss: 0.2778 - learning_rate: 8.7059e-06
+Learning rate = 0.000009
+Epoch 474/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9200 - loss: 0.2759 - learning_rate: 8.6188e-06
+Learning rate = 0.000009
+Epoch 475/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9205 - loss: 0.2762 - learning_rate: 8.5326e-06
+Learning rate = 0.000008
+Epoch 476/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9195 - loss: 0.2755 - learning_rate: 8.4473e-06
+Learning rate = 0.000008
+Epoch 477/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9226 - loss: 0.2744 - learning_rate: 8.3628e-06
+Learning rate = 0.000008
+Epoch 478/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9216 - loss: 0.2737 - learning_rate: 8.2792e-06
+Learning rate = 0.000008
+Epoch 479/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9225 - loss: 0.2725 - learning_rate: 8.1964e-06
+Learning rate = 0.000008
+Epoch 480/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9226 - loss: 0.2728 - learning_rate: 8.1144e-06
+Learning rate = 0.000008
+Epoch 481/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9198 - loss: 0.2776 - learning_rate: 8.0333e-06
+Learning rate = 0.000008
+Epoch 482/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9215 - loss: 0.2731 - learning_rate: 7.9530e-06
+Learning rate = 0.000008
+Epoch 483/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9202 - loss: 0.2746 - learning_rate: 7.8734e-06
+Learning rate = 0.000008
+Epoch 484/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9204 - loss: 0.2744 - learning_rate: 7.7947e-06
+Learning rate = 0.000008
+Epoch 485/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9210 - loss: 0.2722 - learning_rate: 7.7167e-06
+Learning rate = 0.000008
+Epoch 486/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9218 - loss: 0.2726 - learning_rate: 7.6396e-06
+Learning rate = 0.000008
+Epoch 487/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9221 - loss: 0.2760 - learning_rate: 7.5632e-06
+Learning rate = 0.000007
+Epoch 488/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9228 - loss: 0.2726 - learning_rate: 7.4876e-06
+Learning rate = 0.000007
+Epoch 489/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9211 - loss: 0.2752 - learning_rate: 7.4127e-06
+Learning rate = 0.000007
+Epoch 490/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9227 - loss: 0.2716 - learning_rate: 7.3385e-06
+Learning rate = 0.000007
+Epoch 491/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9214 - loss: 0.2760 - learning_rate: 7.2652e-06
+Learning rate = 0.000007
+Epoch 492/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9225 - loss: 0.2718 - learning_rate: 7.1925e-06
+Learning rate = 0.000007
+Epoch 493/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9216 - loss: 0.2742 - learning_rate: 7.1206e-06
+Learning rate = 0.000007
+Epoch 494/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9195 - loss: 0.2763 - learning_rate: 7.0494e-06
+Learning rate = 0.000007
+Epoch 495/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9222 - loss: 0.2706 - learning_rate: 6.9789e-06
+Learning rate = 0.000007
+Epoch 496/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9214 - loss: 0.2748 - learning_rate: 6.9091e-06
+Learning rate = 0.000007
+Epoch 497/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9215 - loss: 0.2717 - learning_rate: 6.8400e-06
+Learning rate = 0.000007
+Epoch 498/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9205 - loss: 0.2764 - learning_rate: 6.7716e-06
+Learning rate = 0.000007
+Epoch 499/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9213 - loss: 0.2744 - learning_rate: 6.7039e-06
+Learning rate = 0.000007
+Epoch 500/500
+1563/1563 - 17s - 11ms/step - accuracy: 0.9218 - loss: 0.2715 - learning_rate: 6.6369e-06
