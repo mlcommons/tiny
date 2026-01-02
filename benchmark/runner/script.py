@@ -77,7 +77,10 @@ class _ScriptDownloadStep(_ScriptStep):
             file_truth, data = dataset.get_file_by_index(self._current_index)
         else:
             file_truth, data = dataset.get_file_by_index(self._index)
-        
+        # Check if file_truth is None and exit from the loop with a warning
+        # this can happen when the tests file asks for more cycles than the 
+        # y_labels.csv provides
+
         # Define the current time for formatted output
         current_time = datetime.now()
         formatted_time = current_time.strftime("%m%d.%H%M%S")
