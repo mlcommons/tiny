@@ -110,7 +110,7 @@ def conv_block(inputs,
 
   net = inputs
   if l2_reg is not None and l2_reg != 0.0:
-    regularizer = regularizers.L2(1e-3)
+    regularizer = regularizers.L2(l2_reg)
   else:
     regularizer = None
 
