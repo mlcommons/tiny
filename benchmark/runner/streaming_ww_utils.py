@@ -110,14 +110,20 @@ def process_dutycycle(raw_result):
 
     on_times = proc_stop_times - proc_start_times
     periods = np.diff(proc_start_times)
-    periods_fractional_var = (np.max(periods) - np.min(periods))/np.mean(periods)
-    if periods_fractional_var > 0.02: # > 2% variation
-        print(f"WARNING: Frame period variation exceeds 2%.", 
-              f"Min period = {np.min(periods*1e3):.3f} ms. ", 
-              f"Max period = {np.max(periods*1e3):.3f} ms")
-    avg_period = np.mean(periods)
-    avg_on_time = np.mean(on_times)
-    avg_duty_cycle = avg_on_time / avg_period
+    if len(periods) != 0:
+        periods_fractional_var = (np.max(periods) - np.min(periods))/np.mean(periods)
+        if periods_fractional_var > 0.02: # > 2% variation
+            print(f"WARNING: Frame period variation exceeds 2%.", 
+                f"Min period = {np.min(periods*1e3):.3f} ms. ", 
+                f"Max period = {np.max(periods*1e3):.3f} ms")
+        avg_period = np.mean(periods)
+        avg_on_time = np.mean(on_times)
+        avg_duty_cycle = avg_on_time / avg_period
+    else:
+        print("ERROR: No duty cycles recorded")
+        avg_period = np.nan
+        avg_on_time = np.nan
+        avg_duty_cycle = np.nan
 
     results = {'duty_cycle':avg_duty_cycle, 
                'period':avg_period,
