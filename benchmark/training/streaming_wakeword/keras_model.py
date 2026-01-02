@@ -178,19 +178,46 @@ def get_model(args, use_qat=False):
   # can make the model accept a variable length input.  
   # If flags does not have the option, default to False
   variable_length = ('variable_length' in args and args.variable_length)
+  default_model_config = {
+    'ds_filters'          : [128, 128, 128, 32],
+    'ds_repeat'           : [1, 1, 1, 1],
+    'ds_residual'         : [0, 0, 0, 0],
+    'ds_kernel_size'      : [3, 5, 10, 15],
+    'ds_stride'           : [1, 1, 1, 1],
+    'ds_dilation'         : [1, 1, 1, 1],
+    'ds_padding'          : ['valid', 'valid', 'valid', 'valid'],
+    'ds_filter_separable' : [1, 1, 1, 1],
+    'ds_scale'            : 1,
+    'ds_max_pool'         : 0,
+    'dropout'             : 0.2,
+    'activation'          : "relu",
+  }
 
-  ds_filters          = [128, 128, 128, 32]
-  ds_repeat           = [1, 1, 1, 1]
-  ds_residual         = [0, 0, 0, 0]
-  ds_kernel_size      = [3, 5, 10, 15]
-  ds_stride           = [1, 1, 1, 1]
-  ds_dilation         = [1, 1, 1, 1]
-  ds_padding          = ['valid', 'valid', 'valid', 'valid']
-  ds_filter_separable = [1, 1, 1, 1]
-  ds_scale            = 1
-  ds_max_pool         = 0
-  dropout = 0.2
-  activation = "relu"
+  if args.model_config:
+    with open(args.model_config, 'r') as f:
+      model_config = json.load(f)
+  else:
+    model_config = default_model_config
+    print("No model_config file specified. Using default model configuration.")
+
+  # populate any missing parameters with defaults
+  for key in default_model_config:
+    if key not in model_config:
+      model_config[key] = default_model_config[key]
+
+  # get parameters from model_config dict
+  ds_filters          = model_config['ds_filters']
+  ds_repeat           = model_config['ds_repeat']
+  ds_residual         = model_config['ds_residual']
+  ds_kernel_size      = model_config['ds_kernel_size']
+  ds_stride           = model_config['ds_stride']
+  ds_dilation         = model_config['ds_dilation']
+  ds_padding          = model_config['ds_padding']
+  ds_filter_separable = model_config['ds_filter_separable']
+  ds_scale            = model_config.get('ds_scale', 1)
+  ds_max_pool         = model_config.get('ds_max_pool', 0)
+  dropout = model_config.get('dropout', 0.2)
+  activation = model_config.get('activation', 'relu')
 
   # check that all the lists are the same length. this was really only needed when taking different configs
   num_blocks = len(ds_filters)
