@@ -28,5 +28,10 @@ class IOManagerEnhanced(IOManager):
     command = "print_detections"
     return self.port.send_command(command)
   
+  def print_dutycycle(self):
+    command = "print_dutycycle"
+    return self.port.send_command(command)
+  
+  
   def sync_baud(self, baud):
     return self.port.send_command(f"setbaud {baud}")

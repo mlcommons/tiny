@@ -69,10 +69,10 @@ def send_cmd_get_resp(cmd, port, timeout=2, check_echo=True, retries=5):
         raise RuntimeError("send_cmd_get_resp failed after {i_attempt} retries")
     return response
 
-def extract_feature_array(s):
-    match = re.search(r'm-features-\[([^\]]+)\]', s)
+def extract_int_array(s, header_str="m-features-"):
+    match = re.search(fr'{header_str}\[([^\]]+)\]', s)
     if not match:
-        err_str = "No 'm-features' array found in the input string."
+        err_str = f"No '{header_str}' found in the input string."
         logging.error(err_str)
         raise ValueError(err_str)
 
@@ -117,6 +117,7 @@ def get_features(wav_data, port, frame_size=512, num_frames=None, offset=0, max_
 
     # Loop through 512-sample chunks
     specgram = None
+    activations = None
     for i in range(offset, total_samples, frame_size):
         frame = wav_data[i:i+frame_size]
         print(f"\rChunk {i // frame_size} / {num_frames}. ", end="")
@@ -202,14 +203,22 @@ def get_features(wav_data, port, frame_size=512, num_frames=None, offset=0, max_
         response = send_cmd_get_resp(out_str, port, timeout=10)
 
 
-        feature_vec = extract_feature_array(response)
+        feature_vec = extract_int_array(response, header_str="m-features-")
+        output_vec = extract_int_array(response, header_str="m-activations-")
         if specgram is None:
             specgram = feature_vec.reshape(1, -1)
         else:
             specgram = np.vstack((specgram, feature_vec))
-        np.savez("temp_spec.npz", specgram=specgram)
+
+        if activations is None:
+            activations = output_vec.reshape(1, -1)
+        else:
+            activations = np.vstack((activations, output_vec))
+
+        np.savez("temp_spec.npz", specgram=specgram, activations=activations)
     print(f"Acquired spectrogram. Caught {error_count} errors")
-    return specgram
+    return dict(specgram=specgram, activations=activations)
+    
 
 if __name__ == "__main__":
     """
@@ -246,9 +255,10 @@ if __name__ == "__main__":
     # print(f"Name: {response}")
     t_start = time.time()
     print(f"Getting features")
-    specgram = get_features(data, dut_port, frame_size=512, offset=args.offset)
+    captured_data = get_features(data, dut_port, frame_size=512, offset=args.offset)
     t_end = time.time()
-    np.savez(args.specfile, specgram=specgram)
+    np.savez(args.specfile, **captured_data)
     
-    print(f"Saved spectrogram with shape {specgram.shape} to {args.specfile}")
+    
+    print(f"Saved spectrogram with shape {captured_data['specgram'].shape} to {args.specfile}")
     print(f"Completed spectrogram readout in {t_end-t_start} s")

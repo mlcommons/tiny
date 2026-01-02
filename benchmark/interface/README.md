@@ -1,5 +1,16 @@
 # Interface board software
 
+## Installing Firmware
+ -  A pre-built binary is in this directory named `benchmark-interface.elf`.
+ - Use the ST Programmer appliation to load the elf file onto the board.  
+ 	- Connect the board to your host's USB port using connector CN10 (also labeled ST-Link).  This one is next to two LEDs.
+ 	- To avoid confusion, it is easiest if the interface board is the only board connected to your computer for this step.
+ 	- Open the ST Programmer application.  
+ 	- In the ST-Link panel, click "Connect".  
+ 	- There should be a tab labeled '+' in the top of the main area.  Click this and select "Open File".  Navigate to `benchmark-interface.elf`.
+ 	- Click the "Download" button. 
+ 	- The log window at the bottom should show "File download complete". 
+
 ## Features
 - Interacts with `runner` python code on the host machine.
 - Interacts with the device under test

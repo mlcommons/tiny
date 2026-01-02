@@ -317,7 +317,13 @@ def add_training_args(parser):
         help="""\
         Directory where plots of accuracy vs Epochs are stored
         """)
-
+    parser.add_argument(
+        '--model_config',
+        type=str,
+        default=None,
+        help="""\
+        JSON file specifying model configuration parameters.  If None, default parameters are used.
+        """)
 def add_eval_args(parser):
     # ../../runner/sww_data_dir/sww_long_test.json
     parser.add_argument(

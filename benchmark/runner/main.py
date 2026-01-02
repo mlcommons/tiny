@@ -1,18 +1,18 @@
-import argparse, os, time, yaml, json
+import argparse, os, time, yaml, json, io
 from datetime import datetime
 import numpy as np
 from sklearn.metrics import roc_auc_score
 from collections import Counter
 import matplotlib.pyplot as plt
 
-from power_manager import PowerManager
+from power_manager.power_manager import PowerManager
 from datasets import DataSet, StreamingDataSet
 
 from device_manager import DeviceManager
 from device_under_test import DUT
-from script import Script
+from script import Script, log_filename
 import streaming_ww_utils as sww_util
-from baud_utils import get_baud_rate
+from runner_utils import get_baud_rate, print_tee
 
 """
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
@@ -49,9 +49,13 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     :param dataset_path:
     """
     
-    desired_baud = get_baud_rate("l4r5zi", mode, yaml_path="devices.yaml")
-    manager = DeviceManager(devices_config, desired_baud, mode)
+    desired_dut_baud = get_baud_rate(dut_config, mode)
+    manager = DeviceManager(devices_config, desired_dut_baud, mode)
     manager.scan()
+    
+    if not any([d['type'] == 'interface' for d in manager.values()]) and not any([d['type'] == 'dut' for d in manager.values()]):
+       raise RuntimeError("No interface or DUT detected. One must be present to run test")
+
     power = manager.get("power", {}).get("instance")
     if mode == "e" and power is None:
         raise RuntimeError("ERROR: Energy mode selected but no power board was found.")
@@ -66,9 +70,9 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     io = manager.get("interface", {}).get("instance")
     if io:
         io.__enter__()
-        io.sync_baud(desired_baud)
+        io.sync_baud(desired_dut_baud)
     
-    identify_dut(manager, desired_baud)
+    identify_dut(manager, desired_dut_baud)
     dut = manager.get("dut", {}).get("instance")
     dut_config['model'] = dut.get_model()
     # with io:
@@ -85,9 +89,14 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     if io:
         io.__exit__()
 
+    if not isinstance(result, list):
+        # if the test does not contain a loop, then result will just be a dict
+        # rather than a list of dicts.  So make it a list
+        result = [result]  
 
-    if 'power' in result:
-        result['power']['voltage'] = dut_config.get("voltage")
+    for r in result:
+        if 'power' in r:
+            r['power']['voltage'] = power._voltage
     
     return result, power
 
@@ -102,26 +111,6 @@ def parse_device_config(device_list_file, device_yaml):
     else:
         with open(device_list_file) as dev_file:
             return yaml.load(dev_file, Loader=yaml.CLoader)
-
-
-def parse_dut_config(dut_cfg_file, dut_voltage, dut_baud):
-    """ Parse the dut configuration file and override values
-
-    :param dut: path to device config file
-    :param dut_voltage: dut voltage in mV
-    :param dut_baud: dut baud rate
-    """
-    config = {}
-    if dut_cfg_file:
-        with open(dut_cfg_file) as dut_file:
-            dut_config = yaml.load(dut_file, Loader=yaml.CLoader)
-            config.update(**dut_config)
-    if dut_voltage:
-        config.update(voltage=dut_voltage)
-    if dut_baud:
-        config.update(baud=dut_baud)
-    return config
-
 
 def parse_test_script(test_script):
     """Load the test script
@@ -165,73 +154,18 @@ def calculate_accuracy(y_pred, labels):
     return accuracy
 
 
-def calculate_auc(y_pred, labels, n_classes):
-    # Check if y_pred has only one value per instance (Anomaly Detection case)
-    if y_pred.shape[1] == 1:
-        thresholds = np.amin(y_pred) + np.arange(0.0, 1.01, .01) * (np.amax(y_pred) - np.amin(y_pred))
-        roc_auc = 0
+def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, results_file=None):
+    # Make sure it has a line that matches this regex
+    #   m = re.match(r".* Median energy cost is ([\d\.]+) uJ/inf\..*", line)
+    if results_file:
+        results_dir = os.path.dirname(results_file)
+    else:
+        results_dir = os.getcwd()
 
-        n_normal = np.sum(labels == 0)  # Assuming normal instances are labeled as 0
-        tpr = np.zeros(len(thresholds))
-        fpr = np.zeros(len(thresholds))
-
-        for threshold_item in range(1, len(thresholds)):
-            threshold = thresholds[threshold_item]
-            y_pred_binary = (y_pred > threshold).astype(int)
-
-            tpr[threshold_item] = np.sum(y_pred_binary[labels == 1]) / float(np.sum(labels == 1))
-            fpr[threshold_item] = np.sum(y_pred_binary[labels == 0]) / float(n_normal)
-
-        # Force boundary condition
-        fpr[0] = 1
-        tpr[0] = 1
-
-        # Compute AUC using trapezoidal rule
-        for threshold_item in range(len(thresholds) - 1):
-            roc_auc += 0.5 * (tpr[threshold_item] + tpr[threshold_item + 1]) * (
-                        fpr[threshold_item] - fpr[threshold_item + 1])
-        return roc_auc
-
-    # Multiclass Case (Existing Logic)
-    thresholds = np.arange(0.0, 1.01, 0.01)
-    fpr = np.zeros([n_classes, len(thresholds)])
-    tpr = np.zeros([n_classes, len(thresholds)])
-    roc_auc = np.zeros(n_classes)
-
-    for class_item in range(n_classes):
-        all_positives = sum(labels == class_item)
-        all_negatives = len(labels) - all_positives
-
-        for threshold_item in range(1, len(thresholds)):
-            threshold = thresholds[threshold_item]
-            false_positives = 0
-            true_positives = 0
-            for i in range(len(y_pred)):
-                if y_pred[i, class_item] > threshold:
-                    if labels[i] == class_item:
-                        true_positives += 1
-                    else:
-                        false_positives += 1
-            if all_negatives == 0:
-                fpr[class_item, threshold_item] = 0
-            else:
-                fpr[class_item, threshold_item] = false_positives / float(all_negatives)
-            if all_positives == 0:
-                tpr[class_item, threshold_item] = 0
-            else:                    
-                tpr[class_item, threshold_item] = true_positives / float(all_positives)
-
-        fpr[class_item, 0] = 1
-        tpr[class_item, 0] = 1
-        for threshold_item in range(len(thresholds) - 1):
-            roc_auc[class_item] += 0.5 * (tpr[class_item, threshold_item] + tpr[class_item, threshold_item + 1]) * (
-                        fpr[class_item, threshold_item] - fpr[class_item, threshold_item + 1])
-
-    roc_auc_avg = np.mean(roc_auc)
-    return roc_auc_avg
-
-def print_energy_results(l_results, energy_sampling_freq=1000):
+    inf_energies = np.nan*np.zeros(len(l_results))
+    inf_times = np.nan*np.zeros(len(l_results))
     
+
     for inf_num,res in enumerate(l_results):
         plt.clf()
         energy_samples = res['power']['samples'] # assume 'output type' is set to energy
@@ -255,7 +189,7 @@ def print_energy_results(l_results, energy_sampling_freq=1000):
         for ts in ts_seconds:  
             plt.plot([ts, ts], [y_min, y_max], 'r')
             plt.grid(True)
-        plt.savefig(f"energy_inf_{inf_num:03d}.png")
+        plt.savefig(os.path.join(results_dir, f"energy_inf_{inf_num:03d}.png"))
         
         # There is sometimes some extra activity on the timestamp pin at the 
         # beginning, so take the last two
@@ -269,14 +203,29 @@ def print_energy_results(l_results, energy_sampling_freq=1000):
         total_inference_energy = np.sum(inference_energy_samples)
         num_inferences = res['infer']['iterations']
         energy_per_inf = total_inference_energy / num_inferences
-        latency_per_inf = elapsed_time / num_inferences
-        print(f"{num_inferences} iterations. Elapsed time = {elapsed_time},",
-              f"total energy = {total_inference_energy}")
-        print(f"Per inference: time = {latency_per_inf}, energy = {energy_per_inf}")
-        print(f"Average Power = {1e3*energy_per_inf/latency_per_inf:5.4} mW.")
+        inf_energies[inf_num] = energy_per_inf
+        inf_times[inf_num] = elapsed_time
+        
+        time_warning = "" if elapsed_time >= 10.0 else "  <<<< below minimum duration"
+        print_tee(f"Energy data for trial {inf_num}", outfile=results_file)
+        print_tee(f"  Elapsed time  : {elapsed_time}{time_warning}", outfile=results_file)
+        print_tee(f"  Inferences    : {num_inferences}", outfile=results_file)
+        print_tee(f"  Power         : {1e3*total_inference_energy/elapsed_time:5.4f} mW.", outfile=results_file)
+        print_tee(f"  Total Energy  : {total_inference_energy*1e6:.3f} uJ", outfile=results_file)
+        print_tee(f"  Energy/Inf    : {energy_per_inf*1e6:.3f} uJ/inf", outfile=results_file)
+    
+    print_tee("---------------------------------------------------------", outfile=results_file)
+    print_tee(f"Median energy cost is {1e6*np.median(inf_energies):5.4f} uJ/inf.", outfile=results_file)
+    print_tee("---------------------------------------------------------", outfile=results_file)
+
+    if np.any(inf_times<10.0):
+        print_tee(f"ERROR: Not valid for submission.  All inference times must be at least 10 seconds.")
+    if len(l_results) != req_cycles:
+        print_tee(f"ERROR: Not valid for submission.  Energy mode must include exactly {req_cycles} measurements.")
 
 # Summarize results
-def summarize_result(result, power, mode):
+def summarize_result(result, power, mode, results_file=None):
+    print(20*'-')
     num_correct_files = 0
     total_files = 0
     y_pred = []
@@ -297,26 +246,33 @@ def summarize_result(result, power, mode):
         power.power_off()
         power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
 
+    
     if mode == "e":
-        print("Power Edition Output")
-        print_energy_results(result, energy_sampling_freq=1000)
+        print_tee("Power Edition Output", outfile=results_file)
+        print_energy_results(result, energy_sampling_freq=1000, results_file=results_file)
         return
 
-    for r in result:
+    for res_num,r in enumerate(result):
         if 'infer' not in r or 'class' not in r or 'file' not in r:
             continue  # Skip malformed or error-only entries
         infer_data = r['infer']
         infer_results = infer_data['results']
         file_name = r['file']
         true_class = int(r['class'])
-        for r in result:
-            errors = r.get('error')  # ✅ Safe access
-            if errors:
-                continue  # Skip error entries entirely here
+
+        errors = r.get('error')  # Safe access
+        if errors:
+            continue  # Skip error entries entirely here
         
         if 'throughput' in infer_data:
             throughput_values.append(infer_data['throughput'])
-
+            print_tee(f"Performance results for window {res_num+1}", outfile=results_file)
+            print_tee(f"    # Inferences : {infer_data['iterations']}", outfile=results_file)
+            print_tee(f"    Runtime: {infer_data['elapsed_time']/1e6} sec.", outfile=results_file)
+            print_tee(f"    Throughput: {infer_data['throughput']} inf./sec.", outfile=results_file)
+            if infer_data['elapsed_time']/1e6 > 10.0:
+                print_tee(f"    Runtime requirements have been met.", outfile=results_file)
+             
         if file_name not in file_infer_results:
             file_infer_results[file_name] = {'true_class': true_class, 'results': []}
 
@@ -330,14 +286,14 @@ def summarize_result(result, power, mode):
         has_error_1 = any(r.get("error") == "error 1" for r in result)
         has_error_2 = any(r.get("error") == "error 2" for r in result)
         if has_error_1:
-            print(f"{formatted_time}ulp-mlperf: ERROR 1 – loop_count was not exactly 5.")
+            print_tee(f"{formatted_time}ulp-mlperf: ERROR 1 - loop_count was not exactly 5.", outfile=results_file)
         elif has_error_2:
-            print(f"{formatted_time}ulp-mlperf: ERROR 2 – loop exited before 10 seconds elapsed.")
+            print_tee(f"{formatted_time}ulp-mlperf: ERROR 2 - loop exited before 10 seconds elapsed.", outfile=results_file)
         else:
             median_throughput = np.median(throughput_values)
-            print(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------")
-            print(f"{formatted_time}ulp-mlperf: Median throughput is {median_throughput:>10.3f} inf./sec.")
-            print(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------")
+            print_tee(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------", outfile=results_file)
+            print_tee(f"{formatted_time}ulp-mlperf: Median throughput is {median_throughput:>10.3f} inf./sec.", outfile=results_file)
+            print_tee(f"{formatted_time}ulp-mlperf: ---------------------------------------------------------", outfile=results_file)
 
     else:
         for file_name, data in file_infer_results.items():
@@ -356,32 +312,36 @@ def summarize_result(result, power, mode):
 
             total_files += 1
 
-        auc = calculate_accuracy(np.array(y_pred), np.array(y_true))
-        accuracy = calculate_auc(np.array(y_pred), np.array(y_true), n_classes)
+        accuracy = calculate_accuracy(np.array(y_pred), np.array(y_true))
+
+        if np.array(y_pred).shape[1] == 2:
+            auc =roc_auc_score(np.array(y_true), np.array(y_pred)[:,1])
+        else:
+            auc =roc_auc_score(np.array(y_true), np.array(y_pred), multi_class='ovr')
+        
         current_time = datetime.now()
         formatted_time = current_time.strftime("%m%d.%H%M%S ") 
-        print(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}")
-        print(f"{formatted_time}ulp-mlperf: AUC = {auc:.3f}")
+        print_tee(f"{formatted_time}ulp-mlperf: Top 1% = {accuracy:2.1f}", outfile=results_file)
+        print_tee(f"{formatted_time}ulp-mlperf: AUC = {auc:.3f}", outfile=results_file)
     
-        
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog="TestRunner", description=__doc__)
     parser.add_argument("-d", "--device_list", default="devices.yaml", help="Device definition YAML file")
     parser.add_argument("-y", "--device_yaml", required=False, help="Raw YAML to interpret as the target device")
-    parser.add_argument("-u", "--dut_config", required=False, help="Target device")
-    parser.add_argument("-v", "--dut_voltage", required=False, help="Voltage set during test")
-    parser.add_argument("-b", "--dut_baud", required=False, help="Baud rate for device under test")
-    parser.add_argument("-t", "--test_script", default="tests.yaml", help="File containing test scripts")
+    parser.add_argument("-t", "--test_script", default=None, help="File containing test scripts")
     parser.add_argument("-s", "--dataset_path", default="datasets")
     parser.add_argument("-m", "--mode", choices=["e", "p", "a"], default="a", help="Test mode (energy (e), performance (p), accuracy (a))")
     args = parser.parse_args()
-    if args.mode == "a":
-        test_script_file = "tests_accuracy.yaml"  # Accuracy test script
-    elif args.mode == "p":
-        test_script_file = "tests_performance.yaml"  # Performance test script
-    elif args.mode == "e":
-        test_script_file = "tests_energy.yaml"  # Energy test script
+    if args.test_script is not None:
+        test_script_file=args.test_script
+    else:
+        if args.mode == "a":
+            test_script_file = "tests_accuracy.yaml"  # Accuracy test script
+        elif args.mode == "p":
+            test_script_file = "tests_performance.yaml"  # Performance test script
+        elif args.mode == "e":
+            test_script_file = "tests_energy.yaml"  # Energy test script
     config = {
         "devices_config": parse_device_config(args.device_list, args.device_yaml),
         "test_script": parse_test_script(test_script_file),
@@ -401,17 +361,20 @@ if __name__ == '__main__':
         result = [result]
     for r in result: 
         r["mode"] = config["mode"]
+    results_file = os.path.join(os.path.dirname(log_filename), "results.txt")
     if config['dut_config']['model'] == 'sww01':
         if power is not None:  # If power is present, turn it off.  
             # this should really be somewhere else
             power.power_off()
             power.__exit__() # fix this so it only looks for 'ack stop', in case sampling has already stopped
         if config["mode"] == "e":
-            print("Power Edition Output")
-            print_energy_results(result, energy_sampling_freq=1000)
-        sww_util.summarize_sww_result(result, power)  # Pass only power
+            print_tee("Power Edition Output", outfile=results_file)
+            print_energy_results(result, energy_sampling_freq=1000, req_cycles=1, results_file=results_file)
+        sww_util.summarize_sww_result(result, power, results_file=results_file)
     else:
-        summarize_result(result, power, mode=config["mode"])  # Remove mode parameter
+        summarize_result(result, power, mode=config["mode"], results_file=results_file)
 
-    with open('perf_result.json', 'w') as fpo:
+    print(f"Session logged in file {log_filename}")
+    results_data_file = os.path.join(os.path.dirname(log_filename), "results.json")
+    with open(results_data_file, 'w') as fpo:
         json.dump(result, fpo)

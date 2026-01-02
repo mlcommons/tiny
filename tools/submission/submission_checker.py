@@ -4,6 +4,9 @@ import logging
 import os
 import re
 import sys
+import pandas as pd
+# can't import csv because we have a variable named csv, so ...
+from csv import QUOTE_MINIMAL, QUOTE_ALL, QUOTE_NONNUMERIC, QUOTE_NONE
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("main")
@@ -11,7 +14,7 @@ log = logging.getLogger("main")
 
 MODEL_CONFIG = {
     "v1.0": {
-        "models": ["ad", "ic", "kws", "vww"],  
+        "models": ["ad", "ic", "kws", "vww"],
         "required-scenarios": {
             # anything goes
         },
@@ -30,6 +33,7 @@ MODEL_CONFIG = {
             "image_classification": "ic",
             "keyword_spotting": "kws",
             "visual_wake_words": "vww",
+            "streaming_wakeword_detection": "sww",
         },
     },
     "v1.1": {
@@ -65,27 +69,67 @@ MODEL_CONFIG = {
         },
         "model_mapping": {
         },
+    },
+    "v1.3": {
+        "models": ["ad", "ic", "kws", "vww", "sww"],  
+        "required-scenarios": {
+            # anything goes
+        },
+        "optional-scenarios": {
+            # anything goes
+        },
+        "accuracy-target": {
+            "ad": ("auc", 0.85),
+            "ic": ("top-1", 85),
+            "kws": ("top-1", 90),
+            "vww": ("top-1", 80),
+            "sww": ("fps_fns", (8,8)),
+        },
+        "model_mapping": {
+        },
+        "required_tests": {
+          "ad": ["accuracy", "performance"],
+          "ic": ["accuracy", "performance"],
+          "kws": ["accuracy", "performance"],
+          "vww": ["accuracy", "performance"],
+          "sww": ["energy"]
+        },
+        "optional_tests": {
+          "ad": ["energy"],
+          "ic": ["energy"],
+          "kws": ["energy"],
+          "vww": ["energy"],
+          "sww": []
+        },
+        "required_files": ["log.txt", "results.json", "results.txt"]
     }
 }
 VALID_DIVISIONS = ["open", "closed"]
 VALID_AVAILABILITIES = ["available", "preview", "rdi"]
-REQUIRED_ACC_FILES = [
+EEMBC_REQUIRED_ACC_FILES = [
     "log.txt", "results.txt",
     "script.async",
+]
+MLC_REQUIRED_ACC_FILES = [
+    "log.txt", "results.txt",
+    "results.json",
 ]
 ACC_FILE = "results.txt"
 ACC_PATTERN = {
     "top-1":
-        r".* Top-1: ([\d\.]+).*",
+        r".* Top[- ]1%?\s?[:=] ([\d\.]+).*", # match "Top-1: 91.1%" (old) or "Top 1% = 85.4" (new)
     "auc":
-        r".* AUC: ([\d\.]+).*",
+        r".* AUC\s?[:=] ([\d\.]+).*", # match "AUC: 0.93" (old) or  "AUC = 0.862" (new)
 }
 FILE_SIZE_LIMIT_MB = 500
 MB_TO_BYTES = 1024*1024
-REQUIRED_PERF_FILES = REQUIRED_ACC_FILES
-OPTIONAL_PERF_FILES = [""]
-REQUIRED_PERF_POWER_FILES = REQUIRED_ACC_FILES
+EEMBC_REQUIRED_PERF_FILES = EEMBC_REQUIRED_ACC_FILES
+EEMBC_REQUIRED_PERF_POWER_FILES = EEMBC_REQUIRED_ACC_FILES
 
+MLC_REQUIRED_PERF_FILES = MLC_REQUIRED_ACC_FILES
+MLC_REQUIRED_PERF_POWER_FILES = MLC_REQUIRED_ACC_FILES
+
+OPTIONAL_PERF_FILES = [""]
 
 def list_dir(*path):
   path = os.path.join(*path)
@@ -115,6 +159,64 @@ def list_files_recursively(*path):
 def split_path(m):
   return m.replace("\\", "/").split("/")
 
+def compare_versions(ver_a, ver_b):
+    """
+    compare versions ver_a and ver_b
+    if ver_a < ver_b => return -1
+    if ver_a == ver_b => return 0
+    if ver_a > ver_b => return +1
+    Versions should be strings that look like
+    "vA.B.C..." or "A.B.C"
+    The leading "v" is optional and meaningless: "A.B.C" == "vA.B.C"
+    Numbers earlier in the string take precedence. "v1.2" > "v0.9"
+    Any subversion at a given level (even 0) is greater than nothing: "v1.2.0" > "v1.2"
+"""
+    ## These should all pass
+    # assert compare_versions("v1.2.5", "v1.2") == +1
+    # assert compare_versions("v1.2.5", "v1.2.6") == -1
+    # assert compare_versions("v1.2.5", "v1.2.10") == -1
+    # assert compare_versions("1.2.5.55", "v1.2.10") == -1
+    # assert compare_versions("1.3", "1.2.10") == +1
+    # assert compare_versions("72.23.99", "v72.23.99") == 0
+    
+    parts_a = ver_a.lstrip("v").split('.')
+    parts_b = ver_b.lstrip("v").split('.')
+    num_sub_vers = max(len(parts_a), len(parts_b)) 
+    for i in range(num_sub_vers):
+        
+        if len(parts_a) > i:
+            try:
+                sub_ver_a = int(parts_a[i])
+            except:
+                raise ValueError(f"Could not convert subfield {parts_a[i]} of version {ver_a}")
+        else:
+            sub_ver_a = None
+        if len(parts_b) > i:
+            try:
+                sub_ver_b = int(parts_b[i])
+            except:
+                raise ValueError(f"Could not convert subfield {parts_b[i]} of version {ver_b}")
+        else:
+            sub_ver_b = None
+
+        # print(f"Step {i}: Comparing A: {sub_ver_a} to B: {sub_ver_b}")
+        if sub_ver_a and sub_ver_b is None:
+            return +1
+        elif sub_ver_b and sub_ver_a is None:
+            return -1
+        elif sub_ver_a is None and sub_ver_b is None:
+            return 0 # should not reach this line
+        
+        if sub_ver_a > sub_ver_b:
+            return +1
+        elif sub_ver_a < sub_ver_b:
+            return -1
+    # we made it all the way through the version string without breaking the comparison,
+    # so they should be equivalent
+    return 0
+
+    
+
 class Config():
   """Select config value by mlperf version and submission type."""
 
@@ -139,7 +241,7 @@ class Config():
     self.more_power_check = more_power_check
 
   def set_type(self, submission_type):
-    if submission_type is None and self.version in ["v1.0", "v1.1", "v1.2"]:
+    if submission_type is None and self.version in ["v1.0", "v1.1", "v1.2", "v1.3"]:
       self.required = self.base["required-scenarios"]
       self.optional = self.base["optional-scenarios"]
     else:
@@ -226,7 +328,7 @@ def get_args():
   parser.add_argument("--input", required=True, help="submission directory")
   parser.add_argument(
       "--version",
-      default="v1.2",
+      default="v1.3",
       choices=list(MODEL_CONFIG.keys()),
       help="mlperf version")
   parser.add_argument("--submitter", help="filter to submitter")
@@ -257,7 +359,7 @@ def get_args():
 def check_results_dir(config,
                       filter_submitter,
                       skip_compliance,
-                      csv,
+                      df_results,
                       debug=False):
   """
     Walk the results directory and do the checking.
@@ -280,6 +382,7 @@ def check_results_dir(config,
         if there are errors write a None as result so we can report later what
         failed
     """
+  
   head = [
       "Organization", "Availability", "Division", "BoardName", "SystemDesc",
       "Model", "MlperfModel",
@@ -290,8 +393,15 @@ def check_results_dir(config,
       "HardwareNotes",
       "InferenceFramework", "SoftwareLibraries", "SoftwareNotes",
   ]
-  fmt = ",".join(["\"{}\""] * len(head)) + "\n"
-  csv.write(",".join(head) + "\n")
+  # Add each column in 'head', appending to the right side
+  for col in head:
+    df_results.insert(len(df_results.columns), col, None)
+    
+  if compare_versions(config.version, "v1.3") >= 0: # version <+ 1.3
+    df_results.insert(len(df_results.columns), "FalsePositives", None)
+    df_results.insert(len(df_results.columns), "FalseNegatives", None)
+
+
   results = {}
 
   def log_result(submitter,
@@ -310,14 +420,16 @@ def check_results_dir(config,
                  errors,
                  config,
                  inferred=0,
-                 power_metric=0):
-
+                 power_metric=0,
+                 results_dict={}):
+    
     notes = system_json.get("hw_notes", "")
     if system_json.get("sw_notes"):
       notes = notes + ". " if notes else ""
       notes = notes + system_json.get("sw_notes")
     unit_dict = {
         "": "inf./sec.",
+        "streaming": "inf./sec.",
         "SingleStream": "Latency (ms)",
         "MultiStream": "Latency (ms)",
         "Offline": "Samples/s",
@@ -325,6 +437,7 @@ def check_results_dir(config,
     }
     power_unit_dict = {
         "": "uJ/inf.",
+        "streaming": "mW",
         "SingleStream": "millijoules",
         "MultiStream": "millijoules",
         "Offline": "Watts",
@@ -333,48 +446,35 @@ def check_results_dir(config,
     unit = unit_dict[scenario_fixed]
     power_unit = power_unit_dict[scenario_fixed]
 
-    csv.write(
-        fmt.format(submitter,
-                   available,
-                   division,
-                   system_json.get("Board Name"),
-                   system_desc,
-                   model_name,
-                   mlperf_model,
-                   r,
-                   unit,
-                   acc,
-                   power_metric > 0,
-                   power_metric,
-                   power_unit,
-                   system_json.get("Processor(s) Name"), # HostProcessorModelName
-                   system_json.get("Processor(s) Frequencies"),
-                   system_json.get("Processor memory type and capacity"),
-                   system_json.get("Accelerator"),
-                   system_json.get("Accelerator(s) Frequencies"),
-                   system_json.get("Accelerator memory type and capacity"),
-                   system_json.get("Hardware Notes"),
-                   system_json.get("Inference Framework"),
-                   system_json.get("Software Libraries"),
-                   system_json.get("Software Notes"),
-                ))
-
-    # if power_metric > 0:
-    #   csv.write(
-    #       fmt.format(submitter, available, division, '\"' + system_type + '\"',
-    #                  '\"' + system_name + '\"', system_desc, model_name,
-    #                  mlperf_model, scenario_fixed, power_metric, acc,
-    #                  system_json.get("number_of_nodes"),
-    #                  '"' + system_json.get("host_processor_model_name") + '"',
-    #                  system_json.get("host_processors_per_node"),
-    #                  system_json.get("host_processor_core_count"),
-    #                  '"' + system_json.get("accelerator_model_name") + '"',
-    #                  '"' + str(system_json.get("accelerators_per_node")) + '"',
-    #                  name.replace("\\", "/"),
-    #                  '"' + system_json.get("framework", "") + '"',
-    #                  '"' + system_json.get("operating_system", "") + '"',
-    #                  '"' + notes + '"', compliance, errors, config.version,
-    #                  inferred, power_metric > 0, power_unit))
+    df_results.loc[len(df_results)] = {
+      "Organization":              submitter, 
+      "Availability":              available, 
+      "Division":                  division,
+      "BoardName":                 system_json.get("Board Name"),
+      "SystemDesc":                system_desc,
+      "Model":                     model_name,
+      "MlperfModel":               mlperf_model,
+      "Result":                    r,
+      "ResultUnit":                unit,
+      "Accuracy":                  acc,
+      "HasPower":                  power_metric > 0,
+      "Power":                     power_metric,
+      "PowerUnit":                 power_unit,
+      "HostProcessorModelName":    system_json.get("Processor(s) Name"), # HostProcessorModelName
+      "HostProcessorFrequency":    system_json.get("Processor(s) Frequencies"),
+      "HostProcessorMemory":       system_json.get("Processor memory type and capacity"),
+      "AcceleratorModelName":      system_json.get("Accelerator"),
+      "AcceleratorFrequency":      system_json.get("Accelerator(s) Frequencies"),
+      "AcceleratorMemory":         system_json.get("Accelerator memory type and capacity"),
+      "HardwareNotes":             system_json.get("Hardware Notes"),
+      "InferenceFramework":        system_json.get("Inference Framework"),
+      "SoftwareLibraries":         system_json.get("Software Libraries"),
+      "SoftwareNotes":             system_json.get("Software Notes"),
+      "FalsePositives":            results_dict.get("fp"),
+      "FalseNegatives":            results_dict.get("fn"),
+      "DutyCycle":                 results_dict.get("duty_cycle")
+    }
+  ## end of log_result()
 
   # we are at the top of the submission directory
   for division in list_dir("."):
@@ -506,20 +606,7 @@ def check_results_dir(config,
             results[name] = None
             continue
           system_type = system_json.get("system_type")
-          # if config.version not in ["v0.5"]:
-          #   valid_system_types = ["datacenter", "edge"]
-          #   if config.version not in ["v0.7"]:
-          #     valid_system_types += ["datacenter,edge", "edge,datacenter"]
-          #   if system_type not in valid_system_types:
-          #     log.error("%s has invalid system type (%s)", system_id_json,
-          #               system_type)
-          #     results[name] = None
-          #     continue
           config.set_type(system_type)
-          # if not check_system_desc_id(name, system_json, submitter, division,
-          #                             config.version):
-          #   results[name] = None
-          #   continue
 
         #
         # Look at each model
@@ -529,6 +616,16 @@ def check_results_dir(config,
           # we are looking at ./$division/$submitter/results/$system_desc/$model,
           #   ie ./closed/mlperf_org/results/t4-ort/bert
           name = os.path.join(results_path, system_desc, model_name)
+          if os.path.exists(os.path.join(name, "EEMBC_RUNNER")):
+            runner_type = "EEMBC_RUNNER"
+            REQUIRED_ACC_FILES = EEMBC_REQUIRED_ACC_FILES
+            REQUIRED_PERF_FILES = EEMBC_REQUIRED_PERF_FILES
+            REQUIRED_PERF_POWER_FILES = EEMBC_REQUIRED_PERF_POWER_FILES
+          else:
+            runner_type = "MLC_RUNNER"
+            REQUIRED_ACC_FILES = MLC_REQUIRED_ACC_FILES
+            REQUIRED_PERF_FILES = MLC_REQUIRED_PERF_FILES
+            REQUIRED_PERF_POWER_FILES = MLC_REQUIRED_PERF_POWER_FILES
           mlperf_model = config.get_mlperf_model(model_name, extra_model_mapping)
 
           if is_closed_or_network and mlperf_model not in config.models:
@@ -543,53 +640,21 @@ def check_results_dir(config,
           # Look at each scenario
           #
           required_scenarios = config.get_required(mlperf_model)
-          # if required_scenarios is None:
-          #   log.error("%s has an invalid model %s, system_type=%s", name,
-          #             mlperf_model, system_type)
-          #   results[name] = None
-          #   continue
 
           errors = 0
           # all_scenarios = set(
           #     # list(required_scenarios) +
           #     list(config.get_optional(mlperf_model)))
-          for scenario in [""]:
+          scenario_list = ["streaming"] if mlperf_model == "sww" else [""]
+          for scenario in scenario_list:
             scenario_fixed = scenario
-          # for scenario in list_dir(results_path, system_desc, model_name):
-          #   # some submissions in v0.5 use lower case scenarios - map them for now
-          #   scenario_fixed = SCENARIO_MAPPING.get(scenario, scenario)
-
-            # we are looking at ./$division/$submitter/results/$system_desc/$model/$scenario,
-            #   ie ./closed/mlperf_org/results/t4-ort/bert/Offline
-            # name = os.path.join(results_path, system_desc, model_name, scenario)
-            # results[name] = None
-            # if is_closed_or_network and scenario_fixed not in all_scenarios:
-            #   log.warning(
-            #       "%s ignoring scenario %s (neither required nor optional)",
-            #       name, scenario)
-            #   continue
-
-            # check if measurement_dir is good.
-            # measurement_dir = os.path.join(division, submitter, "measurements",
-            #                                system_desc, model_name, scenario)
-            # if not os.path.exists(measurement_dir):
-            #   log.error("no measurement_dir for %s", measurement_dir)
-            #   results[measurement_dir] = None
-            #   errors += 1
-            # else:
-            #   if not check_measurement_dir(measurement_dir, name, system_desc,
-            #                                os.path.join(division, submitter),
-            #                                model_name, scenario):
-            #     log.error("%s measurement_dir has issues", measurement_dir)
-            #     # results[measurement_dir] = None
-            #     errors += 1
-            #     # FIXME: we should not accept this submission
-            #     # continue
-
             # check accuracy
             accuracy_is_valid = False
             acc_path = os.path.join(name, "accuracy")
-            if not os.path.exists(os.path.join(acc_path, ACC_FILE)):
+
+            if "accuracy" not in config.base["required_tests"][model_name]:
+              pass # accuracy run is not required for this benchmark
+            elif not os.path.exists(os.path.join(acc_path, ACC_FILE)):
               log.error(
                   "%s has no results.txt.", acc_path)
             else:
@@ -622,39 +687,81 @@ def check_results_dir(config,
               log.info("Detected power logs for %s", name)
 
             for i in n:
+              results_dict = {}
               perf_path = os.path.join(name, "performance", i)
-              if not os.path.exists(perf_path):
-                log.error("%s is missing", perf_path)
-                continue
+              has_performance = os.path.exists(perf_path)
+              requires_performance = "performance" in config.base["required_tests"][model_name]
+              allowed_tests = set.union(
+                set(config.base["required_tests"][model_name]), 
+                set(config.base["optional_tests"][model_name])
+                )
+              
               if has_power:
                 required_perf_files = REQUIRED_PERF_FILES + REQUIRED_PERF_POWER_FILES
               else:
                 required_perf_files = REQUIRED_PERF_FILES
-              diff = files_diff(
-                  list_files(perf_path), required_perf_files,
-                  OPTIONAL_PERF_FILES)
-              if diff:
-                log.error("%s has file list mismatch (%s)", perf_path, diff)
 
-              try:
-                is_valid, r, is_inferred = check_performance_dir(
-                    config, mlperf_model, perf_path, scenario_fixed, division,
-                    system_json)
-                if is_inferred:
-                  inferred = 1
-                  log.info("%s has inferred results, qps=%s", perf_path, r)
-              except Exception as e:
-                log.error("%s caused exception in check_performance_dir: %s",
-                          perf_path, e)
-                is_valid, r = False, None
+              if requires_performance and not has_performance:
+                log.error("%s is missing", perf_path)
+                continue
+              if has_performance and "performance" not in allowed_tests:
+                log.warning("performance is not a valid test for %s.  Ignoring %s", model_name, perf_path)
+              elif has_performance:
+                diff = files_diff(list_files(perf_path), 
+                                  required_perf_files, 
+                                  OPTIONAL_PERF_FILES
+                                  )
+                if diff:
+                  log.error("%s has file list mismatch (%s)", perf_path, diff)
 
+                try:
+                  is_valid, r, is_inferred = check_performance_dir(
+                      config, mlperf_model, perf_path, scenario_fixed, division,
+                      system_json)
+                  if is_inferred:
+                    inferred = 1
+                    log.info("%s has inferred results, qps=%s", perf_path, r)
+                except Exception as e:
+                  log.error("%s caused exception in check_performance_dir: %s",
+                            perf_path, str(e))
+                  is_valid, r = False, None
+              elif model_name == "sww" and has_power: 
+                diff = files_diff(list_files(power_path), 
+                                  required_perf_files + ["energy_inf_000.png"], 
+                                  OPTIONAL_PERF_FILES
+                                  )
+                if diff:
+                  log.error("%s has file list mismatch (%s)", perf_path, diff)
+
+                try:
+                  is_valid, results_dict = sww_perf_acc_from_power_dir(
+                      config, mlperf_model, power_path)
+                  r = results_dict['throughput']
+                  acc = results_dict['accuracy'] # this is the F1 score for sww
+                  if results_dict['fp'] > 8 or results_dict['fn'] > 8:
+                    if is_closed_or_network:
+                      log.error(f"FP={results_dict['fp']} and FN={results_dict['fn']} should both be <8 in closed division SWW.")
+                      accuracy_is_valid = False
+                    else:
+                      log.info(f"FP={results_dict['fp']} and FN={results_dict['fn']} exceed closed-division limits, but acceptable since this is an open division submission.")
+                      accuracy_is_valid = True
+                  else:
+                    accuracy_is_valid = True
+                    
+                except Exception as e:
+                  log.error("%s caused exception in sww_perf_acc_from_power_dir: %s",
+                            perf_path, str(e))
+                  is_valid, r = False, None
+
+              else:
+                is_valid = False
+                log.warning("The script should never reach this point. This is an unaccounted for condition.")
               power_metric = 0
               if has_power:
                 try:
                   ranging_path = os.path.join(name, "performance", "ranging")
                   power_is_valid, power_metric = check_power_dir(
-                      power_path, scenario_fixed,
-                      config)
+                      power_path, model_name)
                   if not power_is_valid:
                     is_valid = False
                     power_metric = 0
@@ -711,7 +818,8 @@ def check_results_dir(config,
                     errors,
                     config,
                     inferred=inferred,
-                    power_metric=power_metric)
+                    power_metric=power_metric,
+                    results_dict=results_dict)
               else:
                 results[name] = None
                 log.error("%s is OK but accuracy has issues", name)
@@ -726,7 +834,7 @@ def check_results_dir(config,
               log.warning("%s ignoring missing scenarios in open division (%s)",
                           name, required_scenarios)
 
-  return results
+  return results, is_valid
 
 
 def main():
@@ -741,12 +849,14 @@ def main():
   # compliance not yet supported
   args.skip_compliance = True
 
+  df_results = pd.DataFrame()
   with open(args.csv, "w") as csv:
     os.chdir(args.input)
     # check results directory
-    results = check_results_dir(config, args.submitter, args.skip_compliance,
-                                csv, args.debug)
-
+    results, is_valid = check_results_dir(config, args.submitter, args.skip_compliance,
+                                df_results, args.debug)
+    df_results[:0].to_csv(csv, index=False, quoting=QUOTE_NONE) # just headers w/o ""
+    df_results.to_csv(csv, index=False,  header=False, quoting=QUOTE_ALL, quotechar='"')
   # log results
   log.info("---")
   with_results = 0
@@ -763,7 +873,7 @@ def main():
   log.info("---")
   log.info("Results=%d, NoResults=%d", with_results,
            len(results) - with_results)
-  if len(results) != with_results:
+  if len(results) != with_results or not is_valid:
     log.error("SUMMARY: submission has errors")
     return 1
   else:
@@ -795,6 +905,8 @@ def check_accuracy_dir(config, model, path, verbose):
 
   return is_valid, acc
 
+
+
 def check_performance_dir(config, model, path, scenario_fixed, division,
                           system_json):
   is_valid = False
@@ -804,22 +916,63 @@ def check_performance_dir(config, model, path, scenario_fixed, division,
   fname = os.path.join(path, "results.txt")
   with open(fname, "r") as f:
     for line in f:
-      m = re.match(r".* Median throughput is ([\d\.]+) inf\./sec\..*", line)
+      m = re.match(r".* Median throughput is\s+([\d\.]+) inf\./sec\..*", line)
       if m:
         is_valid = True
         res = m.group(1)
   return is_valid, float(res), inferred
 
-def check_power_dir(power_path, scenario_fixed,
-                    config):
+def sww_perf_acc_from_power_dir(config, model, path):
+  """
+  Extract performance and accuracy data from the energy dir.  Currently (July 2025) this
+  is really only for the streaming wakeword benchmark.
+  """
+  is_valid = False
+  has_throughput = has_accuracy = has_duty_cyle = False
+  throughput=tp=fp=f1_acc=None
+
+  fname = os.path.join(path, "results.txt")
+  with open(fname, "r") as f:
+    for line in f:
+      m = re.search(r"Estimated throughput:\s*([\d\.]+) inf\./sec\..*", line)
+      if m:
+        throughput = float(m.group(1))
+        has_throughput=True
+        continue
+      m = re.search(r"Accuracy: ([\d]+) True positives, ([\d]+) False negatives, ([\d]+) False positives", line)
+      if m:
+        groups = m.groups()
+        if len(groups) == 3:
+          tp,fn,fp = (int(mm) for mm in groups)
+          f1_acc = 2*tp/(2*tp+fp+fn)
+          if tp+fn == 50:
+            has_accuracy = True
+          else:
+            log.error(f"True Positives ({tp}) + False Negatives ({fn}) != 50")
+        else:
+          log.warning(f"Accuracy line should have three integers: TP, FN, FP.\n{line}")
+      m = re.search(r"Average duty cycle:\s*([\d\.]+)", line)
+      if m:
+        duty_cycle = float(m.group(1))
+        has_duty_cyle = True
+  is_valid = has_throughput and has_accuracy and has_duty_cyle
+  return is_valid, dict(throughput=throughput,tp=tp,fn=fn,fp=fp,accuracy=f1_acc)
+
+
+def check_power_dir(power_path, model_name):
 
   is_valid = False
   res = None
 
   fname = os.path.join(power_path, "results.txt")
+
+  if model_name == "sww":
+    pattern = r"Power\s+: ([\d\.]+) mW.*"
+  else:
+    pattern = r"Median energy cost is ([\d\.]+) uJ/inf"
   with open(fname, "r") as f:
     for line in f:
-      m = re.match(r".* Median energy cost is ([\d\.]+) uJ/inf\..*", line)
+      m = re.search(pattern, line)
       if m:
         is_valid = True
         res = m.group(1)
@@ -833,4 +986,6 @@ def files_diff(list1, list2, optional=None):
   return set(list1).symmetric_difference(set(list2)) - set(optional)
 
 if __name__ == "__main__":
-  sys.exit(main())
+  main_result = main()
+  print(f"function main() returned {main_result}")
+  # sys.exit(main_result)

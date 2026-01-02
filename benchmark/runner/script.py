@@ -16,8 +16,9 @@ import streaming_ww_utils as sww_util
 watchdog_flag = {"timeout": False}
 watchdog_lock = threading.Lock()
 current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-os.makedirs("logs", exist_ok=True)
-log_filename = os.path.join("logs", f"{current_time}.log")
+os.makedirs("sessions", exist_ok=True)
+os.makedirs(os.path.join("sessions", current_time), exist_ok=True)
+log_filename = os.path.join("sessions", current_time, "log.txt")
 
 # Setup logging to file and console with NO extra formatting
 logging.basicConfig(
@@ -76,7 +77,10 @@ class _ScriptDownloadStep(_ScriptStep):
             file_truth, data = dataset.get_file_by_index(self._current_index)
         else:
             file_truth, data = dataset.get_file_by_index(self._index)
-        
+        # Check if file_truth is None and exit from the loop with a warning
+        # this can happen when the tests file asks for more cycles than the 
+        # y_labels.csv provides
+
         # Define the current time for formatted output
         current_time = datetime.now()
         formatted_time = current_time.strftime("%m%d.%H%M%S")
@@ -93,20 +97,25 @@ class _ScriptDownloadStep(_ScriptStep):
                 self._segments.append(data[start:end])
                 start = start + stride  # Move start by stride to create overlap
                 self.total_length = len(self._segments)
+            if mode in ['p', 'e']:
+                # performance and energy mode use only the 1st segment.  Only accuracy
+                # uses all the segments. It might be marginally faster to conditionally skip
+                #  the segment[] construction, but this is easy.
+                self._segments = self._segments[:1]
+                self.total_length = 1
             self._current_segment_index = 0
             
         # Conditional print statements based on 'mode'
         if data:
-            if mode == "a":
-                print(f"{formatted_time} ulp-mlperf: Runtime requirements have been met.")
-            elif mode == "p":
-                print(f"{formatted_time} ulp-mlperf: Running Performance Metrics")
+            print(f"{formatted_time} ulp-mlperf: Loading file {file_truth['file']} segment {self._current_segment_index}")
             if(self.model == "ad01"):
                 segment = self._segments[self._current_segment_index]
                 dut.load(segment)
                 self._current_segment_index += 1
             else:
                 dut.load(data)
+            formatted_time = datetime.now().strftime("%m%d.%H%M%S")
+            print(f"{formatted_time} ulp-mlperf: Load complete.")
         else:
             print(f"WARNING: No data returned from dataset read. Script index = {self._index}, Dataset index = {dataset._current_index}")
         file_truth['total_length'] = self.total_length if self.model == "ad01" else None
@@ -122,10 +131,15 @@ class _ScriptLoopStep(_ScriptStep):
 
     def run(self, io, dut, dataset, mode):
         global global_loop_count
+        # some logic is different for the streaming ww test
+        is_streaming_test = any([isinstance(c, _ScriptStreamStep) for c in self._commands])
         i = 0
-        result = None if self._loop_count == 1 else []
+        result = []
         start_time = time.time() if mode == "p" else None
 
+        if self._loop_count is None or self._loop_count < 0:
+            self._loop_count = dataset.get_num_files()
+            print(f"No loop count specified.  Using full set ({self._loop_count} test files)")
         while (self._loop_count is None or i < self._loop_count):
             loop_res = {}
             with watchdog_lock:
@@ -139,17 +153,16 @@ class _ScriptLoopStep(_ScriptStep):
                     loop_res.update(**r)
             if self.model == "ad01":
                 total_length = loop_res.get('total_length', None)
-                if total_length is not None and i == 0:
+                if total_length is not None and self._loop_count is not None and i == 0:
                     self._loop_count *= total_length
             global_loop_count = self._loop_count  # Store in global variable
             i += 1
-            if self._loop_count != 1:
-                result.append(loop_res)
-            else:
-                result = loop_res
+            
+            result.append(loop_res)
+            
         if mode == "p":
             # Error 1: Loop count not exactly 5
-            if self._loop_count != 5:
+            if self._loop_count != 5 and not is_streaming_test:
                 result.append({"error": "error 1"})
 
             # Error 2: Loop finished before 10 seconds
@@ -173,7 +186,9 @@ class _ScriptInferStep(_ScriptStep):
 
     def run(self, io, dut, dataset, mode):  # mode passed to run
         raw_result = dut.infer(self._iterations, self._warmups)
+        print(f"Running inference with {self._warmups}/{self._iterations} (warmup/measured) iterations ...  ", end="")
         infer_results = _ScriptInferStep._gather_infer_results(raw_result, mode)
+        print(f" done")
         infer_results["iterations"] = self._iterations
         infer_results["warmups"] = self._warmups
 
@@ -181,8 +196,7 @@ class _ScriptInferStep(_ScriptStep):
 
         if mode == "e":
             timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
-            print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
-
+            print(f"  Captured samples:{len(samples)} timestamps:{len(timestamps)}")
             # Read power values from the log file using timestamps
             power_values = None
 
@@ -225,6 +239,8 @@ class _ScriptInferStep(_ScriptStep):
         result = {}
         total_inferences = 0
         for res in cmd_results:
+            if res is None:
+                continue
             match = re.match(r'^m-results-\[([^]]+)\]$', res)
             if match:
                 try:
@@ -298,19 +314,36 @@ class _ScriptStreamStep(_ScriptStep):
         io.play_wave(file_truth['wav_file'], timeout=file_truth["length_sec"]+10.0) 
 
         # not sure why this is needed, but apparently the DUT is still occupied with the 
-        # detection task, because w/o this sleep the next DUT command times out.  Could be shorter
+        # detection task, because w/o this sleep the next DUT command times out.
         time.sleep(0.25)
-        dut.stop_detecting()  # DUT stops processing audio and toggles D7 to end power measurement
+        detection_info = dut.stop_detecting()  # DUT stops processing audio and toggles D7 to end power measurement
         print(" ... done")
+        try:
+            activations = sww_util.array_from_strings(detection_info, 'target activations:', end_str='m-ready')
+        except ValueError as e:
+            if re.search(r"expected but not found\.", str(e)):
+                print("No activation data found.")
+            else:
+                raise e
+            activations = []
+
         
         detected_timestamps = io.print_detections() # intfc prints out WW detection timestamps
         detected_timestamps = sww_util.process_timestamps(detected_timestamps)
+
+        dutycycle_response = io.print_dutycycle() # direct the interface board to print out dutycycle timestamps
+        dutycycle_info = sww_util.process_dutycycle(dutycycle_response)
+        
         infer_results = {}
         infer_results.update(file_truth)        
         infer_results["detections"] = detected_timestamps
         infer_results["iterations"] = 1 # always 1, but keep for consistency w/ other tests
         infer_results["warmups"] = 0 # same but 0
-        result = dict(infer=infer_results)
+        
+        result = dict(infer=infer_results, 
+                      dutycycle=dutycycle_info,
+                      activations=activations
+                      )
 
         if mode == "e":
             timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
@@ -323,7 +356,7 @@ class _ScriptStreamStep(_ScriptStep):
                                      timestamps=timestamps,
                                      extracted_power=power_values
                                     )
-                         )        
+                         )
         return result
 
 class _WatchdogStep(_ScriptStep):
@@ -409,7 +442,7 @@ class Script:
                                 result.update(res=r)
                             else:
                                 result.extend(r)
-        elif dut != None:  # Accuracy mode
+        elif dut != None:  # Accuracy or performance mode
             with dut:
                 for cmd in self._commands:
                     r = cmd.run(io, dut, dataset, mode)

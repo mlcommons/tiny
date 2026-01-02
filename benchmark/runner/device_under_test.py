@@ -6,16 +6,19 @@ from serial_device import SerialDevice
 
 
 class DUT:
-  def __init__(self, port_device, baud_rate, power_manager=None):
+  def __init__(self, port_device, baud_rate, power_manager=None, echo=None):
     interface = port_device
+    
+    port_kwargs = {"echo":echo} if echo else {}
     if not isinstance(port_device, InterfaceDevice):
-      interface = SerialDevice(port_device, baud_rate, "m-ready", '%')
+      interface = SerialDevice(port_device, baud_rate, "m-ready", '%', **port_kwargs)
     self._port = interface
     self.power_manager = power_manager
     self._profile = None  # Device profile
     self._model = None    # Device model
     self._name = None     # Device name
     self._max_bytes = 26 if power_manager else 31
+
 
   def __enter__(self):
     #if self.power_manager:
@@ -37,6 +40,7 @@ class DUT:
 
   def _get_name(self):
     name_retrieved = False
+    print("Retrieving name from DUT ...")
     for l in self._port.send_command("name"):
       match = re.match(r'^m-(name)-dut-\[([^]]+)]$', l)
       if match:
@@ -109,8 +113,8 @@ class DUT:
 
   def stop_detecting(self):
     command = f"stop"
-    self._port.send_command(command)
-    return    
+    response = self._port.send_command(command)
+    return response
 
   def print_detections(self):
     command = f"print_detections"

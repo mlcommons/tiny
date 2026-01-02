@@ -35,7 +35,6 @@
 /** Configure pins
      PI7   ------> SAI2_FS_A
      PI5   ------> SAI2_SCK_A
-     PB5   ------> S_TIM3_CH2
      PG14   ------> DEBUG_TRACED1
      PG10   ------> SAI2_SD_B
      PI1   ------> SPI2_SCK
@@ -115,12 +114,10 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOI, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = ARD_D3_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF2_TIM3;
-  HAL_GPIO_Init(ARD_D3_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Pin = DUT_DUTY_CYCLE_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(DUT_DUTY_CYCLE_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = WW_DET_IN_Pin;
@@ -263,6 +260,9 @@ void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI5_IRQn);
+
   HAL_NVIC_SetPriority(EXTI14_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI14_IRQn);
 

@@ -46,11 +46,16 @@ int16_t *g_i2s_buffer0 = NULL;
 int16_t *g_i2s_buffer1 = NULL;
 int16_t *g_i2s_current_buff = NULL; // will be either g_i2s_buffer0 or g_i2s_buffer1
 int g_i2s_buff_sel = 0;  // 0 for buffer0, 1 for buffer1
+uint8_t *g_gp_buffer = NULL; // general-purpose buffer; for capturing a waveform or activations.
+uint32_t g_gp_buff_bytes = 64000;
 int16_t *g_wav_record = NULL;  // buffer to store complete waveform
+int8_t *g_act_buff = NULL; // jhdbg
 int8_t *g_model_input;
 
+int g_buffer_alloc_success=0;
+
 // length in (16b) samples, but I2S receives stereo, so actual length in time will be 1/2 this
-uint32_t g_i2s_wav_len = 24*2048;
+uint32_t g_i2s_wav_len = 0;
 uint32_t g_first_frame = 1;
 
 
@@ -58,15 +63,31 @@ int16_t *g_wav_block_buff = NULL; // hold most recent SWW_WINLEN_SAMPLES for fea
 LogBuffer g_log = { .buffer = {0}, .current_pos = 0 };
 i2s_state_t g_i2s_state = Idle;
 
+
+uint32_t g_act_idx = 0;
+#define ACT_BUFF_LEN 40000
+
 void setup_i2s_buffers() {
 	// set up variables for I2S receiving
 	g_i2s_buffer0 = (int16_t *)malloc(g_i2s_chunk_size_bytes);
 	g_i2s_buffer1 = (int16_t *)malloc(g_i2s_chunk_size_bytes);
 	g_i2s_current_buff = g_i2s_buffer0;
-	g_wav_record = (int16_t *)malloc(g_i2s_wav_len * sizeof(int16_t));
+
 	g_wav_block_buff =(int16_t *)malloc(SWW_WINLEN_SAMPLES * sizeof(int16_t));
 	g_model_input = (int8_t *)malloc(SWW_MODEL_INPUT_SIZE * sizeof(int8_t));
 
+	g_gp_buffer = malloc(g_gp_buff_bytes);
+
+	if (!g_i2s_buffer0 || !g_i2s_buffer1 || !g_wav_block_buff || !g_model_input){
+		g_buffer_alloc_success = 0;
+		printf("ERROR: Buffer allocation failed.  Many operationw will fail.\r\n");
+	}
+	else {
+		g_buffer_alloc_success = 1;
+	}
+	if( !g_gp_buff_bytes) {
+		printf("WARNING: general-purpose buffer allocation failed.  Wav and activation capture will fail.\r\n");
+	}
 }
 
 void delay_us(int delay_len_us) {
@@ -285,7 +306,7 @@ ai_error aiRun(const void *in_data, void *out_data) {
 void run_model_on_test_data(char *cmd_args[]) {
 //	acquire_and_process_data(in_data);
 	const int8_t *input_source=NULL;
-	int32_t timer_start, timer_stop;
+	uint16_t timer_start, timer_stop, timer_diff;
 
 	printf("In run_model. about to run model\r\n");
 	if (strcmp(cmd_args[1], "class0") == 0) {
@@ -304,12 +325,14 @@ void run_model_on_test_data(char *cmd_args[]) {
 	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
 		in_data[i] = (ai_i8)input_source[i];
 	}
-
+	set_processing_pin_high();
 	timer_start = __HAL_TIM_GET_COUNTER(&htim16);
 	/*  Call inference engine */
 	aiRun(in_data, out_data);
 	timer_stop = __HAL_TIM_GET_COUNTER(&htim16);
-	printf("TIM16: aiRun took (%lu : %lu) = %lu TIM16 cycles\r\n", timer_start, timer_stop, timer_stop-timer_start);
+	set_processing_pin_low();
+	timer_diff = timer_stop-timer_start;
+	printf("TIM16: aiRun took (%u : %u) = %u TIM16 cycles\r\n", timer_start, timer_stop, timer_diff);
 
 	printf("Output = [");
 	for(int i=0;i<AI_SWW_MODEL_OUT_1_SIZE;i++){
@@ -390,7 +413,7 @@ void load_or_print_buff(char *cmd_args[]) {
 			bytes_loaded = atoi(cmd_args[2]);
 		}
 		else {
-			printf("Error: setptr requires a numeric argument: 'db setptr 123%'");
+			printf("Error: setptr requires a numeric argument: 'db setptr 123%%'");
 		}
 	}
 	else if (strcmp(cmd_args[1], "print") == 0) {
@@ -468,11 +491,17 @@ void stop_detection(char *cmd_args[]) {
 		g_i2s_state = Idle;
 		th_timestamp(); // this timestamp will stop the measurement of power
 		printf("Streaming stopped.\r\n");
+
+		printf("target activations: \r\n");
+		print_vals_int8(g_act_buff, g_act_idx); // jhdbg
+		g_act_buff = NULL;
 		break;
 	case FileCapture:
 		g_i2s_state = Stopping;
 		g_i2s_status = HAL_SAI_DMAStop(&hsai_BlockA1);
 		g_i2s_state = Idle;
+		free(g_wav_record);
+		g_wav_record = NULL;
 		printf("Wav capture stopped.\r\n");
 		break;
 	case Idle:
@@ -493,8 +522,16 @@ void start_detection(char *cmd_args[]) {
 	}
 	else {
 		 g_i2s_state = Streaming;
+
+		 g_act_buff = (int8_t *)g_gp_buffer;
+		 if( !g_act_buff ) {
+			 printf("WARNING:  Activation buffer malloc failed.  Activation logging will not work.\r\n");
+		 }
 		 g_int16s_read = 0; // jhdbg -- only needed when we're capturing the waveform in addition to detecting
 		 g_first_frame = 1; // on the first frame of a recording we pulse the detection GPIO to synchronize timing.
+
+		 memset(g_act_buff, 0, g_gp_buff_bytes);
+		 g_act_idx = 0;
 
 		 printf("Listening for I2S data ... \r\n");
 
@@ -509,6 +546,12 @@ void start_detection(char *cmd_args[]) {
 		 memset(g_wav_block_buff, 0x00, SWW_WINLEN_SAMPLES*sizeof(int16_t));
 
 		 th_timestamp(); // this timestamp will start the measurement of power
+		 set_processing_pin_low();  // end of processing, used for duty cycle measurement
+		 // pulse processing pin for 1us to align the duty cycle, energy measurements, and detections
+		 set_processing_pin_high();  // end of processing, used for duty cycle measurement
+		 delay_us(1);
+		 set_processing_pin_low();  // end of processing, used for duty cycle measurement
+
 
 		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
 		 printf("DMA receive initiated.\r\n");
@@ -518,22 +561,39 @@ void start_detection(char *cmd_args[]) {
 void i2s_capture(char *cmd_args[]) {
 	if(g_i2s_state != Idle ) {
 		 printf("I2S Rx currently in progress. Ignoring request\r\n");
+		 return;
+	}
+
+	if (cmd_args[1]) {
+		g_i2s_wav_len = atoi(cmd_args[1]);
+		if( g_i2s_wav_len > g_gp_buff_bytes/2) {
+			printf("Requested length %lu exceeds available memory. Capturing %lu samples\r\n",
+					g_i2s_wav_len, g_gp_buff_bytes/2);
+			g_i2s_wav_len = g_gp_buff_bytes/4;
+		}
 	}
 	else {
-		 g_i2s_state = FileCapture;
-		 g_int16s_read = 0;
-		 printf("Listening for I2S data ... \r\n");
-		 memset(g_wav_record, 0xFF, g_i2s_wav_len*2); // *2 b/c wav_len is int16s
-		 // these memsets are not really needed, but they make it easier to tell
-		 // if the write never happened.
-		 memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
-		 memset(g_i2s_buffer1, 0xFF, g_i2s_chunk_size_bytes);
-
-		 g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
-		 // you can also check hsai->State
-		 printf("DMA receive initiated. status=%lu, state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
-		 printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
+		g_i2s_wav_len = g_gp_buff_bytes/2; // 2 bytes/sample
+		printf("No length specified.  Capturing %lu samples\r\n", g_i2s_wav_len);
 	}
+
+	g_i2s_state = FileCapture;
+	g_int16s_read = 0;
+	g_wav_record = (int16_t *)g_gp_buffer; // g_gp_buff_bytes bytes
+	if( !g_wav_record ) {
+		printf("WARNING: Recording buffer has no allocated memory. I2S Capture will fail.\r\n");
+	}
+	printf("Listening for I2S data ... \r\n");
+	memset(g_wav_record, 0, g_gp_buff_bytes); // *2 b/c wav_len is int16s
+	// these memsets are not really needed, but they make it easier to tell
+	// if the write never happened.
+	memset(g_i2s_buffer0, 0xFF, g_i2s_chunk_size_bytes);
+	memset(g_i2s_buffer1, 0xFF, g_i2s_chunk_size_bytes);
+
+	g_i2s_status = HAL_SAI_Receive_DMA(&hsai_BlockA1, (uint8_t *)g_i2s_current_buff, g_i2s_chunk_size_bytes/2);
+	// you can also check hsai->State
+	printf("DMA receive initiated. status=%lu, state=%d\r\n", g_i2s_status, hsai_BlockA1.State);
+	printf("    Status: 0=OK, 1=Error, 2=Busy, 3=Timeout; State: 0=Reset, 1=Ready, 2=Busy (internal process), 18=Busy (Tx), 34=Busy (Rx)\r\n");
 }
 
 void print_help(char *cmd_args[]) {
@@ -759,6 +819,7 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
     if( reading_complete ){
     	printf("DMA Receive completed %lu int16s read out of %lu requested\r\n", g_int16s_read, g_i2s_wav_len);
     	print_vals_int16(g_wav_record, g_int16s_read);
+    	g_wav_record = NULL;
     	g_i2s_state = Idle;
     }
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_8, GPIO_PIN_RESET);
@@ -767,15 +828,25 @@ void process_chunk_and_cont_capture(SAI_HandleTypeDef *hsai) {
 
 void extract_features_on_chunk(char *cmd_args[]) {
 
+
+
 	// feature_buff is used internally as a 2nd internal scratch space,
 	// in the FFT domain, so it needs to be winlen_samples long, even though
 	// ultimately it will only hold NUM_MEL_FILTERS values.  This can probably
 	// be improved with a refactored compute_lfbe_f32().
 	static float32_t feature_buff[SWW_WINLEN_SAMPLES];
 	static float32_t dsp_buff[SWW_WINLEN_SAMPLES];
+	static int num_calls=0;
 
 	// extract the input scale factor from the (file-global) ai_input
 	float32_t input_scale_factor = *(ai_input[0].meta_info->intq_info->info->scale);
+
+
+	if( num_calls == 0) {
+		for(int i=0;i<SWW_MODEL_INPUT_SIZE;i++) {
+			g_model_input[i] = 0;
+		}
+	}
 
 	// wav samples should be in g_i2s_buffer0
 
@@ -794,6 +865,26 @@ void extract_features_on_chunk(char *cmd_args[]) {
 
 	compute_lfbe_f32(g_wav_block_buff, feature_buff, dsp_buff);
 
+	// shift current features in g_model_input[] and add new ones.
+	for(int i=0;i<SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS;i++) {
+		g_model_input[i] = g_model_input[i+NUM_MEL_FILTERS];
+	}
+
+	for(int i=0;i<NUM_MEL_FILTERS;i++) {
+		g_model_input[i+SWW_MODEL_INPUT_SIZE-NUM_MEL_FILTERS] = (int8_t)(feature_buff[i]/input_scale_factor-128);
+	}
+
+	for(int i=0;i<AI_SWW_MODEL_IN_1_SIZE;i++){
+		in_data[i] = (ai_i8)g_model_input[i];
+	}
+
+	/*  Call inference engine */
+	aiRun(in_data, out_data);
+
+
+
+    num_calls++;
+
 	printf("m-features-[");
 	for(int i=0;i<NUM_MEL_FILTERS;i++) {
 		printf("%+3d", (int8_t)(feature_buff[i]/input_scale_factor-128));
@@ -801,7 +892,11 @@ void extract_features_on_chunk(char *cmd_args[]) {
 			printf(", ");
 		}
 	}
-	printf("],");
+	printf("]\r\n");
+
+	printf("m-activations-[%+3d, %+3d, %+3d]\r\n", out_data[0], out_data[1], out_data[2]);
+
+
 }
 
 void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
@@ -863,8 +958,10 @@ void process_chunk_and_cont_streaming(SAI_HandleTypeDef *hsai) {
 	    HAL_GPIO_WritePin(WW_DETECTED_GPIO_Port, WW_DETECTED_Pin, GPIO_PIN_SET);
 	    g_first_frame = 0;
 	}
-    log_printf(&g_log, "%d, \r\n", out_data[0]);
 
+    if ( g_act_idx < (g_gp_buff_bytes/sizeof(g_act_buff[0])) ) {
+    	g_act_buff[g_act_idx++] = out_data[0];
+    }
 
     num_calls++;
     set_processing_pin_low();  // end of processing, used for duty cycle measurement

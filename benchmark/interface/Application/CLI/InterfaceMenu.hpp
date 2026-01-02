@@ -20,6 +20,9 @@ namespace CLI
      */
     static InterfaceMenu &GetSingleton();
     void RecordOneDetection();
+    void DutycycleStart();
+    void DutycycleStop();
+
 
     // Wrapper function declarations
     static void ListWrapper(const std::string &args);
@@ -30,7 +33,9 @@ namespace CLI
     static void CheckBaudWrapper(const std::string &args);
     static void RecDetsWrapper(const std::string &args);
     static void PrintDetsWrapper(const std::string &args);
+    static void PrintDutycycleWrapper(const std::string &args);
     static void DefaultWrapper(const std::string &args);
+    static bool InstanceInitialized();
 
     // Declarations for SetBaud and CheckBaud
     void SetBaud(const std::string &args);
@@ -53,6 +58,7 @@ namespace CLI
     void Play(const std::string &args);
     void RecordDetections(const std::string &args);
     void PrintDetections(const std::string &args);
+    void PrintDutycycle(const std::string &args);
 
     IO::FileSystem &file_system;
     Audio::WaveSink &player;
