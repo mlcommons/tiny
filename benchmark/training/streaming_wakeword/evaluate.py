@@ -81,7 +81,9 @@ else:
 
 if test_streaming:
     long_wav = None
+    print(f"in test_streaming. long_spec = {long_spec} and long_spec_q = {long_spec_q}") # jhdbg
     if long_spec is None and long_spec_q is None:
+        print("Building long_spec")
         wav_sampling_freq, long_wav = wavfile.read(wav_file)
         assert wav_sampling_freq == samp_freq
 
@@ -133,7 +135,8 @@ if test_streaming:
         long_spec_strided = np.moveaxis(long_spec_strided, -1, 1) # move time axis to dim 1
         print(f"Shape of long_spec_strided: {long_spec_strided.shape}")
 
-        yy = model_std(long_spec_strided).numpy()
+        # yy = model_std(long_spec_strided).numpy()
+        yy = model_std.predict(long_spec_strided, batch_size=512)
         # yy = model_varlen(long_spec)[0].numpy()
 
     ww_present = np.zeros(int(stream_test_config[0]['length_sec']*stream_test_config[0]['sample_rate']))
