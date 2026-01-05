@@ -69,12 +69,13 @@ if use_tflite:
 elif Flags.saved_model_path.rsplit('.')[-1] in ["h5", "keras"]:
     with tfmot.quantization.keras.quantize_scope(): # needed for the QAT wrappers
         model_std = keras.models.load_model(Flags.saved_model_path) # normal model for fixed-length inputs
-    ## Build a model that can accept variable-length inputs to process the long waveform/spectrogram
-    Flags.variable_length=True
-    model_varlen = models.get_model(args=Flags, use_qat=False) # model with variable-length input
-    Flags.variable_length=False
-    # transfer weights from trained model into variable-length model
-    model_varlen.set_weights(model_std.get_weights())
+    ## 5 jan 2026 jhh, changing long-wav eval to use fixed-length model
+    # ## Build a model that can accept variable-length inputs to process the long waveform/spectrogram
+    # Flags.variable_length=True
+    # model_varlen = models.get_model(args=Flags, use_qat=False) # model with variable-length input
+    # Flags.variable_length=False
+    # # transfer weights from trained model into variable-length model
+    # model_varlen.set_weights(model_std.get_weights())
 else:
     raise RuntimeError("Model file ({Flags.saved_model_path}) must end in '.tflite', '.h5', or '.keras'.")
 
@@ -121,7 +122,19 @@ if test_streaming:
         # Dequantize so that softmax output is in range [0,1]
         yy = (yy_q.astype(np.float32) - output_zero_point)*output_scale
     else:
-        yy = model_varlen(long_spec)[0].numpy()
+        ## build long_spec_strided from long_spec
+        print(f"Shape of long_spec: {long_spec.shape}")
+        model_settings = models.prepare_model_settings(Flags)
+        # Create sliding windows along axis 1
+        long_spec_strided = np.lib.stride_tricks.sliding_window_view(
+            long_spec, window_shape=model_settings['spectrogram_length'], axis=1
+            )
+        long_spec_strided = long_spec_strided.squeeze(0)          # remove extra batch dim
+        long_spec_strided = np.moveaxis(long_spec_strided, -1, 1) # move time axis to dim 1
+        print(f"Shape of long_spec_strided: {long_spec_strided.shape}")
+
+        yy = model_std(long_spec_strided).numpy()
+        # yy = model_varlen(long_spec)[0].numpy()
 
     ww_present = np.zeros(int(stream_test_config[0]['length_sec']*stream_test_config[0]['sample_rate']))
     for t_start, t_stop in ww_windows:
