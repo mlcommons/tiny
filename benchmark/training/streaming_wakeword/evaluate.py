@@ -133,7 +133,8 @@ if test_streaming:
         long_spec_strided = np.moveaxis(long_spec_strided, -1, 1) # move time axis to dim 1
         print(f"Shape of long_spec_strided: {long_spec_strided.shape}")
 
-        yy = model_std(long_spec_strided).numpy()
+        # yy = model_std(long_spec_strided).numpy()
+        yy = model_std.predict(long_spec_strided)
         # yy = model_varlen(long_spec)[0].numpy()
 
     ww_present = np.zeros(int(stream_test_config[0]['length_sec']*stream_test_config[0]['sample_rate']))
