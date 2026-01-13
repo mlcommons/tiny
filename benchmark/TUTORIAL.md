@@ -37,9 +37,19 @@ The image classification, anomaly detection, keyword spotting and person detecti
 
 Next, build the firmware for the desired benchmark by executing `mbed compile -m NUCLEO_L4R5ZI -t GCC_ARM` in the benchmark directory, then flash the firmware to the board by copying the compiled .bin file to the STM32 Nucleo board. This can be achieved through the command line, through the file explorer, or through the use of the STM32 Cube Programmer application.
 
-To run any of the tests in energy mode, connect the energy board to the USB port on the computer and connect the reference board to the energy board as shown below. Make sure to disconnect the reference board from the computer after flashing the firmware if running the test in energy mode.
+To run any of the tests in energy mode, connect the power board and the interface board to the reference board as shown below, and connect the interface board and the power board to the computer via USB. Load the firmware from *[interface/benchmark_interface.elf](interface/benchmark-interface.elf)* to the interface board using the STM32 Cube Programmer. Then, navigate to the `submitter_implemented.h` file in the desired benchmark, modify the line `#define EE_CFG_ENERGY_MODE 0` to `#define EE_CFG_ENERGY_MODE 1`, then recompile the firmware and load the compiled .bin file to the reference board.
 
+The interface board runs at 3.3V, so if the DUT is running at any other supply voltage, the logic levels must be shifted.  The TXB0108, available in a [breakout board](https://www.adafruit.com/product/395) from Adafruit, support low-side voltages from 1.2V to 3.6V.
+
+#### Power board (LPM01A)
 ![LPM01A Wiring](runner/img/LPM01A.png)
+
+#### Interface board (STM32H573I-DK)
+![STM32H573I-DK Top Wiring](runner/img/STM32H573I-DK-Top.png)
+![STM32H573I-DK Bottom Wiring](runner/img/STM32H573I-DK-Bottom.png)
+
+#### Device under test (L4R5ZI) with level shifter
+![DUT Wiring](runner/img/L4R5Zi.png)
 
 Once the hardware is configured, navigate to the [runner](./runner/) directory and execute the runner. Commands to run specific benchmarks are below.
 * Image Classification
@@ -60,20 +70,9 @@ Once the hardware is configured, navigate to the [runner](./runner/) directory a
     * Accuracy: `python main.py --dataset_path=/path/to/datasets/ --test_script=tests_accuracy.yaml --device_list=devices_ad.yaml --mode=a`
 
 ### Streaming wakeword benchmark
-The streaming wakeword benchmark uses the STM32 Cube SDK and consists of two parts that must be installed independently. First, open the STM32 Cube IDE and import the *[sww_ref_l4r5zi](./reference_submissions/streaming_wakeword/sww_ref_l4r5zi/)* project. Navigate to the debug configurations dialog by right-clicking the project name and selecting *Debug As -> Debug Configurations* and change the ST-Link device on the *Debugger* tab to the device plugged into the computer by pressing *Scan* and selecting the device from the drop-down menu. Then, compile and run the program by pressing the *Debug* button and pressing *Resume* when the debugger connects. Disconnect the debugger and disconnect the Nucleo reference board.
+The streaming wakeword benchmark uses the STM32 Cube SDK and consists of two parts that must be installed independently. First, open the STM32 Cube IDE and import the *[sww_ref_l4r5zi](./reference_submissions/streaming_wakeword/sww_ref_l4r5zi/)* project. Navigate to the debug configurations dialog by right-clicking the project name and selecting *Debug As -> Debug Configurations* and change the ST-Link device on the *Debugger* tab to the device plugged into the computer by pressing *Scan* and selecting the device from the drop-down menu. Then, compile and run the program by pressing the *Debug* button and pressing *Resume* when the debugger connects. Disconnect the debugger and disconnect the Nucleo reference board. Then, connect the reference board, power board and interface board in the energy measurement configuration as shown above.
 
-Next, connect the power board to the reference board as shown above, connect the interface board to the reference board as shown below, and connect the interface board and the power board to the computer via USB. Load the firmware from *[interface/benchmark_interface.elf](interface/benchmark-interface.elf)* to the interface board using the STM32 Cube Programmer.
-
-The interface board runs at 3.3V, so if the DUT is running at any other supply voltage, the logic levels must be shifted.  The TXB0108, available in a [breakout board](https://www.adafruit.com/product/395) from Adafruit, support low-side voltages from 1.2V to 3.6V.
-
-The STM32H573I-DK board has a slot for a micro-SD card. The SD card must be loaded with the WAV files containing the wakewords to be streamed from the *[runner/sww_data_dir](runner/sww_data_dir/)* folder. Ensure that it is formatted as an MS-DOS (FAT32) disk.  A 1GB card is plenty for the current benchmarks. **This data must also be stored in a folder named sww01 under the dataset path specified in the next steps otherwise the runner will fail to detect (e.g., in a the folder [evaluation/datasets/sww01](evaluation/datasets/sww01/) if the specified dataset path is [evaluation/datasets](evaluation/datasets)).**
-
-### Interface board (STM32H573I-DK)
-![STM32H573I-DK Top Wiring](runner/img/STM32H573I-DK-Top.png)
-![STM32H573I-DK Bottom Wiring](runner/img/STM32H573I-DK-Bottom.png)
-
-### Device under test (L4R5ZI) with level shifter
-![DUT Wiring](runner/img/L4R5Zi.png)
+The interface board has a slot for a micro-SD card. The SD card must be loaded with the WAV files containing the wakewords to be streamed from the *[runner/sww_data_dir](runner/sww_data_dir/)* folder. Ensure that it is formatted as an MS-DOS (FAT32) disk.  A 1GB card is plenty for the current benchmarks. **This data must also be stored in a folder named sww01 under the dataset path specified in the next steps otherwise the runner will fail to detect (e.g., in a the folder [evaluation/datasets/sww01](evaluation/datasets/sww01/) if the specified dataset path is [evaluation/datasets](evaluation/datasets)).**
 
 This benchmark runs performance, accuracy and energy tests in a single run, and should be run in energy mode.
 
