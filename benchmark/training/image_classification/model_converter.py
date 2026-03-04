@@ -15,7 +15,7 @@ from test import model_name
 tfmodel_path = 'trained_models/' + model_name
 tfmodel = tf.keras.models.load_model(tfmodel_path)
 cifar_10_dir = 'cifar-10-batches-py'
-model_name = model_name[:-3]
+# model_name = model_name[:-3]
 
 def representative_dataset_generator():
     train_data, train_filenames, train_labels, test_data, test_filenames, test_labels, label_names = \
