@@ -4,7 +4,7 @@ wget https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz
 tar -xvf cifar-10-python.tar.gz
 
 # load performance subset
-. venv/bin/activate
+# . venv/bin/activate
 python3 perf_samples_loader.py
 
 # train ans test the model
