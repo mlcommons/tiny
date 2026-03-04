@@ -153,7 +153,7 @@ if __name__ == "__main__":
     f.subplots_adjust(wspace=0)
     plt.show()
 
-    new_model = keras_model.resnet_v1_eembc()
+    new_model = keras_model.resnet_v1_eembc(conv_filters=26)
     new_model.summary()
 
     # compute quantities required for featurewise normalization
