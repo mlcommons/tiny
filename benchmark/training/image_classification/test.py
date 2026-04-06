@@ -10,19 +10,23 @@ target performances: https://github.com/SiliconLabs/platform_ml_models/tree/mast
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pickle
+
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
+import argparse
 
 import train
 import eval_functions_eembc
-import keras_model
+
 
 # if True uses the official MLPerf Tiny subset of CIFAR10 for validation
 # if False uses the full CIFAR10 validation set
 PERF_SAMPLE = True
 
-model_name = keras_model.get_model_name()
+argument_parser = argparse.ArgumentParser()
+argument_parser.add_argument('model_name', type=str, help='name of the model to convert')
+args = argument_parser.parse_args()
+model_name = args.model_name
 
 if __name__ == "__main__":
 
@@ -44,7 +48,8 @@ if __name__ == "__main__":
     label_classes = np.argmax(test_labels,axis=1)
     print("Label classes: ", label_classes.shape)
 
-    model = tf.keras.models.load_model('trained_models/' + model_name + '.h5')
+    model = tf.keras.models.load_model(model_name, compile=False)
+    model.compile(optimizer="adam", loss='categorical_crossentropy', metrics='accuracy')
 
     test_metrics = model.evaluate(x=test_data, y=test_labels, batch_size=32, verbose=1, return_dict=True)
 

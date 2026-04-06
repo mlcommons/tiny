@@ -25,12 +25,13 @@ PERF_SAMPLE = True
 # if True uses quantized model
 QUANT_MODEL = True
 
-if QUANT_MODEL:
-    _name = keras_model.get_quant_model_name()
-    model_path = 'trained_models/' + _name + '_quant.tflite'
-else:
-    _name = keras_model.get_quant_model_name()
-    model_path = 'trained_models/' + _name + '.tflite'
+import argparse
+
+argument_parser = argparse.ArgumentParser()
+argument_parser.add_argument('tfl_model', type=str, help='Name of the TFLite model to test')
+args = argument_parser.parse_args()
+
+model_path = args.tfl_model
 
 if __name__ == '__main__':
     # Load the TFLite model and allocate tensors.
