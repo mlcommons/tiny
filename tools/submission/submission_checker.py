@@ -102,6 +102,42 @@ MODEL_CONFIG = {
           "sww": ["energy", "performance"]
         },
         "required_files": ["log.txt", "results.json", "results.txt"]
+    },
+    "v1.4": {
+        "models": ["ad", "ic", "ic2", "kws", "vww", "sww"],  
+        "required-scenarios": {
+            # anything goes
+        },
+        "optional-scenarios": {
+            # anything goes
+        },
+        "accuracy-target": {
+            "ad": ("auc", 0.85),
+            "ic": ("top-1", 85),
+            "ic2": ("top-1", 91),
+            "kws": ("top-1", 90),
+            "vww": ("top-1", 80),
+            "sww": ("fps_fns", (8,8)),
+        },
+        "model_mapping": {
+        },
+        "required_tests": {
+          "ad": ["accuracy", "performance"],
+          "ic": ["accuracy", "performance"],
+          "ic2": ["accuracy", "performance"],
+          "kws": ["accuracy", "performance"],
+          "vww": ["accuracy", "performance"],
+          "sww": []
+        },
+        "optional_tests": {
+          "ad": ["energy"],
+          "ic": ["energy"],
+          "ic2": ["energy"],
+          "kws": ["energy"],
+          "vww": ["energy"],
+          "sww": ["energy", "performance"]
+        },
+        "required_files": ["log.txt", "results.json", "results.txt"]
     }
 }
 VALID_DIVISIONS = ["open", "closed"]
@@ -635,6 +671,13 @@ def check_results_dir(config,
             # for open division the model_name might be different than the task
             log.error("%s has an invalid model %s for closed/network division",
                       name, model_name)
+            results[name] = None
+            continue
+
+          if model_name == "ic2" and "ic" not in list_dir(results_path, system_desc):
+            log.error("%s need %s run in order to have "
+                      "valid results for %s, but are not present",
+                      name, "ic", model_name)
             results[name] = None
             continue
 
