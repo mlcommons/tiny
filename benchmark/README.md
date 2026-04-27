@@ -4,6 +4,7 @@ The current version of the MLPerf Tiny benchmark suite consists four benchmarks:
 |   Keyword Spotting   |        Small vocabulary keyword spotting        |      Speech Commands [[1]](#1)                |      [DS-CNN](https://github.com/mlcommons/tiny/blob/master/benchmark/training/keyword_spotting/keras_model.py)   | 90% (Top 1)
 |   Visual Wake Words  |           Binary image classification           | Visual Wake Words Dataset [[2]](#2)           |     [MobileNet](https://github.com/mlcommons/tiny/blob/master/benchmark/training/visual_wake_words/vww_model.py)    | 80% (Top 1)
 | Image Classification |            Small image classification           |          Cifar10 [[3]](#3)                    |      [ResNet](https://github.com/mlcommons/tiny/blob/master/benchmark/training/image_classification/keras_model.py)      | 85% (Top 1)
+| Image Classification 2 |            Larger image classification           |          Cifar10 [[3]](#3)                    |      [ResNet](https://github.com/mlcommons/tiny/blob/master/benchmark/training/image_classification/trained_models/pretrainedResnet_large.h5)      | 91% (Top 1)
 |   Anomaly Detection  | Detecting anomalies in machine operating sounds |          ToyADMOS [[4]](#4)[[5]](#5)[[6]](#6) | [Deep AutoEncoder](https://github.com/mlcommons/tiny/blob/master/benchmark/training/anomaly_detection/keras_model.py) | 0.85 (AUC)
 
 ## Divisions
