@@ -121,6 +121,15 @@ benchmarks.
 The implementation should not encode any information about the content of the
 input dataset in any form.
 
+=== Progressively Larger Submissions Required
+
+For benchmarks with multiple sizes (as of spring 2026, only Image Classification),
+if an organization submits one size of the benchmark, it must also submit all
+smaller sizes.  So for example, you may submit IC01 (smaller image classification)
+and IC02 (larger image classification), or only IC01, but you may not submit IC02
+without also submitting IC01.  This is to maximize the availability of direct comparisons
+in the results.
+
 === Audit Process
 
 In depth audits will not be conducted in this version (v1.2) of MLPerf Tiny
