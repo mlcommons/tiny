@@ -364,7 +364,7 @@ def get_args():
   parser.add_argument("--input", required=True, help="submission directory")
   parser.add_argument(
       "--version",
-      default="v1.3",
+      default="v1.4",
       choices=list(MODEL_CONFIG.keys()),
       help="mlperf version")
   parser.add_argument("--submitter", help="filter to submitter")
