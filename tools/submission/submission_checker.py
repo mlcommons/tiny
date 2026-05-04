@@ -277,7 +277,7 @@ class Config():
     self.more_power_check = more_power_check
 
   def set_type(self, submission_type):
-    if submission_type is None and self.version in ["v1.0", "v1.1", "v1.2", "v1.3"]:
+    if submission_type is None and self.version in ["v1.0", "v1.1", "v1.2", "v1.3", "v1.4"]:
       self.required = self.base["required-scenarios"]
       self.optional = self.base["optional-scenarios"]
     else:
