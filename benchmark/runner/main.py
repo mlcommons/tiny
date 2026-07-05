@@ -169,36 +169,57 @@ def print_energy_results(l_results, energy_sampling_freq=1000, req_cycles=5, res
     for inf_num,res in enumerate(l_results):
         plt.clf()
         energy_samples = res['power']['samples'] # assume 'output type' is set to energy
+        hw_timestamps = res['power'].get('timestamps', [])
+        soft_markers = res['power'].get('soft_markers', [])
         
-        # timestamps (or 'events' per LPM01a wording are recorded as 
-        # (counter, num_samples) where
-        # counter: 0,1,.. for the 1st, 2nd, etc, to test if you lost a timestamp
-        # num_samples: number of samples captured when the timestamp happened
-        ts_counters = [int(ts[0]) for ts in res['power']['timestamps']]
-        ts_samp_nums = np.array([int(ts[1]) for ts in res['power']['timestamps']])
-        ts_seconds = ts_samp_nums/energy_sampling_freq
-        
-        if np.any(np.diff(ts_counters) != 1):
-            raise RuntimeError(f"Timestamps are not consecutive:\n{res['power']['timestamps']}")
-
-        t_implicit = np.arange(len(energy_samples))/energy_sampling_freq
+        t_implicit = np.arange(len(energy_samples)) / energy_sampling_freq
         plt.plot(t_implicit, energy_samples, 'b')
-        y_min = np.min(energy_samples)
-        y_max = np.max(energy_samples)
-        
-        for ts in ts_seconds:  
-            plt.plot([ts, ts], [y_min, y_max], 'r')
-            plt.grid(True)
-        plt.savefig(os.path.join(results_dir, f"energy_inf_{inf_num:03d}.png"))
-        
-        # There is sometimes some extra activity on the timestamp pin at the 
-        # beginning, so take the last two
-        t_start = ts_seconds[-2]
-        t_stop = ts_seconds[-1]
-        idx_start = ts_samp_nums[-2]
-        idx_stop = ts_samp_nums[-1]
+        y_min = np.min(energy_samples) if len(energy_samples) else 0
+        y_max = np.max(energy_samples) if len(energy_samples) else 1
 
-        elapsed_time = t_stop-t_start
+        idx_start = None
+        idx_stop = None
+
+        if len(hw_timestamps) >= 2:
+            ts_counters = [int(ts[0]) for ts in hw_timestamps]
+            ts_samp_nums = np.array([int(ts[1]) for ts in hw_timestamps])
+            ts_seconds = ts_samp_nums/energy_sampling_freq
+        
+            if np.any(np.diff(ts_counters) != 1):
+                raise RuntimeError(f"Timestamps are not consecutive:\n{hw_timestamps}")
+        
+            for ts in ts_seconds:  
+                plt.plot([ts, ts], [y_min, y_max], 'r')
+                plt.grid(True)
+        
+            idx_start = ts_samp_nums[-2]
+            idx_stop = ts_samp_nums[-1]
+
+        elif len(soft_markers) >= 2:
+            marker_dict = {}
+            for tag, idx in soft_markers:
+                marker_dict[tag] = idx
+
+            if "start" in marker_dict and "stop" in marker_dict:
+                idx_start = marker_dict["start"]
+                idx_stop = marker_dict["stop"]
+
+                t_start = idx_start / energy_sampling_freq
+                t_stop = idx_stop / energy_sampling_freq
+                plt.plot([t_start, t_start], [y_min, y_max], 'g')
+                plt.plot([t_stop, t_stop], [y_min, y_max], 'g')
+                plt.grid(True)
+
+        else:
+            idx_start = 0
+            idx_stop = len(energy_samples)
+
+        plt.savefig(os.path.join(results_dir, f"energy_inf_{inf_num:03d}.png"))
+
+        if idx_start is None or idx_stop is None or idx_stop <= idx_start:
+            raise RuntimeError(f"Invalid energy integration window for trial {inf_num}: start={idx_start}, stop={idx_stop}")
+
+        elapsed_time = (idx_stop - idx_start) / energy_sampling_freq
         inference_energy_samples = np.array(energy_samples[idx_start:idx_stop])
         total_inference_energy = np.sum(inference_energy_samples)
         num_inferences = res['infer']['iterations']

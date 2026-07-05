@@ -26,6 +26,10 @@ class PowerManager:
             from .power_manager_lpm import LPMCommands # only import this file if we're using this device
             self._port = SerialDevice(port_device, baud_rate, "ack|error", "\r\n", echo=echo)
             self._commands = LPMCommands(self, self._port)
+        elif device_type == "stlinkv3pwr":
+            from .power_manager_stlinkv3pwr import STLinkV3PWRCommands
+            self._port = SerialDevice(port_device, baud_rate, "", "\r\n", echo=echo)
+            self._commands = STLinkV3PWRCommands(self, self._port)
         elif device_type == "js220":
             from .power_manager_js220 import JoulescopeCommands
             if js_device is None:
@@ -40,8 +44,8 @@ class PowerManager:
 
     def __enter__(self):
         self._port.__enter__()
-        self._start_read_thread()           # ✅ move this up
-        self._commands.setup()              # ✅ now it's safe like the old code
+        self._start_read_thread()           # ? move this up
+        self._commands.setup()              # ? now it's safe like the old code
         return self
 
     def __exit__(self, *args):
@@ -61,7 +65,7 @@ class PowerManager:
     def get_results(self):
         while not self._data_queue.empty():
             yield self._data_queue.get()
-            
+
     def should_stop(self):
         return not self._running
 
