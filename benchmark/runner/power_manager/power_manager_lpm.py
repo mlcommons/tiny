@@ -33,7 +33,7 @@ class LPMCommands:
                 values = self._extract_current_values(line)
                 for v in values:
                     self.m._data_queue.put(v)
-            elif re.match(r"event \d+ ris", line):
+            elif re.match(r"event \d+ (ris|fal)", line):
                 self.m._data_queue.put(line)
             else:
                 self.m._message_queue.put(line)

@@ -143,7 +143,7 @@ class _ScriptLoopStep(_ScriptStep):
                 if watchdog_flag["timeout"]:
                     print("[WATCHDOG] Loop timeout. Restarting current loop iteration.")
                     watchdog_flag["timeout"] = False  # reset for next iteration
-
+                    r = cmd.run(io, dut, dataset, mode)
             for cmd in self._commands:
                 r = cmd.run(io, dut, dataset, mode)
                 if r is not None:
@@ -182,15 +182,7 @@ class _ScriptInferStep(_ScriptStep):
 
 
     def run(self, io, dut, dataset, mode):  # mode passed to run
-        # SW Fallback used for STLINK-V3PWR
-        if mode == "e" and dut.power_manager and hasattr(dut.power_manager._commands, "mark_soft_event"):
-            dut.power_manager._commands.mark_soft_event("start")
-
         raw_result = dut.infer(self._iterations, self._warmups)
-
-        if mode == "e" and dut.power_manager and hasattr(dut.power_manager._commands, "mark_soft_event"):
-            dut.power_manager._commands.mark_soft_event("stop")
-
         print(f"Running inference with {self._warmups}/{self._iterations} (warmup/measured) iterations ...  ", end="")
         infer_results = _ScriptInferStep._gather_infer_results(raw_result, mode)
         print(f" done")
@@ -200,14 +192,13 @@ class _ScriptInferStep(_ScriptStep):
         result = dict(infer=infer_results)
 
         if mode == "e":
-            timestamps, samples, soft_markers = _ScriptInferStep._gather_power_results(dut.power_manager)
-            print(f"  Captured samples:{len(samples)} timestamps:{len(timestamps)} soft_markers:{len(soft_markers)}")
-            # Read power values from the log file using timestamps or Softmarker
+            timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
+            print(f"  Captured samples:{len(samples)} timestamps:{len(timestamps)}")
+            # Read power values from the log file using timestamps
             power_values = None
 
             result.update(power=dict(samples=samples,
                                      timestamps=timestamps,
-                                     soft_markers=soft_markers,
                                      extracted_power=power_values  # <-- NEW: Power values from the file
                                     )
                           )
@@ -222,7 +213,6 @@ class _ScriptInferStep(_ScriptStep):
         samples = []
         timeStamps = [] # this is what the EEMBC runner calls "timestamps"
         clock_ticks = [] # this is what the LPM01a calls "timestamps"
-        soft_markers = []
         if power:
             for x in power.get_results():
                 if isinstance(x, str):
@@ -234,23 +224,12 @@ class _ScriptInferStep(_ScriptStep):
                             expected_samples = clock_ticks[-2][1] + 1000
                             print(f"At time {ts}: expected {expected_samples}, but we have {clock_ticks[-1][1]}.")
                     elif x.startswith("event"):
-                        match = re.match(r"event (\d+) ris", x)
+                        match = re.match(r"event (\d+) (ris|fal)", x)
                         event_num = match.group(1)
                         timeStamps.append((event_num, len(samples)))
-                    elif x.startswith("RecID "):
-                        # STLINK-V3PWR metadata for stream resynchronization / overflow info.
-                        # Not used in current energy windowing logic.
-                        pass
-                    elif x.startswith("soft_event "):
-                        # We intentionally ignore the absolute index encoded in the message
-                        # and convert the marker into a local index, relative to the samples
-                        # of THIS inference only.
-                        match = re.match(r"soft_event (\w+)(?:\s+\d+)?", x)
-                        if match:
-                            soft_markers.append((match.group(1), len(samples)))
                 else:
                     samples.append(x)
-        return timeStamps, samples, soft_markers
+        return timeStamps, samples
 
     @staticmethod
     def _gather_infer_results(cmd_results, mode):
@@ -364,14 +343,14 @@ class _ScriptStreamStep(_ScriptStep):
                       )
 
         if mode == "e":
-            timestamps, samples, soft_markers = _ScriptInferStep._gather_power_results(dut.power_manager)
-            print(f"samples:{len(samples)} timestamps:{len(timestamps)} soft_markers:{len(soft_markers)}")
+            timestamps, samples = _ScriptInferStep._gather_power_results(dut.power_manager)
+            print(f"samples:{len(samples)} timestamps:{len(timestamps)}")
+
             # Read power values from the log file using timestamps
             power_values = None
 
             result.update(power=dict(samples=samples,
                                      timestamps=timestamps,
-                                     soft_markers=soft_markers,
                                      extracted_power=power_values
                                     )
                          )

@@ -23,6 +23,15 @@
   voltage: 1.8   # <-- Voltage for DUT
   usb:
     0x0483: 0x5740  # Ensures detection by VID/PID (1155 / 22336)
+- name: stlinkv3pwr
+  type: power
+  baud: 3686400
+  preference: 3
+  echo: false
+  voltage: 1.8
+  raw_sampling_rate: 100000
+  usb:
+    0x0483: 0x3757  # Ensures detection by VID/PID (1155 / 22336)   
 - name: l4r5zi
   type: dut
   baud:

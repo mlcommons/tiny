@@ -27,7 +27,7 @@
   type: power
   baud: 3686400
   preference: 3
-  echo: false
+  echo: False
   voltage: 1.8
   raw_sampling_rate: 100000
   usb:
