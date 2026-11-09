@@ -1,0 +1,26 @@
+name: Runner configuration safety
+on:
+  pull_request:
+    paths:
+      - 'benchmark/runner/**'
+      - '.github/workflows/runner-config.yml'
+permissions:
+  contents: read
+jobs:
+  configuration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.10', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /benchmark/runner/*.py
+            /benchmark/runner/tests*.yaml
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install PyYAML
+      - run: python -m unittest discover -s benchmark/runner -p test_runner_config.py

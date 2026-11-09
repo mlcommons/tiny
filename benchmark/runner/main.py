@@ -1,4 +1,4 @@
-import argparse, os, time, yaml, json, io
+import argparse, os, time, json, io
 from datetime import datetime
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -13,6 +13,7 @@ from device_under_test import DUT
 from script import Script, log_filename
 import streaming_ww_utils as sww_util
 from runner_utils import get_baud_rate, print_tee
+from runner_config import parse_device_config, parse_test_script
 
 """
 Application to execute test scripts to measure power consumption, turn on and off power, send commands to a device
@@ -100,25 +101,6 @@ def run_test(devices_config, dut_config, test_script, dataset_path,mode):
     
     return result, power
 
-def parse_device_config(device_list_file, device_yaml):
-    """Parse the device discovery configuration
-
-    :param device_list: device discovery configuration file
-    :param device_yaml: device description as raw yaml
-    """
-    if device_yaml:
-        return yaml.load(device_yaml)
-    else:
-        with open(device_list_file) as dev_file:
-            return yaml.load(dev_file, Loader=yaml.CLoader)
-
-def parse_test_script(test_script):
-    """Load the test script
-
-    :param test_script: The path to the test script definition
-    """
-    with open(test_script) as test_file:
-        return yaml.load(test_file, Loader=yaml.CLoader)
 
 # Function to normalize probabilities
 def normalize_probabilities(scores):
