@@ -226,6 +226,22 @@ python main.py --dataset_path=C:\Your\Dataset\Path --mode=e
 ```
 
 You must define mode as e and if for some reason the PowerBoard is not detecting it will return a runtime error.
+## Runner tests without hardware
+
+From the repository root, install the test dependencies in a virtual environment
+and run:
+
+```sh
+python -m pip install -r benchmark/runner/tests/requirements.txt
+python -m unittest discover -s benchmark/runner/tests -v
+```
+
+These tests exercise streaming response parsing, insufficient timing data, and
+the streaming script step with simulated board responses. They do not open
+serial ports or validate firmware, physical wiring, audio delivery, or energy
+measurements. The streaming-step test runs in a temporary directory because the
+runner configures logging when imported.
+
 ## Troubleshooting Section
 
 If you encounter errors while running the test, refer to the guide below.
@@ -286,7 +302,22 @@ If `FX_FAT_READ_ERROR` is triggered, there may be **issues with the SD card or i
 If the I2S transfer appears not to be working, here are a few things to try.
 1. To run a shorter test, change the 'truth_file' value under the sww section to `sww_short_test.json` (10 seconds) or `sww_med_test.json` (2 minutes).
 2. To reduce the number of connections, you can run the test without the power board and with the the host connected directly to the DUT's USB virtual UART, although the interface board is still necessary for delivering I2S signals.  The runner will detect the connection and issue commands directly to the DUT rather than going through the interface board.  This setup will also let you use the step debugger in the DUT.  In this arrangement, make sure that the UART wires are disconnected so they don't contend with the USB UART and make sure the IDD jumper is in place, since the DUT is being powered through the USB connection.
-3. 
+3. If no detection timestamps are captured, check the entire signal path before
+   changing model thresholds. The reference firmware emits an initial
+   `WW_DETECTED` pulse on the first processed audio frame to synchronize timing.
+   An empty timestamp list therefore also lacks that synchronization pulse; it
+   is not a valid accuracy measurement with zero true positives. Confirm that
+   the interface board plays the selected WAV file, I2S reaches the DUT, and the
+   `WW_DETECTED` signal reaches the interface board. If necessary, inspect the
+   return status from `th_dma_receive()` and whether `HAL_SAI_RxCpltCallback()`
+   executes while the DUT is in the `Streaming` state.
+4. A duty-cycle measurement requires at least two complete `PROCESSING` pulses.
+   If the runner reports no complete pulses or only one, check audio streaming
+   and the `PROCESSING` connection. Power samples alone do not establish that
+   audio frames were processed. Record the repository commit, both firmware
+   versions, runner command and YAML files, WAV filename, and session log when
+   reporting a reproduction. These checks identify where to investigate; they
+   do not establish the cause of a missing callback without hardware testing.
 
 ### Baud Rate for Interface board:
 Located in file /application/user/core/usart.c
