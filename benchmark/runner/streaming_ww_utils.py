@@ -55,6 +55,8 @@ def array_from_strings(raw_info, header_str, end_str='m-ready', data_type=None):
     return number_lists
 
 def process_timestamps(raw_result):
+    if not raw_result:
+        raise ValueError("Empty detection timestamp response from the interface board.")
     if raw_result[0] != 'Detection Timestamps (ms)':
         raise ValueError(f"List must start with 'Detection Timestamps (ms)'. First element is {raw_result[0]}")
     if raw_result[-1] != 'm-ready':
@@ -69,6 +71,8 @@ def process_timestamps(raw_result):
 
 
 def process_dutycycle(raw_result):
+    if not raw_result:
+        raise ValueError("Empty duty cycle response from the interface board.")
     if raw_result[0].find('Duty cycle start times') < 0:
         raise ValueError(f"Duty cycle response must start with 'Duty cycle start times (s)'. First element is {raw_result[0]}")
     if raw_result[-1].find('m-ready') < 0:
@@ -107,6 +111,19 @@ def process_dutycycle(raw_result):
         proc_start_times = proc_start_times[:num_pulses]
         proc_stop_times = proc_stop_times[:num_pulses]
 
+    # A period needs two complete pulses, including after unmatched edges
+    # have been discarded. Do not reduce an empty np.diff result.
+    if len(proc_start_times) == 0:
+        raise RuntimeError(
+            "No complete processing pulses captured. Check I2S audio streaming "
+            "and the PROCESSING signal connection."
+        )
+    if len(proc_start_times) < 2:
+        raise RuntimeError(
+            "Cannot calculate duty cycle: at least two complete processing pulses "
+            "are required; captured 1. Check I2S audio streaming and the "
+            "PROCESSING signal connection."
+        )
 
     on_times = proc_stop_times - proc_start_times
     periods = np.diff(proc_start_times)
@@ -135,9 +152,10 @@ def calc_detection_stats(measured_timestamps_ms, true_det_windows,
                          ):
     
     if len(measured_timestamps_ms) == 0:
-        raise RuntimeError("No detections captured.  There should be at least one to mark the"
-                           "beginning of the run"
-                           )
+        raise RuntimeError(
+            "No detection timestamps captured, including the initial synchronization "
+            "pulse. Check I2S audio streaming and the WW_DETECTED signal connection."
+        )
     measured_timestamps_ms = np.array(measured_timestamps_ms)
     detection_start = measured_timestamps_ms[0]
     fp_timestamps_ms = measured_timestamps_ms[1:] - detection_start
